@@ -8,7 +8,6 @@ import { attachSmoothScroll, scrollToY, stepSmoothScroll } from './smooth-scroll
 import { createTempo, markVisit, type Verdict } from './tempo';
 import { createGold } from './gold';
 import { signals } from './signals';
-import { shatterCells } from './shatter';
 import gsap from 'gsap';
 
 /* Fill these in and the matching capsules appear in the colophon. Nothing here is
@@ -77,9 +76,30 @@ const release = (e: React.PointerEvent<HTMLElement>) => {
   e.currentTarget.style.setProperty('--my', '0px');
 };
 
-/* The curtain, broken once at module load. Twenty-four cells, generated off a
-   jittered grid so no two are the same shape and none is a sliver - see shatter.ts. */
-const SHARDS = shatterCells(6, 4, .62);
+/* The orbits.
+
+   Eight concentric rings, each carrying one line of the piece's own vocabulary. The
+   outer ring holds the thesis and the inner one holds the only honest word a loader
+   has - and between them the acts, the material, and the arithmetic, so a reader who
+   is only waiting has already been told what they are waiting for.
+
+   `radius` also sets the pace: the outer rings breathe slowly and the inner ones
+   quickly, the way anything turning on a common axis does. */
+const ORBITS = [
+  { r: 450, offset: 30, from: 1200, to: 1800, text: 'ARCHITECTING POSSIBILITIES — BORN IN LIMITATIONS — BUILT ALONG THE SEAMS — ' },
+  { r: 400, offset: 15, from: 1050, to: 1550, text: 'GYPSUM — 3.5 M — ONE PIECE — A VORONOI SHELL — FORTY-THREE FRAGMENTS — ' },
+  { r: 350, offset: 40, from: 900, to: 1350, text: 'THE UNBROKEN — SUSPENDED TIME — FALL AND REPAIR — THE WORKING SURFACE — ' },
+  { r: 300, offset: 25, from: 780, to: 1150, text: 'KINTSUGI — THE METAL GOES WHERE THE BREAK WAS — NOTHING IS HIDDEN — ' },
+  { r: 250, offset: 10, from: 650, to: 950, text: 'WHAT THE LIGHT MAKES — ONE STATION ONLY — EVERYTHING IT COST — ' },
+  { r: 200, offset: 35, from: 520, to: 780, text: 'ONE READS THE LIGHT — ONE READS THE HEAT — THREE WINGS — ' },
+  { r: 150, offset: 20, from: 380, to: 580, text: 'THIRTY OF FORTY-THREE ARRIVE — ' },
+  { r: 100, offset: 5, from: 260, to: 420, text: 'LOADING — WAIT — ' },
+] as const;
+
+/** the arc command for a full circle of radius r, written twice so a textPath can run
+    past the join without the glyphs bunching at the seam */
+const orbitPath = (r: number) =>
+  `M 0 ${-r} A ${r} ${r} 0 1 1 -0.01 ${-r} M 0 ${-r} A ${r} ${r} 0 1 1 -0.01 ${-r}`;
 
 
 
@@ -425,72 +445,97 @@ export default function Home() {
     };
   }, []);
 
-  /* The break.
+  /* ------------------------------------------------------------- preloader
 
-     Fired once, from the preloader's own rAF, and deliberately not a CSS transition:
-     every shard needs its own direction, its own spin and its own delay, and the whole
-     thing has to be able to overlap the plate leaving. That is a timeline, and writing
-     one by hand in keyframes for twenty-four elements is how a loader ends up costing
-     three hundred lines.
+     The orbit animation lives entirely in GSAP and the count is written directly to
+     one text node. Neither asks React to redraw the eleven acts while WebGL is warming
+     up. The rings keep breathing at 92%; the final eight points are earned only when
+     the sculpture reports that its first frame is ready. */
+  const countRef = useRef<HTMLSpanElement>(null);
+  const wordRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLOutputElement>(null);
+  const orbitRef = useRef<SVGSVGElement>(null);
+  const count = useRef(0);
 
-     The throw is radial. Each cell leaves along the line from the middle of the screen
-     through its own centre, which is what a pane does when it is struck once from
-     behind - the alternative, everything sliding the same way, reads as a wipe. */
-  const breakCurtain = useCallback(() => {
+  const dismissLoader = useCallback(() => {
     const shell = shellRef.current;
-    const pane = paneRef.current;
-    if (!shell || !pane) return;
-    shell.classList.add('is-breaking');
+    const orbit = orbitRef.current;
+    if (!shell || !orbit || shell.dataset.leaving === 'true') return;
+    shell.dataset.leaving = 'true';
 
-    const shards = Array.from(pane.querySelectorAll<HTMLElement>('.pre-shard'));
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const paths = Array.from(orbit.querySelectorAll<SVGTextPathElement>('textPath'));
+    const finish = () => {
+      gsap.killTweensOf([orbit, ...paths]);
+      shell.classList.add('is-done');
+      shell.setAttribute('aria-hidden', 'true');
+      document.documentElement.classList.remove('is-loading');
+    };
 
-    if (reduced) {
-      gsap.to(shell, { autoAlpha: 0, duration: .45, onComplete: () => shell.classList.add('is-done') });
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      gsap.to(shell, { autoAlpha: 0, duration: .25, onComplete: finish });
       return;
     }
 
-    const timeline = gsap.timeline({ onComplete: () => shell.classList.add('is-done') });
-
-    // the plate goes first, and goes up, so it is out before the pane starts moving
-    timeline.to('.pre-plate', { yPercent: -18, autoAlpha: 0, duration: .42, ease: 'power3.in' }, 0);
-
-    shards.forEach((shard, i) => {
-      const { cx, cy } = SHARDS[i];
-      const dx = cx - 50;
-      const dy = cy - 50;
-      const reach = Math.hypot(dx, dy) || 1;
-      /* Cells near the middle are thrown hardest and land last, so the break opens
-         from the centre rather than peeling in from the edges. */
-      const near = 1 - Math.min(reach / 62, 1);
-      timeline.to(shard, {
-        xPercent: (dx / reach) * (58 + near * 70),
-        yPercent: (dy / reach) * (58 + near * 70),
-        rotate: (dx > 0 ? 1 : -1) * (5 + near * 16),
-        scale: .86,
+    gsap.timeline({ onComplete: finish })
+      .to('.pre-center', { yPercent: -12, autoAlpha: 0, duration: .4, ease: 'power3.in' })
+      .to(paths, {
         autoAlpha: 0,
-        duration: .95 + near * .35,
-        ease: 'power3.in',
-      }, .06 + near * .16 + (i % 5) * .012);
-    });
+        duration: .22,
+        stagger: { each: .035, from: 'end' },
+        ease: 'power2.in',
+      }, '-=.12')
+      .to(paths, {
+        autoAlpha: 1,
+        duration: .2,
+        stagger: { each: .03, from: 'start' },
+        ease: 'power2.out',
+      })
+      .to(orbit, { scale: .82, rotation: -14, autoAlpha: 0, duration: .9, ease: 'power3.inOut' }, '-=.05')
+      .to('.pre-edge', { autoAlpha: 0, duration: .3 }, '<')
+      .to(shell, { autoAlpha: 0, duration: .65, ease: 'power2.inOut' }, '-=.45');
   }, []);
 
-  /* ------------------------------------------------------------- preloader
+  useEffect(() => {
+    const shell = shellRef.current;
+    const orbit = orbitRef.current;
+    if (!shell || !orbit) return;
+    document.documentElement.classList.add('is-loading');
 
-     The count is written straight into the node and the seam is driven by a custom
-     property. Neither goes through state.
+    const paths = Array.from(orbit.querySelectorAll<SVGTextPathElement>('textPath'));
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const context = gsap.context(() => {
+      if (reduced) return;
+      paths.forEach((path, i) => {
+        const ring = ORBITS[i];
+        const pathLength = 4 * Math.PI * ring.r;
+        const targetOffset = ring.offset - ((ring.to - ring.from) / 2 / pathLength) * 100;
+        const ratio = ring.r / ORBITS[0].r;
 
-     This is the whole reason the opening used to stutter: `setLoaded` on a climbing
-     number re-rendered the entire page component - eleven sections, every act's
-     markup, the compass, the portal - between sixty and a hundred times during the
-     load, while the WebGL build and the shader warm-up were competing for the same
-     thread. The number is one text node. It should cost one text node. */
-  const countRef = useRef<HTMLSpanElement>(null);
-  const seamRef = useRef<SVGPathElement>(null);
-  const wordRef = useRef<HTMLElement>(null);
-  const shellRef = useRef<HTMLOutputElement>(null);
-  const paneRef = useRef<HTMLDivElement>(null);
-  const count = useRef(0);
+        gsap.to(path, {
+          attr: { textLength: ring.to, startOffset: `${targetOffset}%` },
+          duration: 2.5 + ratio * 2,
+          delay: i * .08,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        });
+      });
+
+      gsap.to(orbit, {
+        rotation: 18,
+        duration: 6,
+        ease: 'sine.inOut',
+        repeat: -1,
+        yoyo: true,
+      });
+    }, shell);
+
+    return () => {
+      context.revert();
+      document.documentElement.classList.remove('is-loading');
+    };
+  }, []);
+
   useEffect(() => {
     let raf = 0, last = performance.now(), shown = -1;
     const step = (now: number) => {
@@ -499,21 +544,18 @@ export default function Home() {
          sits is lying about what is happening; this one is honest that the last of it
          is the scene, not the assets. */
       const ceiling = ready ? 100 : 92;
-      count.current = Math.min(ceiling, count.current + dt * Math.max(46, (ceiling - count.current) * 3.4));
+      count.current = Math.min(ceiling, count.current + dt * Math.max(14, (ceiling - count.current) * .75));
 
       const whole = Math.floor(count.current);
       if (whole !== shown) {
         shown = whole;
-        if (countRef.current) countRef.current.textContent = String(whole).padStart(3, '0');
-        const at = (count.current / 100).toFixed(4);
-        seamRef.current?.style.setProperty('--p', at);
-        shellRef.current?.style.setProperty('--p', at);
+        if (countRef.current) countRef.current.textContent = String(whole);
       }
       if (count.current >= 99.9) {
         if (countRef.current) countRef.current.textContent = '100';
-        if (wordRef.current) wordRef.current.textContent = 'BREAK IT';
+        if (wordRef.current) wordRef.current.textContent = 'ENTERING';
         // one frame of the finished count, or the reader never sees it land
-        requestAnimationFrame(() => breakCurtain());
+        requestAnimationFrame(() => dismissLoader());
         return;
       }
       if (wordRef.current) {
@@ -524,7 +566,7 @@ export default function Home() {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [ready]);
+  }, [dismissLoader, ready]);
 
   /* --------------------------------------------------------------- actions */
   async function toggleSound() {
@@ -1080,63 +1122,46 @@ export default function Home() {
           </dialog>
         )}
 
-        {/* -------------------------------------------------------- preloader */}
         {/* ---------------------------------------------------------- preloader
 
-            The first fracture happens before the site does.
-
-            A black curtain, a gold seam drawn down it as the scene loads, and when it
-            is ready the curtain comes apart along that seam and the two halves leave
-            in opposite directions. It is the whole argument of the piece performed in
-            two seconds, in 2D, before a single triangle has been shown - and it means
-            the load is not dead time, it is the cold open.
-
-            The crack is one list of points used three times: to clip the left half, to
-            clip the right half, and to stroke the line between them. They cannot drift
-            apart because they are the same numbers. */}
-        {/* ---------------------------------------------------------- preloader
-
-            The first fracture happens before the site does.
-
-            A black curtain, a gold seam drawn down it as the scene loads, and when the
-            scene is ready the curtain comes apart along that seam. The load is not
-            dead time in front of the piece - it is the cold open, and it is the whole
-            argument of the thing performed in two seconds, in 2D, before a single
-            triangle has been shown.
-
-            The crack is one list of points used three times: to clip the left half, to
-            clip the right half, and to stroke the line between them. */}
-        {/* ---------------------------------------------------------- preloader
-
-            The first fracture happens before the site does.
-
-            The curtain is not a panel that slides away - it is a pane of the same
-            plaster the whole piece is made of, and when the scene is ready it breaks
-            into Voronoi cells and each one is thrown. The loader is speaking the
-            language of the work before the work has started.
-
-            Nothing here re-renders. The count is a text node written from a rAF, the
-            shards are laid out once, and the break itself is a GSAP timeline fired
-            exactly once - so the opening costs the main thread almost nothing at the
-            moment it can least afford to. */}
+            Eight concentric lines introduce the same material, measurements and acts
+            the visitor is about to encounter. Their breathing text lengths keep the
+            waiting screen alive without competing with the WebGL scene underneath. */}
         <output id="preloader" ref={shellRef} aria-label="Loading">
-          <div className="pre-pane" ref={paneRef}>
-            {SHARDS.map((shard, i) => (
-              <i key={i} className="pre-shard"
-                style={{ clipPath: shard.clip } as React.CSSProperties} />
-            ))}
+          <div className="pre-edge pre-edge--top" aria-hidden="true">
+            <span>PS / PORTFOLIO</span>
+            <span>TEHRAN &mdash; IR</span>
           </div>
 
-          <div className="pre-plate" aria-hidden="true">
-            <div className="pre-rule"><i /></div>
-            <div className="pre-row">
-              <span className="pre-count" ref={countRef}>000</span>
+          <svg className="pre-orbits" ref={orbitRef} viewBox="-500 -500 1000 1000"
+            aria-hidden="true" focusable="false">
+            <defs>
+              {ORBITS.map((orbit, i) => (
+                <path key={orbit.r} id={`pre-path-${i + 1}`} d={orbitPath(orbit.r)} />
+              ))}
+            </defs>
+            {ORBITS.map((orbit, i) => (
+              <text key={orbit.r}>
+                <textPath href={`#pre-path-${i + 1}`} startOffset={`${orbit.offset}%`}
+                  textLength={orbit.from} lengthAdjust="spacingAndGlyphs">
+                  {orbit.text}
+                </textPath>
+              </text>
+            ))}
+          </svg>
+
+          <div className="pre-center" aria-hidden="true">
+            <div className="pre-counter">
+              <span className="pre-count" ref={countRef}>0</span>
               <span className="pre-unit">%</span>
             </div>
-            <div className="pre-foot">
-              <span>PS &mdash; SPECIMEN 001</span>
-              <b ref={wordRef}>SETTING OUT</b>
-            </div>
+            <i className="pre-center-rule" />
+            <b className="pre-status" ref={wordRef}>SETTING OUT</b>
+          </div>
+
+          <div className="pre-edge pre-edge--bottom" aria-hidden="true">
+            <span>GYPSUM / LIGHT / MOTION</span>
+            <span>ARCHITECTING POSSIBILITIES</span>
           </div>
         </output>
       </div>

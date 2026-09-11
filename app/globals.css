@@ -362,62 +362,68 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 /* ------------------------------------------------------------ 14. preloader */
 
 /* ============================================================================
-   PRELOADER - THE FIRST FRACTURE
+   PRELOADER - ORBITS
 
-   A pane of the same plaster the piece is made of, broken into Voronoi cells and
-   thrown. The layout is here; the break is a GSAP timeline in page.tsx, because every
-   shard needs its own vector and twenty-four of those is not a keyframe list.
+   Bone paper instead of another black curtain: the opening reads like the drawing
+   that precedes the object. Eight lines carry the vocabulary of the portfolio while
+   their measured lengths breathe around one fixed centre.
    ========================================================================= */
 
-#preloader{position:fixed;inset:0;z-index:80;overflow:hidden;pointer-events:none;
-  --curtain:#0B0704}
-#preloader.is-done{opacity:0;visibility:hidden;transition:opacity .3s ease}
+html.is-loading,html.is-loading body{overflow:hidden}
 
-.pre-pane{position:absolute;inset:0}
+#preloader{position:fixed;inset:0;z-index:80;overflow:hidden;pointer-events:auto;
+  display:grid;place-items:center;color:var(--ink);background:var(--paper);
+  touch-action:none;isolation:isolate;will-change:opacity}
+#preloader::before{content:'';position:absolute;inset:-20%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 50%,rgba(247,196,110,.2),transparent 28%),
+    radial-gradient(circle at 18% 20%,rgba(108,95,81,.13),transparent 25%),
+    radial-gradient(circle at 82% 78%,rgba(224,162,68,.12),transparent 24%);
+  filter:blur(24px)}
+#preloader::after{content:'';position:absolute;inset:0;z-index:3;pointer-events:none;
+  background-image:var(--grain-src);background-size:180px 180px;
+  opacity:.035;mix-blend-mode:multiply}
+#preloader.is-done{display:none}
 
-/* Each cell is the whole pane, clipped to its own polygon. One paint per shard, no
-   seams between them, and the clip is set once from the component. */
-.pre-shard{position:absolute;inset:-1px;display:block;
-  background:var(--curtain);
-  will-change:transform,opacity}
+.pre-orbits{width:min(88vmin,980px);height:min(88vmin,980px);overflow:visible;
+  transform-origin:50% 50%;will-change:transform,opacity}
+.pre-orbits path{fill:none}
+.pre-orbits text{fill:var(--ink);font-family:var(--font-display);font-size:14px;
+  font-weight:600;letter-spacing:2px;text-transform:uppercase}
+.pre-orbits text:nth-of-type(2n){fill:var(--umber)}
+.pre-orbits text:nth-of-type(4n+1){fill:var(--gold)}
 
-/* A hairline of gold along every cell edge, so the pane reads as already broken and
-   only waiting to be pushed - which is what the count is doing. */
-/* The latent break. Visible enough that the pane reads as already fractured and only
-   waiting to be pushed - which is what the count is doing - and faint enough that it
-   is not a grid. The centre carries more of it than the edges, so the eye is told
-   where the break is going to start. */
-.pre-shard::after{content:'';position:absolute;inset:0;
-  box-shadow:inset 0 0 0 .75px rgba(224,162,68,.30),
-             inset 0 0 22px rgba(224,162,68,.045)}
-#preloader.is-breaking .pre-shard::after{
-  box-shadow:inset 0 0 0 .75px rgba(247,196,110,.55),
-             inset 0 0 26px rgba(224,162,68,.10)}
-
-/* The plate. A slate, not a progress bar. */
-.pre-plate{position:absolute;left:var(--pad-x);bottom:var(--pad-y);z-index:2;
-  width:min(46vw,calc(var(--span) * 7));color:var(--bone)}
-
-.pre-rule{height:1px;background:var(--bone-22);overflow:hidden}
-.pre-rule i{display:block;height:100%;width:100%;background:var(--gold);
-  transform:scaleX(var(--p,0));transform-origin:0 50%}
-
-.pre-row{display:flex;align-items:baseline;gap:.3em;margin-top:calc(var(--row) * 1.1)}
-.pre-count{font-family:var(--font-display);font-weight:600;
-  font-size:calc(148 * var(--unit));letter-spacing:-.055em;line-height:.82;
+.pre-center{position:absolute;left:50%;top:50%;z-index:2;display:flex;
+  flex-direction:column;align-items:center;gap:.7rem;transform:translate(-50%,-50%);
+  min-width:9rem;will-change:transform,opacity}
+.pre-counter{display:flex;align-items:flex-start;justify-content:center;line-height:.78}
+.pre-count{min-width:2.2ch;text-align:center;font-family:var(--font-display);font-weight:600;
+  font-size:clamp(3.6rem,8vw,7.8rem);letter-spacing:-.075em;
   font-variant-numeric:tabular-nums}
-.pre-unit{font-size:var(--micro);letter-spacing:.28em;color:var(--bone-45);
-  transform:translateY(-.4em)}
+.pre-unit{margin:.25em 0 0 .45em;font-size:.72rem;letter-spacing:.2em;color:var(--umber)}
+.pre-center-rule{display:block;width:2.5rem;height:1px;background:var(--gold)}
+.pre-status{font-size:.7rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--umber)}
 
-.pre-foot{display:flex;justify-content:space-between;align-items:baseline;gap:1em;
-  margin-top:calc(var(--row) * 1.2);
-  font-size:var(--micro);letter-spacing:.28em;text-transform:uppercase;
-  color:var(--bone-45)}
-.pre-foot b{font-weight:400;color:var(--gold-hot)}
+.pre-edge{position:absolute;left:var(--pad-x);right:var(--pad-x);z-index:4;
+  display:flex;justify-content:space-between;gap:2rem;font-family:var(--font-display);
+  font-size:.7rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:rgba(16,9,4,.58);will-change:opacity}
+.pre-edge--top{top:var(--pad-y)}
+.pre-edge--bottom{bottom:var(--pad-y)}
 
 @media (max-width:767px), (max-width:1024px) and (orientation:portrait){
-  .pre-plate{width:calc(100vw - var(--pad-x) * 2)}
-  .pre-count{font-size:calc(104 * var(--unit))}
+  .pre-orbits{width:112vmin;height:112vmin}
+  .pre-orbits text{font-size:16px;letter-spacing:2.5px}
+  .pre-edge{font-size:.625rem;letter-spacing:.14em}
+  .pre-edge--bottom span:first-child,.pre-edge--top span:last-child{display:none}
+  .pre-edge--bottom{justify-content:flex-end}
+}
+
+@media (max-height:520px) and (orientation:landscape){
+  .pre-orbits{width:112vmax;height:112vmax}
+  .pre-count{font-size:3.4rem}
+  .pre-edge--top{top:1rem}.pre-edge--bottom{bottom:1rem}
 }
 
 #grain{position:fixed;inset:-50%;z-index:50;pointer-events:none;opacity:.05;
@@ -793,11 +799,6 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
   .portal-bar{align-items:flex-start;flex-wrap:wrap;font-size:.75rem}
   .portal-bar>span{order:3;width:100%}
   #cursor-label{display:none}
-  #preloader .pre-wrap{flex-direction:column;gap:calc(var(--row) * 3);text-align:center}
-  #preloader .pre-draw{width:min(48vw,210px);height:min(48vw,210px)}
-  #preloader .pre-side{width:min(82vw,420px)}
-  #preloader .pre-coordinates{grid-template-columns:1fr;gap:.35em;white-space:normal}
-  #preloader .pre-meta{gap:1em}
 }
 
 /* A phone turned sideways is the one shape neither block above describes: wide
