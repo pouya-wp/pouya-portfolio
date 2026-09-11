@@ -1,0 +1,1145 @@
+'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Sculpture from './sculpture';
+import { ACT_LAYOUT, FRAGMENTS, KILLED, PROJECTS, SURVIVORS, clamp, windowOpacity } from './story';
+import { Soundscape, type Effect } from './soundscape';
+import { attachPointer, onCursorLabel, pointer, stepPointer } from './pointer';
+import { attachSmoothScroll, scrollToY, stepSmoothScroll } from './smooth-scroll';
+import { createTempo, markVisit, type Verdict } from './tempo';
+import { createGold } from './gold';
+import { signals } from './signals';
+import { shatterCells } from './shatter';
+import gsap from 'gsap';
+
+/* Fill these in and the matching capsules appear in the colophon. Nothing here is
+   invented: an empty value simply renders nothing. */
+const CONTACT: { email: string; links: { label: string; url: string }[] } = {
+  email: '',
+  links: [],
+};
+
+/* ------------------------------------------------------------------ helpers */
+
+/** Two stacked copies of every glyph; the stack slides up on hover. */
+function Flip({ children }: { children: string }) {
+  return (
+    <span className="flip" aria-label={children}>
+      {children.split('').map((ch, i) => (
+        <i key={i} style={{ '--i': i } as React.CSSProperties} aria-hidden="true">
+          <span>{ch === ' ' ? ' ' : ch}</span>
+          <span>{ch === ' ' ? ' ' : ch}</span>
+        </i>
+      ))}
+    </span>
+  );
+}
+
+/** Word-by-word masked reveal; lights up when the parent block gets .is-lit.
+    Non-text children (a <br/>, say) pass through and keep the stagger going. */
+function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const out: React.ReactNode[] = [];
+  let i = 0;
+  const push = (node: React.ReactNode, key: string) => {
+    if (typeof node === 'string' || typeof node === 'number') {
+      String(node).split(/(\s+)/).filter(Boolean).forEach((w, k) => {
+        if (/^\s+$/.test(w)) { out.push(<span key={`${key}-${k}`}>{' '}</span>); return; }
+        out.push(
+          <span className="w" key={`${key}-${k}`} style={{ '--i': i++ } as React.CSSProperties}>
+            <span>{w}</span>
+          </span>);
+      });
+    } else out.push(<span key={key}>{node}</span>);
+  };
+  const kids = Array.isArray(children) ? children : [children];
+  kids.forEach((k, n) => push(k, `k${n}`));
+  return <span className="reveal" style={{ '--delay': `${delay}ms` } as React.CSSProperties}>{out}</span>;
+}
+
+/** Every act carries the piece of geometry that actually built it. */
+function Formula({ label, expr, note }: { label: string; expr: string; note?: string }) {
+  return (
+    <div className="formula">
+      <span className="f-label">{label}</span>
+      <span className="f-expr" dangerouslySetInnerHTML={{ __html: expr }} />
+      {note && <span className="f-note">{note}</span>}
+    </div>
+  );
+}
+
+const magnetise = (e: React.PointerEvent<HTMLElement>) => {
+  if (e.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--mx', `${(e.clientX - r.left - r.width / 2) * .16}px`);
+  e.currentTarget.style.setProperty('--my', `${(e.clientY - r.top - r.height / 2) * .22}px`);
+};
+const release = (e: React.PointerEvent<HTMLElement>) => {
+  e.currentTarget.style.setProperty('--mx', '0px');
+  e.currentTarget.style.setProperty('--my', '0px');
+};
+
+/* The curtain, broken once at module load. Twenty-four cells, generated off a
+   jittered grid so no two are the same shape and none is a sliver - see shatter.ts. */
+const SHARDS = shatterCells(6, 4, .62);
+
+
+
+/* ========================================================================== */
+
+export default function Home() {
+  const driver = useRef({ progress: 0, velocity: 0 });
+  const [ready, setReady] = useState(false);
+  const [light, setLight] = useState(false);
+  const [sound, setSound] = useState(false);
+  const [project, setProject] = useState<typeof PROJECTS[number] | null>(null);
+  const [portalOpen, setPortalOpen] = useState(false);
+  const [frameLoaded, setFrameLoaded] = useState(false);
+  const [focus, setFocus] = useState(-1);
+  const [act, setAct] = useState(0);
+  const [hoverCard, setHoverCard] = useState(-1);
+  const [clock, setClock] = useState('--:--');
+  const [copied, setCopied] = useState(false);
+  /* The only two things this site ever says. Held in state because they are the one
+     piece of chrome that has to interrupt; everything else is written straight to
+     the DOM from inside the loop. */
+  const [said, setSaid] = useState<Verdict>(null);
+  /* Held while the reader is holding space. It is the one piece of state the page and
+     the scene both need, so it goes through signals as well - this copy exists only so
+     the compass can dim itself out of the way. */
+  const [zen, setZen] = useState(false);
+
+  const audio = useRef<Soundscape | null>(null);
+  const prevProgress = useRef(0);
+  const portalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saidTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurRef = useRef<SVGFEGaussianBlurElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
+  const goldRef = useRef<HTMLSpanElement>(null);
+  const impactRef = useRef<HTMLSpanElement>(null);
+  const tiltRef = useRef<HTMLSpanElement>(null);
+  const alignRef = useRef<HTMLSpanElement>(null);
+  const compassRef = useRef<HTMLElement>(null);
+  const alignBarRef = useRef<HTMLElement>(null);
+  /* The portal is a real modal, so it owes the keyboard the usual contract: escape
+     leaves, tab stays inside it, and focus returns to whatever opened it. Both refs
+     are declared up here with the rest rather than beside the handlers, because the
+     compiler will not accept a ref being written by a function defined above it. */
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const portalRef = useRef<HTMLDialogElement>(null);
+
+  const go = useCallback((fraction: number) => {
+    scrollToY(fraction * (document.documentElement.scrollHeight - innerHeight));
+  }, []);
+
+  /* ------------------------------------------------ the single animation loop */
+  useEffect(() => {
+    history.scrollRestoration = 'manual';
+    scrollTo(0, 0);
+    const detachPointer = attachPointer();
+    const detachScroll = attachSmoothScroll();
+    onCursorLabel(label => {
+      const el = labelRef.current;
+      if (!el) return;
+      if (label) el.textContent = label;
+      el.style.setProperty('--cs', label ? '1' : '.3');
+      el.style.setProperty('--co', label ? '1' : '0');
+    });
+
+    /* Heraclitus. The site does not start again, it goes on - and asks for more of
+       the reader than it did last time. */
+    const visits = markVisit();
+    signals.strictness = visits - 1;
+    const tempo = createTempo(visits - 1);
+    const gold = createGold();
+
+    /* On a phone the URL bar collapses as the page scrolls, which moves innerHeight
+       by up to 15% mid-gesture. Writing that straight into --vh would resize every
+       section underneath the finger, so the timeline would lurch while the reader is
+       still moving. The stored height therefore only follows a real layout change. */
+    let vhBase = innerHeight, vwBase = innerWidth;
+    const setVh = (force = false) => {
+      const isChrome = innerWidth === vwBase && Math.abs(innerHeight - vhBase) < vhBase * .22;
+      if (!force && isChrome) return;
+      vhBase = innerHeight; vwBase = innerWidth;
+      document.documentElement.style.setProperty('--vh', `${innerHeight / 100}px`);
+    };
+    setVh(true);
+
+    const tickClock = () => setClock(new Date().toLocaleTimeString('en-GB',
+      { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit' }));
+    tickClock();
+    const clockTimer = setInterval(tickClock, 20000);
+
+    /* Section geometry only changes when the page is laid out again, so it is measured
+       on resize rather than read every frame: offsetTop and offsetHeight force a
+       synchronous layout, and five of those inside the render loop cost more than
+       everything else the loop does put together. */
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('.section'))
+      .map(el => ({ el, top: 0, height: 1, runway: 1, ratio: 0, inner: el.firstElementChild as HTMLElement }));
+    const measure = () => {
+      for (const section of sections) {
+        section.top = section.el.offsetTop;
+        section.height = section.el.offsetHeight;
+        section.runway = section.height - innerHeight;
+      }
+    };
+    const blocks = Array.from(document.querySelectorAll<HTMLElement>('[data-lit]')).map(el => {
+      const [a, b] = (el.dataset.lit ?? '0,1').split(',').map(Number);
+      const host = el.closest('.section');
+      return { el, a, b, section: sections.find(s => s.el === host)!, on: el.classList.contains('is-lit') };
+    });
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const onResize = () => { setVh(); measure(); };
+    measure();
+    addEventListener('resize', onResize);
+
+    /* measure() reads offsetTop and offsetHeight, which only mean anything once the
+       stylesheet has actually applied. Measuring a single time at mount is a race,
+       so an observer re-measures whenever the real layout changes instead. */
+    const layout = new ResizeObserver(measure);
+    const container = document.getElementById('pages-container');
+    if (container) layout.observe(container);
+    document.fonts?.ready.then(measure).catch(() => { });
+
+    let lastY = 0, lastNow = performance.now(), raf = 0;
+    let wasLight = false, blurred: HTMLElement | null = null, currentAct = -1;
+    let lastBlur = '', lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1;
+
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min((now - lastNow) / 1000, .05) || 1 / 60;
+      lastNow = now;
+      stepSmoothScroll(dt);
+      stepPointer(now);
+
+      const max = document.documentElement.scrollHeight - innerHeight || 1;
+      const y = scrollY;
+      const p = clamp(y / max);
+      /* Clamped so a jump cannot smear the whole frame away, and kept finite on the
+         way in and on the way out: a viewport that measures zero for a frame used to
+         divide by it, and the NaN stayed in the smoothed term for the session. */
+      const measured = (y - lastY) / (innerHeight || 1) / dt;
+      const v = Number.isFinite(measured) ? Math.max(-4, Math.min(4, measured)) : 0;
+      lastY = y;
+      driver.current.progress = p;
+      const eased = driver.current.velocity + (v - driver.current.velocity) * (1 - Math.exp(-dt * 14));
+      driver.current.velocity = Number.isFinite(eased) ? eased : 0;
+
+      /* ------------------------------------------------------------- tempo */
+      tempo.step(driver.current.velocity, dt);
+      if (tempo.verdict) {
+        setSaid(tempo.verdict);
+        if (saidTimer.current) clearTimeout(saidTimer.current);
+        saidTimer.current = setTimeout(() => setSaid(null), 1700);
+        audio.current?.effect('cut');
+      }
+
+      /* Dogen. Presence is real seconds in front of the work, and only counts while
+         the reader is moving at a pace a person could actually read at. There is no
+         way to scrub this, and nothing anywhere says so. */
+      const nearWork = p > .225 && p < .955 ? 1 : .25;
+      gold.step(dt, nearWork * tempo.grip);
+
+      signals.progress = p;
+      signals.velocity = driver.current.velocity;
+      signals.grip = tempo.grip;
+      signals.verdict = tempo.verdict;
+      signals.gold = gold.amount;
+      signals.px = pointer.x;
+      signals.py = pointer.y;
+
+      /* per section runway ratio, and the block windows that ride on it */
+      let activeInner: HTMLElement | null = null;
+      for (const section of sections) {
+        const r = clamp(section.runway > 0 ? (y - section.top) / section.runway : (y >= section.top ? 1 : 0));
+        section.ratio = r;
+        section.el.style.setProperty('--active-ratio', r.toFixed(4));
+        if (y >= section.top && y < section.top + section.height) activeInner = section.inner;
+      }
+      for (const b of blocks) {
+        // A completed section keeps ratio=1 forever. Gate it by its physical
+        // scroll range as well, otherwise its last blocks can overlap the next act.
+        const inSection = y >= b.section.top && y < b.section.top + b.section.height;
+        const on = inSection && b.section.ratio >= b.a && b.section.ratio <= b.b;
+        if (on !== b.on) { b.on = on; b.el.classList.toggle('is-lit', on); }
+      }
+
+      /* the DOM half of the motion blur */
+      const amount = reduced ? 0 : Math.min(Math.abs(driver.current.velocity) * 4.4, 7);
+      const deviation = amount.toFixed(2);
+      if (blurRef.current && deviation !== lastBlur) {
+        lastBlur = deviation;
+        blurRef.current.setAttribute('stdDeviation', `0 ${deviation}`);
+      }
+      const wantsBlur = amount > .5 ? activeInner : null;
+      if (wantsBlur !== blurred) {
+        blurred?.classList.remove('is-blurred');
+        wantsBlur?.classList.add('is-blurred');
+        blurred = wantsBlur;
+      }
+
+      /* No travel indicator of any kind. The two variables that remain are read by
+         the type and the grain, and neither of them says how far there is to go. */
+      /* The compass only exists while the hand is in the right margin. Written here
+         rather than from a mouseenter, because the strip is pointer-inert until it is
+         reached for - it cannot receive the event that would reveal it. */
+      const reach = pointer.x > .88 ? 1 : 0;
+      if (reach !== lastReach) {
+        lastReach = reach;
+        document.documentElement.style.setProperty('--reach', String(reach));
+        compassRef.current?.setAttribute('data-reach', String(reach));
+      }
+
+      document.documentElement.style.setProperty('--grip', tempo.grip.toFixed(3));
+      document.documentElement.style.setProperty('--scroll-velocity', driver.current.velocity.toFixed(3));
+
+      /* the live instrument read-outs the acts print */
+      const fracSection = sections[1];
+      if (fracSection && tiltRef.current) {
+        const tilt = `${Math.round(fracSection.ratio * FRAGMENTS)} / ${FRAGMENTS}`;
+        if (tilt !== lastTilt) { lastTilt = tilt; tiltRef.current.textContent = tilt; }
+      }
+      const dropSection = sections[2];
+      if (dropSection && impactRef.current) {
+        const impact = `${(Math.min(dropSection.ratio / .55, 1) * 41.6).toFixed(1)} J`;
+        if (impact !== lastImpact) { lastImpact = impact; impactRef.current.textContent = impact; }
+      }
+
+      let index = 0;
+      for (let i = 0; i < ACT_LAYOUT.length; i++) if (p >= ACT_LAYOUT[i].at) index = i;
+      if (index !== currentAct) { currentAct = index; setAct(index); }
+
+      /* How near the reader is to the one station, and nothing about which way. A
+         direction would turn a valley into a fetch quest. */
+      if (alignRef.current) {
+        const shown = `${Math.round(signals.aligned * 100)}`;
+        if (shown !== lastAlign) {
+          lastAlign = shown;
+          alignRef.current.textContent = shown;
+          if (alignBarRef.current) alignBarRef.current.style.setProperty('--a', signals.aligned.toFixed(3));
+        }
+      }
+
+      if (goldRef.current) {
+        const shown = `${Math.round(gold.amount * 100)} %`;
+        if (shown !== lastGold) { lastGold = shown; goldRef.current.textContent = shown; }
+      }
+
+      if (labelRef.current) {
+        labelRef.current.style.transform =
+          `translate3d(${(pointer.x * innerWidth).toFixed(1)}px,${((1 - pointer.y) * innerHeight - 44).toFixed(1)}px,0) translate(-50%,-50%) scale(var(--cs,0))`;
+      }
+
+      /* Two daylight passages: the studio the cast is photographed in before it
+         breaks, and the bench it is repaired and laid out on. Everything else is the
+         dark theatre.
+
+         These two windows are in *document* progress, and they were still the numbers
+         from the seven act cut. Three acts went in ahead of them and moved everything
+         along, so .486 to .700 - which used to be the lit workbench - is now the
+         single lamp act and the panes, both of which are as close to pure black as
+         this piece gets. The interface was painting ink on black in there and the
+         headings simply were not there. If the act spans in story.ts move again,
+         these move with them. */
+      const isLight = p < .085 || (p > .345 && p < .462);
+      if (isLight !== wasLight) { wasLight = isLight; setLight(isLight); }
+
+      /* The bowl. Heat is the burn itself, bright is the ring that follows it and
+         carries into the cloud - so the sound arrives with the flame and leaves with
+         the last of the powder. */
+      audio.current?.resonance(
+        windowOpacity(p, .745, .830, .03),
+        windowOpacity(p, .800, .935, .05),
+      );
+      audio.current?.update(p);
+      const cues: [number, Effect][] = [
+        [.148, 'fracture'],
+        [.232, 'whoosh'],
+        [.402, 'whoosh'],
+        [.528, 'assemble'],
+        [.786, 'rise'],
+        [.902, 'place'],
+      ];
+      for (const [at, event] of cues) {
+        if (prevProgress.current < at && p >= at && p - prevProgress.current < .1) audio.current?.effect(event);
+      }
+      prevProgress.current = p;
+    };
+    raf = requestAnimationFrame(frame);
+
+    const cut = () => audio.current?.effect('cut');
+    const tick = () => audio.current?.effect('tick');
+    const interactive = 'a, button, [role="button"], [data-cursor]';
+    const onInteractiveOver = (event: PointerEvent) => {
+      const target = (event.target as Element | null)?.closest(interactive);
+      if (!target || target.contains(event.relatedTarget as Node | null)) return;
+      audio.current?.effect('tick');
+    };
+    const onInteractiveDown = (event: PointerEvent) => {
+      if ((event.target as Element | null)?.closest(interactive)) audio.current?.effect('click');
+    };
+    /* Hold space and the materials stand down.
+
+       It is not a debug view. Everything in this piece is a surface pretending to be
+       stone or metal or water, and underneath all of it is the same thing: a few
+       thousand triangles and the arithmetic that places them. Holding the key shows
+       that, in gold, and letting go puts the world back. Nothing announces it. */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      // space is also how a focused button is pressed, and that has to keep working
+      if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+      const down = e.type === 'keydown';
+      signals.zen = down ? 1 : 0;
+      setZen(down);
+    };
+    addEventListener('keydown', onKey);
+    addEventListener('keyup', onKey);
+    // a key held while the tab is left would stay held forever
+    const dropZen = () => { signals.zen = 0; setZen(false); };
+    addEventListener('blur', dropZen);
+
+    addEventListener('cutter-hover', cut);
+    addEventListener('card-hover', tick);
+    document.addEventListener('pointerover', onInteractiveOver);
+    document.addEventListener('pointerdown', onInteractiveDown);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      detachPointer(); detachScroll();
+      removeEventListener('resize', onResize);
+      layout.disconnect();
+      removeEventListener('keydown', onKey);
+      removeEventListener('keyup', onKey);
+      removeEventListener('blur', dropZen);
+      removeEventListener('cutter-hover', cut);
+      removeEventListener('card-hover', tick);
+      document.removeEventListener('pointerover', onInteractiveOver);
+      document.removeEventListener('pointerdown', onInteractiveDown);
+      clearInterval(clockTimer);
+      if (portalTimer.current) clearTimeout(portalTimer.current);
+      if (saidTimer.current) clearTimeout(saidTimer.current);
+      audio.current?.close();
+      audio.current = null;
+    };
+  }, []);
+
+  /* The break.
+
+     Fired once, from the preloader's own rAF, and deliberately not a CSS transition:
+     every shard needs its own direction, its own spin and its own delay, and the whole
+     thing has to be able to overlap the plate leaving. That is a timeline, and writing
+     one by hand in keyframes for twenty-four elements is how a loader ends up costing
+     three hundred lines.
+
+     The throw is radial. Each cell leaves along the line from the middle of the screen
+     through its own centre, which is what a pane does when it is struck once from
+     behind - the alternative, everything sliding the same way, reads as a wipe. */
+  const breakCurtain = useCallback(() => {
+    const shell = shellRef.current;
+    const pane = paneRef.current;
+    if (!shell || !pane) return;
+    shell.classList.add('is-breaking');
+
+    const shards = Array.from(pane.querySelectorAll<HTMLElement>('.pre-shard'));
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduced) {
+      gsap.to(shell, { autoAlpha: 0, duration: .45, onComplete: () => shell.classList.add('is-done') });
+      return;
+    }
+
+    const timeline = gsap.timeline({ onComplete: () => shell.classList.add('is-done') });
+
+    // the plate goes first, and goes up, so it is out before the pane starts moving
+    timeline.to('.pre-plate', { yPercent: -18, autoAlpha: 0, duration: .42, ease: 'power3.in' }, 0);
+
+    shards.forEach((shard, i) => {
+      const { cx, cy } = SHARDS[i];
+      const dx = cx - 50;
+      const dy = cy - 50;
+      const reach = Math.hypot(dx, dy) || 1;
+      /* Cells near the middle are thrown hardest and land last, so the break opens
+         from the centre rather than peeling in from the edges. */
+      const near = 1 - Math.min(reach / 62, 1);
+      timeline.to(shard, {
+        xPercent: (dx / reach) * (58 + near * 70),
+        yPercent: (dy / reach) * (58 + near * 70),
+        rotate: (dx > 0 ? 1 : -1) * (5 + near * 16),
+        scale: .86,
+        autoAlpha: 0,
+        duration: .95 + near * .35,
+        ease: 'power3.in',
+      }, .06 + near * .16 + (i % 5) * .012);
+    });
+  }, []);
+
+  /* ------------------------------------------------------------- preloader
+
+     The count is written straight into the node and the seam is driven by a custom
+     property. Neither goes through state.
+
+     This is the whole reason the opening used to stutter: `setLoaded` on a climbing
+     number re-rendered the entire page component - eleven sections, every act's
+     markup, the compass, the portal - between sixty and a hundred times during the
+     load, while the WebGL build and the shader warm-up were competing for the same
+     thread. The number is one text node. It should cost one text node. */
+  const countRef = useRef<HTMLSpanElement>(null);
+  const seamRef = useRef<SVGPathElement>(null);
+  const wordRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLOutputElement>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
+  const count = useRef(0);
+  useEffect(() => {
+    let raf = 0, last = performance.now(), shown = -1;
+    const step = (now: number) => {
+      const dt = Math.min((now - last) / 1000, .25); last = now;
+      /* It climbs to 92 on its own and waits there. A bar that sprints to 100 and then
+         sits is lying about what is happening; this one is honest that the last of it
+         is the scene, not the assets. */
+      const ceiling = ready ? 100 : 92;
+      count.current = Math.min(ceiling, count.current + dt * Math.max(46, (ceiling - count.current) * 3.4));
+
+      const whole = Math.floor(count.current);
+      if (whole !== shown) {
+        shown = whole;
+        if (countRef.current) countRef.current.textContent = String(whole).padStart(3, '0');
+        const at = (count.current / 100).toFixed(4);
+        seamRef.current?.style.setProperty('--p', at);
+        shellRef.current?.style.setProperty('--p', at);
+      }
+      if (count.current >= 99.9) {
+        if (countRef.current) countRef.current.textContent = '100';
+        if (wordRef.current) wordRef.current.textContent = 'BREAK IT';
+        // one frame of the finished count, or the reader never sees it land
+        requestAnimationFrame(() => breakCurtain());
+        return;
+      }
+      if (wordRef.current) {
+        const word = ready ? 'READY' : count.current > 62 ? 'CASTING' : count.current > 28 ? 'GYPSUM' : 'SETTING OUT';
+        if (wordRef.current.textContent !== word) wordRef.current.textContent = word;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [ready]);
+
+  /* --------------------------------------------------------------- actions */
+  async function toggleSound() {
+    try { audio.current ??= new Soundscape(); setSound(await audio.current.toggle()); }
+    catch { setSound(false); }
+  }
+  const openProject = useCallback((index: number) => {
+    const selected = PROJECTS[index];
+    if (!selected) return;
+    if (portalTimer.current) clearTimeout(portalTimer.current);
+    returnFocus.current = document.activeElement as HTMLElement | null;
+    setProject(selected);
+    setFocus(index);
+    setFrameLoaded(false);
+    audio.current?.effect('portal');
+    portalTimer.current = setTimeout(() => setPortalOpen(true),
+      matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1080);
+  }, []);
+  function leavePortal() {
+    if (portalTimer.current) clearTimeout(portalTimer.current);
+    setPortalOpen(false); setFocus(-1);
+    audio.current?.effect('portal');
+    returnFocus.current?.focus();
+    returnFocus.current = null;
+  }
+  useEffect(() => {
+    if (!portalOpen) return;
+    const keys = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); leavePortal(); return; }
+      if (e.key !== 'Tab') return;
+      const host = portalRef.current;
+      if (!host) return;
+      const focusable = host.querySelectorAll<HTMLElement>('a[href],button,iframe,[tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    };
+    addEventListener('keydown', keys);
+    return () => removeEventListener('keydown', keys);
+  }, [portalOpen]);
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(location.href); setCopied(true); setTimeout(() => setCopied(false), 2200); }
+    catch { /* clipboard refused; the address bar still has it */ }
+  }
+
+  const chrome = portalOpen ? 'is-hidden' : '';
+
+  return (
+    <>
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
+        <filter id="dom-motion-blur" x="-12%" y="-12%" width="124%" height="124%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur ref={blurRef} stdDeviation="0 0" edgeMode="duplicate" />
+        </filter>
+      </svg>
+
+      <Sculpture
+        driver={driver}
+        onReady={() => setReady(true)}
+        paused={portalOpen}
+        focus={focus}
+        onCardHover={setHoverCard}
+        onCardSelect={openProject}
+      />
+
+      <div id="ui" className={light ? 'is-light' : ''}>
+        {/* ---------------------------------------------------------- the two words
+
+            The entire vocabulary of the system. There is no third message, and in
+            particular there is nothing for getting it right: the silence is what
+            getting it right sounds like. */}
+        <div id="verdict" className={said ? 'is-on' : ''} aria-live="polite" aria-atomic="true">
+          {said === 'rushing' ? 'YOU’RE RUSHING' : said === 'dragging' ? 'YOU’RE DRAGGING' : ''}
+        </div>
+
+        {/* The compass.
+
+            Every other piece of orientation was taken out of this page on purpose, and
+            this one goes back in for a reason that is not aesthetic: somebody assessing
+            the work has fifteen minutes and eleven acts, and a piece that can only be
+            reached by scrolling through all of it in order will simply not be reached.
+
+            It is built so it cannot become a progress bar. There are no numbers, no
+            percentage, no highlight tracking the reader's position - only eleven marks
+            and a name that appears when you reach for one. At rest it is almost not
+            there. */}
+        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''}`} aria-label="Acts">
+          {ACT_LAYOUT.map((a, i) => (
+            <button key={a.id} onClick={() => go(a.at + .004)} data-cursor=""
+              className={act === i ? 'is-here' : ''}
+              aria-current={act === i ? 'step' : undefined}>
+              <i aria-hidden="true" />
+              <span>{a.roman} <em>{a.name}</em></span>
+            </button>
+          ))}
+        </nav>
+
+        <div id="cursor-label" ref={labelRef} aria-hidden="true" />
+        <div id="grain" aria-hidden="true" />
+
+        {/* The sound control is a seam, not a button.
+
+            A pill with the word "Sound off" in it is a piece of software chrome sitting
+            on top of a film. This is nine hairlines in a row: flat and level while
+            there is nothing to hear - a drawn line, silence as a straight edge - and
+            alive when there is. Nothing is written on it. What it does is legible from
+            what it is doing, and the only text is the one a screen reader gets. */}
+        <button id="sound-toggle" className={`${chrome} ${sound ? 'is-on' : ''}`}
+          data-cursor={sound ? 'MUTE' : 'LISTEN'} aria-pressed={sound}
+          aria-label={sound ? 'Mute the score' : 'Play the score'}
+          onClick={toggleSound}>
+          <span className="seam" aria-hidden="true">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <i key={i} style={{ '--i': i } as React.CSSProperties} />
+            ))}
+          </span>
+        </button>
+
+        {/* ============================================================ content */}
+        <div id="site-content">
+          <div id="pages-container">
+
+            {/* ------------------------------------------------------- ACT I */}
+            <section id="hero" className="section" style={{ '--h': ACT_LAYOUT[0].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="hero-left" className="blk is-lit" data-lit="0,1">
+                    <div id="hero-tag" className="t-sub2">
+                      <Reveal>Born in limitations. Built along the seams.</Reveal>
+                    </div>
+                    <h1 id="hero-word" className="t-h1">
+                      <Reveal delay={180}>Pouya</Reveal>
+                    </h1>
+                    <div id="hero-sub" className="t-label">
+                      <Reveal delay={420}>Sadeghpour &mdash; designer and creative developer</Reveal>
+                    </div>
+                  </div>
+                  <div id="hero-copy" className="blk is-lit" data-lit="0,1">
+                    <p className="t-body2 rise" style={{ '--delay': '600ms' } as React.CSSProperties}>
+                      I build interfaces that keep the joint visible. Every constraint leaves a
+                      seam, and the seam is where the work becomes worth looking at.
+                    </p>
+                    <div className="o-dash is-gold rise" style={{ '--delay': '760ms' } as React.CSSProperties} />
+                    <div className="rise" style={{ '--delay': '860ms' } as React.CSSProperties}>
+                      <Formula label="Profile" expr="r(s) = R (1 &minus; |s|&#8319;)<sup>1/n</sup>" note="R = 1.72   n = 4.2" />
+                    </div>
+                  </div>
+                  <div id="hero-card" className="blk is-lit rise" data-lit="0,1" style={{ '--delay': '980ms' } as React.CSSProperties}>
+                    <div className="t-label">Object no. 001<br />Plaster cast, unbroken</div>
+                    <div className="t-micro">Gypsum &middot; 3.5 m &middot; one piece</div>
+                  </div>
+                  <div id="hero-annot" className="annot blk is-lit" data-lit="0,1">
+                    <span className="tick" />Scroll to break it
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ------------------------------------------------------ ACT II */}
+            <section id="fracture" className="section" style={{ '--h': ACT_LAYOUT[1].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="frac-head" className="blk" data-lit="0.02,0.42">
+                    <div className="t-label t-gold"><Reveal>Act II &mdash; the space between</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>It isn&rsquo;t damage.</Reveal></h2>
+                    <p className="t-body3 rise" style={{ '--delay': '520ms' } as React.CSSProperties}>
+                      The piece comes apart along lines that were already there. Nothing is
+                      added. Nothing is lost. Time simply stops holding it together.
+                    </p>
+                    <div className="rise" style={{ '--delay': '680ms' } as React.CSSProperties}>
+                      <Formula label="Fracture" expr="V&#7522; = { x : &#8214;x &minus; p&#7522;&#8214; &le; &#8214;x &minus; p&#11388;&#8214; }" note={`${FRAGMENTS} cells, one seed each`} />
+                    </div>
+                  </div>
+                  <div id="frac-huge" className="blk" data-lit="0.44,1">
+                    <h2 className="t-h1"><Reveal>it&rsquo;s suspended</Reveal></h2>
+                  </div>
+                  <div id="frac-hint" className="blk annot" data-lit="0.46,1">
+                    <svg className="hand" viewBox="0 0 32 40" aria-hidden="true">
+                      <path fill="currentColor" d="M7 23v-6c-2 2-3 4-3 6 0 6 4 13 8 15h11c4-2 6-7 6-13V12a2 2 0 0 0-4 0v6h-1V5a2 2 0 0 0-4 0v12h-1V3a2 2 0 0 0-4 0v14h-1V8a2 2 0 0 0-4 0v15Z" />
+                    </svg>
+                    Move the cursor to look between the pieces
+                  </div>
+                  <div id="frac-spec" className="blk" data-lit="0.4,1">
+                    <div className="spec">
+                      <span className="spec-k">Fragments</span>
+                      <span className="spec-v" ref={tiltRef}>0 / {FRAGMENTS}</span>
+                    </div>
+                    <div className="spec">
+                      <span className="spec-k">Gravity</span>
+                      <span className="spec-v">0.00 m/s&sup2;</span>
+                    </div>
+                    <div className="spec">
+                      <span className="spec-k">State</span>
+                      <span className="spec-v">Held</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ----------------------------------------------------- ACT III */}
+            <section id="drop" className="section" style={{ '--h': ACT_LAYOUT[2].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div className="drop-head blk" data-lit="0.06,0.46">
+                    <div className="t-label t-gold"><Reveal>Act III &mdash; gravity returns</Reveal></div>
+                    <h2 className="t-h2 t-caps"><Reveal delay={160}>Fall. Then be rebuilt.</Reveal></h2>
+                    <p className="t-body3 rise" style={{ '--delay': '520ms' } as React.CSSProperties}>
+                      Forty-three pieces meet a cutting mat at full weight. What happens next is
+                      not a repair. It is a decision about where the metal goes.
+                    </p>
+                  </div>
+                  <div className="drop-head blk" data-lit="0.52,1">
+                    <div className="t-label t-gold"><Reveal>The kintsugi protocol</Reveal></div>
+                    <h2 className="t-h2 t-caps"><Reveal delay={160}>Made whole. Made different.</Reveal></h2>
+                    <p className="t-body3 rise" style={{ '--delay': '520ms' } as React.CSSProperties}>
+                      Every break is filled rather than hidden, so the object ends up carrying a
+                      record of everything that happened to it.
+                    </p>
+                  </div>
+                  <div id="drop-readout" className="blk" data-lit="0.14,1">
+                    <div className="spec">
+                      <span className="spec-k">Impact</span>
+                      <span className="spec-v" ref={impactRef}>0.0 J</span>
+                    </div>
+                    {/* The one read-out that scroll cannot buy: it is a function of real
+                        seconds spent with the work, and nothing anywhere says so. */}
+                    <div className="spec">
+                      <span className="spec-k">Seam integrity</span>
+                      <span className="spec-v" ref={goldRef}>0 %</span>
+                    </div>
+                  </div>
+                  <div id="drop-formula" className="blk" data-lit="0.08,1">
+                    <Formula label="Fall" expr="y(t) = y&#8320; &minus; &frac12; g t&sup2;" note="restitution e = 0.27" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ------------------------------------------------------ ACT IV */}
+            <section id="blueprint" className="section" style={{ '--h': ACT_LAYOUT[3].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="bp-head" className="blk" data-lit="0.16,0.86">
+                    <div className="t-label"><Reveal>Act IV &mdash; the working surface</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>Limitations are just raw materials.</Reveal></h2>
+                  </div>
+                  <div id="bp-stamp" className="blk" data-lit="0.16,0.84">
+                    <Formula label="Sheet" expr="1 &divide; &radic;2" note="scale 1 : 1" />
+                  </div>
+                  <div id="bp-note" className="blk" data-lit="0.20,0.92">
+                    <span className="t-label">
+                      {hoverCard >= 0
+                        ? <>Drawing {PROJECTS[hoverCard].number} &mdash; {PROJECTS[hoverCard].domain}</>
+                        : <>Two cards on the sheet &middot; click one to step inside it</>}
+                    </span>
+                  </div>
+                  {/* The cards live in WebGL, so the keyboard needs its own way in. */}
+                  <div className={`sr-only bp-keyboard ${act === 3 ? 'is-active' : ''}`}>
+                    <h3>Selected work</h3>
+                    {PROJECTS.map((p, i) => (
+                      <button key={p.id} onClick={() => openProject(i)}>
+                        Open {p.name}, {p.domain}, {p.role}, {p.year}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* -------------------------------------------------------- ACT V
+
+                What the light makes. The page says almost nothing here, because the
+                act is a question the reader answers with their hand. */}
+            <section id="light" className="section" style={{ '--h': ACT_LAYOUT[4].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="lit-head" className="blk" data-lit="0.04,0.5">
+                    <div className="t-label t-gold"><Reveal>Act V &mdash; illumination</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>Nothing here is dark.</Reveal></h2>
+                    <p className="t-body3 rise" style={{ '--delay': '520ms' } as React.CSSProperties}>
+                      There is no unlit half of this. Move the light and what it reaches
+                      begins; take it away and there is nothing behind it to find.
+                    </p>
+                  </div>
+                  <div id="lit-hint" className="blk annot" data-lit="0.06,0.42">
+                    <span className="tick" />You are holding the only light in the room
+                  </div>
+                  <div id="lit-tail" className="blk" data-lit="0.72,1">
+                    <h2 className="t-h2 t-dim"><Reveal>And then it is everywhere,</Reveal></h2>
+                    <h2 className="t-h2"><Reveal delay={200}>and there is nothing to see.</Reveal></h2>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ------------------------------------------------------- ACT VI */}
+            <section id="bewilder" className="section" style={{ '--h': ACT_LAYOUT[5].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="bew-head" className="blk" data-lit="0.03,0.52">
+                    <div className="t-label t-gold"><Reveal>Act VI &mdash; one station only</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>It is not in pieces.</Reveal></h2>
+                    <p className="t-body3 rise" style={{ '--delay': '520ms' } as React.CSSProperties}>
+                      You are not standing where it is whole. There is one place, it is
+                      not the middle, and nothing here will tell you where it is.
+                    </p>
+                  </div>
+                  {/* The only instrument in the act, and it is deliberately not a
+                      direction - it says how near, never which way. */}
+                  <div id="bew-meter" className="blk" data-lit="0.05,1">
+                    <span className="t-label t-dim">ALIGNMENT</span>
+                    <span className="bew-value" ref={alignRef}>0</span>
+                    <i className="bew-bar" ref={alignBarRef} />
+                  </div>
+                  <div id="bew-tail" className="blk" data-lit="0.78,1">
+                    <h2 className="t-h2 t-dim"><Reveal>And it was never in pieces.</Reveal></h2>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="sea" className="section" style={{ '--h': ACT_LAYOUT[6].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="sea-head" className="blk" data-lit="0.04,0.34">
+                    <div className="t-label t-gold"><Reveal>Act VII &mdash; gold</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>Everything it cost,</Reveal><br /><Reveal delay={300}>in one place.</Reveal></h2>
+                  </div>
+                  {/* The only instruction the site gives, and it is an invitation
+                      rather than a direction: what happens when it is followed is
+                      left entirely alone. */}
+                  <div id="sea-hint" className="blk annot" data-lit="0.22,0.62">
+                    <span className="tick" />Touch the water
+                  </div>
+                  <div id="sea-tail" className="blk" data-lit="0.66,1">
+                    <p className="t-sub2 t-dim">
+                      <Reveal>What is in the water was never repaired.</Reveal>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------------------------------------------- ACT VIII
+
+                Two of them leave the seams. One reads light and circles it; one reads
+                heat and finds it. Nothing here says which is the better instinct - the
+                act just shows what each rule does when it is followed all the way. */}
+            <section id="butterfly" className="section" style={{ '--h': ACT_LAYOUT[7].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="fly-head" className="blk" data-lit="0.04,0.40">
+                    <div className="t-label t-gold"><Reveal>Act VIII &mdash; three wings</Reveal></div>
+                    <h2 className="t-h2"><Reveal delay={140}>One reads the light.</Reveal><br /><Reveal delay={300}>One reads the heat.</Reveal></h2>
+                  </div>
+                  <div id="fly-rules" className="blk" data-lit="0.16,0.62">
+                    <span><i />Keep a fixed angle to the light &mdash; and orbit it forever</span>
+                    <span><i />Climb the gradient &mdash; and arrive</span>
+                  </div>
+                  <div id="fly-tail" className="blk" data-lit="0.74,1">
+                    <p className="t-sub2 t-dim">
+                      <Reveal>Only one of them was wrong, and it is the one that got there.</Reveal>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ----------------------------------------------------- ACT VIII */}
+            <section id="manifesto" className="section" style={{ '--h': ACT_LAYOUT[8].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="man-head" className="blk" data-lit="0.04,0.62">
+                    <div className="t-label t-gold"><Reveal>Act IX &mdash; the manifesto lab</Reveal></div>
+                    <h3 className="t-h3" style={{ marginTop: '.4em' }}>
+                      <Reveal delay={140}>A statement,</Reveal><br />
+                      <Reveal delay={280}>written in light.</Reveal>
+                    </h3>
+                  </div>
+                  <div id="man-readout" className="blk" data-lit="0.06,0.62">
+                    <Formula label="Cloud" expr="N = 11 000" note="points sampled on r(s)" />
+                  </div>
+                  <div id="man-lines" className="blk" data-lit="0.14,0.60">
+                    <p className="t-sub2">
+                      Born in limitations, bred in isolation. We don&rsquo;t just survive the
+                      restrictions; we architect them into golden opportunities.
+                    </p>
+                  </div>
+                  {/* The cloud then stops spelling anything and goes looking for a shape.
+                      What it finds is the reader's own path through the document, resampled
+                      to thirty places to stand. */}
+                  {/* The window is stated in section ratio, which is not the same number as the
+                      WebGL timeline's p. The document is TOTAL_VH tall but only
+                      TOTAL_VH - 100 of it is scrollable, so p runs ahead of the
+                      layout: this section's runway is spent by p .88, which is why
+                      the convergence is timed to resolve at .866 rather than later. */}
+                  <div id="man-thirty" className="blk" data-lit="0.60,1">
+                    <span className="t-h1 t-gold">{SURVIVORS}</span>
+                    <span className="annot">of {FRAGMENTS} arrive</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ------------------------------------------------------- ACT IX */}
+            <section id="finale" className="section" style={{ '--h': ACT_LAYOUT[9].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="fin-top" className="blk" data-lit="0.08,0.62">
+                    <div className="t-label t-gold"><Reveal>Act X &mdash; taking the square</Reveal></div>
+                    <h2 className="t-serif"><Reveal delay={180}>A board is only a set of rules</Reveal></h2>
+                  </div>
+                  <div id="fin-bottom" className="blk" data-lit="0.30,1">
+                    <h2 className="t-serif"><em><Reveal>and the rules are where the piece goes.</Reveal></em></h2>
+                    <div className="rise" style={{ '--delay': '420ms' } as React.CSSProperties}>
+                      <Formula label="Placement" expr="e1 &mdash; the most defended square" note="thirty-two pieces, one of them repaired" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------------------------------------------- COLOPHON */}
+            <section id="contact" className="section" style={{ '--h': ACT_LAYOUT[10].height } as React.CSSProperties}>
+              <div className="section__inner">
+                <div className="section__stage">
+                  <div id="ct-top" className="blk" data-lit="0.1,1">
+                    <h2 id="ct-statement" className="t-h3">
+                      <Reveal>If a constraint can build this,</Reveal><br />
+                      <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
+                    </h2>
+                    <div style={{ display: 'flex', gap: '.6em', flexWrap: 'wrap' }}>
+                      {CONTACT.email && (
+                        <a className="pill is-gold" href={`mailto:${CONTACT.email}`} data-cursor="WRITE"
+                          onPointerMove={magnetise} onPointerLeave={release}>
+                          <span className="pill-dot" />Start a project
+                        </a>
+                      )}
+                      <button className="pill is-ghost" onClick={copyLink} data-cursor="COPY"
+                        onPointerMove={magnetise} onPointerLeave={release}>
+                        {copied ? 'Link copied' : 'Copy link'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="ct-mid" className="o-dash blk" data-lit="0.1,1" />
+
+                  <div>
+                    <div id="ct-links" className="blk" data-lit="0.1,1">
+                      <div>
+                        <h5>Selected work</h5>
+                        {PROJECTS.map(p => (
+                          <a key={p.id} className="flip-host" href={p.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                            <Flip>{p.name.toUpperCase()}</Flip>
+                          </a>
+                        ))}
+                      </div>
+                      {CONTACT.links.length > 0 && (
+                        <div>
+                          <h5>Elsewhere</h5>
+                          {CONTACT.links.map(l => (
+                            <a key={l.url} className="flip-host" href={l.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                              <Flip>{l.label.toUpperCase()}</Flip>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {/* Every portfolio ends with a small brag about its stack. This one
+                          also prints what died making it, flatly, with no adjective
+                          anywhere - it is the only place the cost is admitted. */}
+                      <div id="ct-killed">
+                        <h5>Did not live</h5>
+                        <ul>
+                          {KILLED.map(k => (
+                            <li key={k.what}><span>{k.what}</span><i /><span className="t-dim">{k.lived}</span></li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div id="ct-made" className="blk" data-lit="0.1,1">
+                      <h5>How it is made</h5>
+                      <p className="annot">
+                        A plaster cast, carved into {FRAGMENTS} Voronoi shell shards, dropped once in an
+                        offline solver and scrubbed by the scroll. Per-pixel motion blur, a cursor
+                        that cuts, and an adaptive, recorded cinematic score.
+                      </p>
+                      <p className="annot">
+                        Music: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018"
+                          target="_blank" rel="noopener noreferrer">Floating Cities &mdash; Kevin MacLeod</a>
+                        {' '}(CC BY 4.0). Interface sounds by Kenney (CC0).
+                      </p>
+                      {/* Nietzsche. The last thing the site does is put the road back in
+                          front of the reader and ask nothing else. */}
+                      <button id="ct-replay" className="pill is-dashed" data-cursor="AGAIN"
+                        onClick={() => go(0)} onPointerMove={magnetise} onPointerLeave={release}>
+                        Again? <span className="pill-arrow" aria-hidden="true">&#8635;</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="o-dash" style={{ margin: 'calc(var(--row) * 2) 0' }} />
+
+                  {/* No name, no initials, no date. The only line about the maker is the
+                      one that says the maker was not what was on offer. */}
+                  <div id="ct-bottom" className="annot blk" data-lit="0.1,1">
+                    <span id="ct-line">Not the maker. The made.</span>
+                    <span>Tehran &middot; {clock} &middot; 2026 &copy; version 04</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+
+        {/* ----------------------------------------------------------- portal */}
+        {portalOpen && project && (
+          <dialog className="portal" ref={portalRef} open aria-label={`${project.name} live project`}>
+            <div className="portal-bar">
+              <button className="pill is-dashed" onClick={leavePortal} data-cursor="BACK" autoFocus>
+                <span aria-hidden="true">&#8601;</span> Back
+              </button>
+              <span>{project.name} &mdash; {project.domain}</span>
+              <a className="flip-host" href={project.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                <Flip>OPEN SEPARATELY</Flip>
+              </a>
+            </div>
+            {project.live ? (
+              <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                <iframe className="portal-frame" src={project.url} title={`${project.name} website`}
+                  onLoad={() => setFrameLoaded(true)}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+                {!frameLoaded && (
+                  <div className="portal-loading">
+                    {project.name.toUpperCase()}
+                    <span>Use &ldquo;open separately&rdquo; if the project does not appear</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="portal-empty">
+                <span className="t-label t-dim">{project.number}</span>
+                <h2 className="t-h2">{project.name}</h2>
+                <p className="t-body3 t-dim">This address is not returning a page right now.</p>
+                <a className="pill is-ghost" href={project.url} target="_blank" rel="noopener noreferrer">
+                  Try it directly <span className="pill-arrow" aria-hidden="true">&#8599;</span>
+                </a>
+              </div>
+            )}
+          </dialog>
+        )}
+
+        {/* -------------------------------------------------------- preloader */}
+        {/* ---------------------------------------------------------- preloader
+
+            The first fracture happens before the site does.
+
+            A black curtain, a gold seam drawn down it as the scene loads, and when it
+            is ready the curtain comes apart along that seam and the two halves leave
+            in opposite directions. It is the whole argument of the piece performed in
+            two seconds, in 2D, before a single triangle has been shown - and it means
+            the load is not dead time, it is the cold open.
+
+            The crack is one list of points used three times: to clip the left half, to
+            clip the right half, and to stroke the line between them. They cannot drift
+            apart because they are the same numbers. */}
+        {/* ---------------------------------------------------------- preloader
+
+            The first fracture happens before the site does.
+
+            A black curtain, a gold seam drawn down it as the scene loads, and when the
+            scene is ready the curtain comes apart along that seam. The load is not
+            dead time in front of the piece - it is the cold open, and it is the whole
+            argument of the thing performed in two seconds, in 2D, before a single
+            triangle has been shown.
+
+            The crack is one list of points used three times: to clip the left half, to
+            clip the right half, and to stroke the line between them. */}
+        {/* ---------------------------------------------------------- preloader
+
+            The first fracture happens before the site does.
+
+            The curtain is not a panel that slides away - it is a pane of the same
+            plaster the whole piece is made of, and when the scene is ready it breaks
+            into Voronoi cells and each one is thrown. The loader is speaking the
+            language of the work before the work has started.
+
+            Nothing here re-renders. The count is a text node written from a rAF, the
+            shards are laid out once, and the break itself is a GSAP timeline fired
+            exactly once - so the opening costs the main thread almost nothing at the
+            moment it can least afford to. */}
+        <output id="preloader" ref={shellRef} aria-label="Loading">
+          <div className="pre-pane" ref={paneRef}>
+            {SHARDS.map((shard, i) => (
+              <i key={i} className="pre-shard"
+                style={{ clipPath: shard.clip } as React.CSSProperties} />
+            ))}
+          </div>
+
+          <div className="pre-plate" aria-hidden="true">
+            <div className="pre-rule"><i /></div>
+            <div className="pre-row">
+              <span className="pre-count" ref={countRef}>000</span>
+              <span className="pre-unit">%</span>
+            </div>
+            <div className="pre-foot">
+              <span>PS &mdash; SPECIMEN 001</span>
+              <b ref={wordRef}>SETTING OUT</b>
+            </div>
+          </div>
+        </output>
+      </div>
+    </>
+  );
+}

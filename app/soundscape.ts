@@ -1,0 +1,302 @@
+/* Asset-driven audio engine. The score and every cue are real recordings kept in
+   /public/audio; Web Audio is only used for mixing, ducking, panning and playback. */
+
+export type Effect =
+  | 'fracture'
+  | 'impact'
+  | 'rise'
+  | 'portal'
+  | 'chime'
+  | 'cut'
+  | 'tick'
+  | 'click'
+  | 'vacuum'
+  | 'whoosh'
+  | 'assemble'
+  | 'place';
+
+type Asset = 'music' | Effect | 'stoneBreak' | 'impactB' | 'impactC';
+
+const FILES: Record<Asset, string> = {
+  music: '/audio/floating-cities.mp3',
+  fracture: '/audio/cinematic-explosion.wav',
+  stoneBreak: '/audio/stone-break.ogg',
+  impact: '/audio/stone-impact-a.ogg',
+  impactB: '/audio/stone-impact-b.ogg',
+  impactC: '/audio/stone-impact-c.ogg',
+  vacuum: '/audio/deep-whoosh.wav',
+  whoosh: '/audio/camera-whoosh.wav',
+  assemble: '/audio/deep-whoosh.wav',
+  place: '/audio/stone-impact-c.ogg',
+  rise: '/audio/deep-whoosh.wav',
+  portal: '/audio/camera-whoosh.wav',
+  chime: '/audio/stone-impact-c.ogg',
+  cut: '/audio/cut.wav',
+  tick: '/audio/ui-hover.wav',
+  click: '/audio/ui-click.wav',
+};
+
+const LEVEL: Record<Effect, number> = {
+  fracture: .72,
+  impact: .82,
+  rise: .48,
+  portal: .42,
+  chime: .48,
+  cut: .38,
+  tick: .16,
+  click: .25,
+  vacuum: .46,
+  whoosh: .38,
+  assemble: .56,
+  place: .68,
+};
+
+const PAN: Partial<Record<Effect, number>> = {
+  fracture: -.18,
+  cut: .48,
+  portal: .2,
+};
+
+export class Soundscape {
+  private ctx: AudioContext;
+  private master: GainNode;
+  private musicGain: GainNode;
+  private musicFilter: BiquadFilterNode;
+  private duck: GainNode;
+  private fxGain: GainNode;
+  private buffers = new Map<Asset, AudioBuffer>();
+  private ready: Promise<void>;
+  private music: AudioBufferSourceNode | null = null;
+  private zone = '';
+  /* The resonance. Three sine partials and a slow filter, standing in for a struck
+     bowl - a sample would be a recording of somebody else's bowl, and this one has to
+     be able to bend continuously from a sub-bass drone into a bright ring and back
+     into nothing, which a sample cannot do without sounding like a crossfade. */
+  private bowl: { osc: OscillatorNode[]; gain: GainNode; filter: BiquadFilterNode } | null = null;
+  private bowlLevel = -1;
+  private lastTick = 0;
+  private closing = false;
+  enabled = false;
+
+  constructor() {
+    this.ctx = new AudioContext();
+
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0;
+
+    const limiter = this.ctx.createDynamicsCompressor();
+    limiter.threshold.value = -10;
+    limiter.knee.value = 10;
+    limiter.ratio.value = 7;
+    limiter.attack.value = .004;
+    limiter.release.value = .24;
+
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = .28;
+    this.musicFilter = this.ctx.createBiquadFilter();
+    this.musicFilter.type = 'lowpass';
+    this.musicFilter.frequency.value = 18000;
+    this.musicFilter.Q.value = .45;
+    this.duck = this.ctx.createGain();
+    this.duck.gain.value = 1;
+    this.fxGain = this.ctx.createGain();
+    this.fxGain.gain.value = .9;
+    this.musicGain.connect(this.musicFilter);
+    this.musicFilter.connect(this.duck);
+    this.duck.connect(limiter);
+    this.fxGain.connect(limiter);
+    limiter.connect(this.master);
+    this.master.connect(this.ctx.destination);
+
+    this.ready = this.load();
+  }
+
+  private async load(): Promise<void> {
+    await Promise.all(Object.entries(FILES).map(async ([name, url]) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Audio asset failed: ${url}`);
+      const buffer = await this.ctx.decodeAudioData(await response.arrayBuffer());
+      this.buffers.set(name as Asset, buffer);
+    }));
+  }
+
+  private startMusic(): void {
+    if (this.music || !this.enabled) return;
+    const buffer = this.buffers.get('music');
+    if (!buffer) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.loopStart = Math.min(.08, buffer.duration * .02);
+    source.loopEnd = Math.max(source.loopStart + 1, buffer.duration - .12);
+    source.connect(this.musicGain);
+    source.start();
+    this.music = source;
+  }
+
+  async toggle(): Promise<boolean> {
+    await this.ctx.resume();
+    this.enabled = !this.enabled;
+    if (this.enabled) {
+      await this.ready;
+      this.startMusic();
+    }
+    const t = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(this.enabled ? .72 : 0, t, this.enabled ? .55 : .18);
+    if (this.enabled) this.effect('click');
+    return this.enabled;
+  }
+
+  /** Mix the same score differently per act without replacing it or adding noise. */
+  /* Where the gold turns into an insect, burns, and comes back as powder.
+
+     The sound follows the material rather than the act: heavy and low while the thing
+     is stone, opening into a struck-metal partial as the gold leaves it, brightest at
+     the moment it goes into the flame, and then falling away to nothing as the grains
+     settle. It is the one place in the piece where the audio is carrying the argument
+     instead of dressing it.
+
+     @param heat 0..1 how far into the burn
+     @param bright 0..1 the ring, which is at its clearest just after
+   */
+  resonance(heat: number, bright: number): void {
+    if (!this.enabled || this.closing) return;
+    const t = this.ctx.currentTime;
+
+    if (!this.bowl && (heat > .001 || bright > .001)) {
+      const gain = this.ctx.createGain();
+      gain.gain.value = 0;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+      filter.Q.value = .8;
+      /* A struck bowl is not harmonic. These ratios are roughly what a small standing
+         bowl gives: a fundamental, a sharp second an octave and a bit above it, and a
+         third that beats against the second - the beating is the shimmer. */
+      const osc = [1, 2.71, 5.43].map((ratio, i) => {
+        const o = this.ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = 96 * ratio;
+        const level = this.ctx.createGain();
+        level.gain.value = [.5, .3, .16][i];
+        o.connect(level); level.connect(filter);
+        o.start();
+        return o;
+      });
+      filter.connect(gain);
+      gain.connect(this.duck);
+      this.bowl = { osc, gain, filter };
+    }
+    if (!this.bowl) return;
+
+    /* The fundamental climbs about an octave across the burn. Nothing is retriggered;
+       it is one continuous tone that changes what it is, which is the point. */
+    const base = 96 + heat * 84;
+    this.bowl.osc[0].frequency.setTargetAtTime(base, t, .4);
+    this.bowl.osc[1].frequency.setTargetAtTime(base * 2.71, t, .4);
+    this.bowl.osc[2].frequency.setTargetAtTime(base * 5.43, t, .4);
+    // closed and dark while it is still stone, wide open at the ring
+    this.bowl.filter.frequency.setTargetAtTime(340 + bright * 5200, t, .35);
+
+    const level = (heat * .16 + bright * .2);
+    if (Math.abs(level - this.bowlLevel) > .004) {
+      this.bowlLevel = level;
+      this.bowl.gain.gain.setTargetAtTime(level, t, .3);
+    }
+  }
+
+  update(p: number): void {
+    const vacuum = p > .14 && p < .275;
+    const workbench = p > .46 && p < .66;
+    const finale = p > .86;
+    const zone = `${vacuum}${workbench}${finale}`;
+    if (zone === this.zone) return;
+    this.zone = zone;
+    const t = this.ctx.currentTime;
+    this.musicGain.gain.setTargetAtTime(vacuum ? .18 : workbench ? .24 : finale ? .34 : .28, t, .75);
+    this.musicFilter.frequency.setTargetAtTime(vacuum ? 720 : 18000, t, vacuum ? .08 : .8);
+    this.fxGain.gain.setTargetAtTime(vacuum ? 1 : workbench ? .82 : .9, t, .35);
+  }
+
+  effect(kind: Effect): void {
+    if (!this.enabled) return;
+    if (kind === 'tick' && this.ctx.currentTime - this.lastTick < .055) return;
+    if (kind === 'tick') this.lastTick = this.ctx.currentTime;
+
+    const play = (asset: Asset, level: number, rate = 1, stereo = 0, delay = 0) => {
+      const buffer = this.buffers.get(asset);
+      if (!buffer) return;
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.playbackRate.value = rate;
+      const gain = this.ctx.createGain();
+      gain.gain.value = level;
+      const pan = this.ctx.createStereoPanner();
+      pan.pan.value = stereo;
+      source.connect(gain);
+      gain.connect(pan);
+      pan.connect(this.fxGain);
+      source.start(this.ctx.currentTime + delay);
+      source.onended = () => {
+        source.disconnect();
+        gain.disconnect();
+        pan.disconnect();
+      };
+    };
+
+    if (kind === 'fracture') {
+      // A recorded detonation carries the transient; a pitched-down duplicate and
+      // real rock break provide the body instead of a game-like synthetic pop.
+      play('fracture', .82, 1, -.04);
+      play('fracture', .30, .57, .08, .018);
+      play('stoneBreak', .52, .80, -.18, .025);
+      play('vacuum', .42, .76, 0, .15);
+
+      const t = this.ctx.currentTime;
+      this.duck.gain.cancelScheduledValues(t);
+      this.duck.gain.setValueAtTime(this.duck.gain.value, t);
+      this.duck.gain.exponentialRampToValueAtTime(.075, t + .085);
+      this.duck.gain.setValueAtTime(.075, t + .46);
+      this.duck.gain.exponentialRampToValueAtTime(1, t + 3.1);
+      return;
+    }
+
+    if (kind === 'impact') {
+      // Three independent stone recordings sell the mass of twenty-six fragments.
+      play('impact', .72, .76, -.28);
+      play('impactB', .57, .92, .22, .075);
+      play('impactC', .48, .84, -.05, .17);
+      return;
+    }
+
+    if (kind === 'assemble') {
+      // Air draws inward first; stone follows it into the repaired silhouette.
+      play('assemble', .48, .72, .05);
+      play('stoneBreak', .24, .64, -.12, .16);
+      play('impactB', .18, .70, .18, .34);
+      return;
+    }
+
+    if (kind === 'place') {
+      // A restrained stone-on-board contact with enough low body to end the arc.
+      play('place', .68, .62, 0);
+      play('impactB', .24, .54, -.08, .035);
+      return;
+    }
+
+    play(kind, LEVEL[kind], kind === 'tick' ? .94 + Math.random() * .12 : kind === 'cut' ? .9 : 1, PAN[kind] ?? 0);
+  }
+
+  close(): void {
+    this.bowl?.osc.forEach(o => { try { o.stop(); } catch { /* already stopped */ } });
+    this.bowl = null;
+    if (this.closing) return;
+    this.closing = true;
+    try { this.music?.stop(); } catch { /* already stopped */ }
+    this.music = null;
+    // Suspending is deliberately HMR-safe; Vite can run overlapping React
+    // cleanups while replacing this module, whereas AudioContext.close() is final.
+    if (this.ctx.state === 'running') void this.ctx.suspend().catch(() => { /* already suspended */ });
+  }
+}

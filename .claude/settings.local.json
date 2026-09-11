@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($d=\"C:\\\\Users\\\\Pouya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Pouya-Desktop-PROJECTS-MYPF\\\\11349cea-161f-4e47-a859-127e9fc5d240\\\\scratchpad\"; New-Item -ItemType Directory -Force $d | Out-Null; Invoke-WebRequest -Uri \"https://oryzo.ai/_astro/index.TL6TuoJb.css\" -OutFile \"$d\\\\oryzo.css\"; Invoke-WebRequest -Uri \"https://oryzo.ai/_astro/hoisted.CRsATKbF.js\" -OutFile \"$d\\\\oryzo-hoisted.js\"; Get-ChildItem $d | Select-Object Name,Length)",
+      "PowerShell($f=\"C:\\\\Users\\\\Pouya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Pouya-Desktop-PROJECTS-MYPF\\\\11349cea-161f-4e47-a859-127e9fc5d240\\\\scratchpad\\\\oryzo-hoisted.js\"; $c=Get-Content $f -Raw; foreach\\($k in @\\('motionBlur','velocity','uVelocity','bloom','fxaa','taa','splat','postprocess','EffectComposer','lenis','gsap','rive','dither','grain','chromatic','depthOfField','ssao','sharpen','vignette','lut','noise','curl','trail','cursor','pointer','damp','lerp'\\)\\){ $n=\\([regex]::Matches\\($c,[regex]::Escape\\($k\\),'IgnoreCase'\\)\\).Count; \"{0,-18} {1}\" -f $k,$n })",
+      "PowerShell($f=\"C:\\\\Users\\\\Pouya\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Pouya-Desktop-PROJECTS-MYPF\\\\11349cea-161f-4e47-a859-127e9fc5d240\\\\scratchpad\\\\oryzo-hoisted.js\"; $c=Get-Content $f -Raw; $i=$c.IndexOf\\('motionBlur'\\); $c.Substring\\([Math]::Max\\(0,$i-600\\),1200\\))"
+    ]
+  }
+}
