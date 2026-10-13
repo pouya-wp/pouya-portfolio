@@ -920,27 +920,42 @@ ${shader.fragmentShader}`;
        The loop still *runs* at display rate. Pointer smoothing and the scroll damp are
        stepped every tick so input never feels coarse - only the render is held to the
        cadence, and it is handed the real elapsed time so nothing animates slower. */
-    const DEVICE_PR = Math.min(devicePixelRatio || 1, 1.5);
+    /* Cost is pixels times frames, and both are capped twice: by the tier the device
+       has shown it can hold, and by what the frame actually needs. A still frame is
+       re-rendered at a third of the rate of a moving one - the grain and the slow
+       turn of the cast survive that, and a laptop's fans notice the difference - and
+       no tier ever draws more than its pixel budget, whatever the panel's density.
+       A 4K screen at 1.5x used to be eight million pixels through a six-pass chain. */
     const TIERS = [
-      { fps: 60, pr: 1.5 }, { fps: 60, pr: 1.25 }, { fps: 60, pr: 1 },
-      { fps: 30, pr: 1 }, { fps: 30, pr: .8 }, { fps: 24, pr: .7 },
+      { fps: 60, pr: 1.25, pixels: 2.6e6 },
+      { fps: 60, pr: 1, pixels: 2.1e6 },
+      { fps: 30, pr: 1, pixels: 2.1e6 },
+      { fps: 30, pr: .85, pixels: 1.5e6 },
+      { fps: 24, pr: .75, pixels: 1.1e6 },
     ];
+    const IDLE_FPS = 20;
     const coarse = matchMedia('(pointer: coarse)').matches;
     const lowMemory = ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
-    let tier = coarse || lowMemory ? 3 : 1;
+    const fewCores = (navigator.hardwareConcurrency || 8) <= 4;
+    let tier = coarse || lowMemory || fewCores ? 3 : 1;
     const downgrades = Array.from({ length: TIERS.length }, () => 0);
     let FRAME_STEP = 1 / TIERS[tier].fps;
     let backlog = 0;
     let windowStart = 0, windowFrames = 0, slowWindows = 0, fastWindows = 0;
+    let lastActive = 0, lastPointerX = -1, lastPointerY = -1, drawMs = 0;
     const pointMaterials: THREE.ShaderMaterial[] = [];
     scene.traverse(node => {
       const material = (node as THREE.Mesh).material as THREE.ShaderMaterial | undefined;
       if (material?.uniforms?.uPixel) pointMaterials.push(material);
     });
+    const pixelRatioFor = (t: number) => {
+      const area = Math.max(1, host.clientWidth * host.clientHeight);
+      return Math.max(.5, Math.min(TIERS[t].pr, devicePixelRatio || 1, Math.sqrt(TIERS[t].pixels / area)));
+    };
     const applyTier = (next: number) => {
       tier = Math.max(0, Math.min(TIERS.length - 1, next));
       FRAME_STEP = 1 / TIERS[tier].fps;
-      const pr = Math.min(TIERS[tier].pr, DEVICE_PR);
+      const pr = pixelRatioFor(tier);
       if (Math.abs(renderer.getPixelRatio() - pr) > .01) {
         renderer.setPixelRatio(pr);
         pointMaterials.forEach(material => { material.uniforms.uPixel.value = Math.min(pr, 1.7); });
@@ -949,16 +964,23 @@ ${shader.fragmentShader}`;
       windowStart = 0; windowFrames = 0; slowWindows = 0; fastWindows = 0;
     };
     applyTier(tier);
-    /* One window is 1.5 s of rendered frames. Two slow windows in a row step down; it
-       takes six fast ones to step back up, and a tier that has had to be abandoned
-       twice is not tried again, so the governor cannot oscillate on a borderline GPU. */
-    const govern = (now: number) => {
+    // the budget is a pixel count, so a window resize can move the ratio too
+    const reapply = () => applyTier(tier);
+    addEventListener('resize', reapply);
+    /* One window is 1.5 s of rendered frames, counted only while the frame is
+       moving - an idle frame is held back on purpose and says nothing about the GPU.
+       Two slow windows step down; it takes six fast ones to step back up, and a tier
+       that has had to be abandoned twice is not tried again, so the governor cannot
+       oscillate on a borderline GPU. */
+    const govern = (now: number, active: boolean) => {
+      if (!active) { windowStart = 0; return; }
       if (!windowStart) { windowStart = now; windowFrames = 0; return; }
       windowFrames++;
       const span = (now - windowStart) / 1000;
       if (span < 1.5) return;
       const achieved = windowFrames / span, target = TIERS[tier].fps;
       windowStart = now; windowFrames = 0;
+      signals.perf.fps = achieved;
       if (achieved < target * .82) {
         fastWindows = 0;
         if (++slowWindows >= 2 && tier < TIERS.length - 1) { downgrades[tier]++; applyTier(tier + 1); }
@@ -977,12 +999,22 @@ ${shader.fragmentShader}`;
       /* A frame that arrives a hair early is still a frame. Without the tolerance a
          30Hz cadence beating against a 60Hz display drops below target, because some
          ticks land a millisecond short. */
+      /* Moving means the page is scrolling or settling, the hand is moving, or the
+         camera is diving into a card. Anything else is a still frame. */
+      const moved = pointer.x !== lastPointerX || pointer.y !== lastPointerY;
+      lastPointerX = pointer.x; lastPointerY = pointer.y;
+      if (moved || Math.abs(driver.current.velocity) > .004 || Math.abs(current - driver.current.progress) > .0004
+        || (zoom > .001 && zoom < .999) || signals.zen) lastActive = now;
+      const active = now - lastActive < 700 || elapsed < 4;
+      const step = active ? FRAME_STEP : Math.max(FRAME_STEP, 1 / IDLE_FPS);
+
       backlog += tick;
-      if (backlog < FRAME_STEP - .003) return;
+      if (backlog < step - .003) return;
       const dt = Math.min(backlog, .05);
       backlog = 0;
       elapsed += dt;
-      govern(now);
+      govern(now, active);
+      const drawStart = performance.now();
 
       const goal = driver.current.progress;
       current = reduced ? goal : THREE.MathUtils.damp(current, goal, 14, dt);
@@ -1924,6 +1956,14 @@ ${shader.fragmentShader}`;
 
       finish.sync(width / height, elapsed);
       composer.render();
+      /* CPU time of the frame, for the ?perf panel. The GPU half is not measurable
+         from here without a timer query, which most browsers no longer expose. */
+      drawMs += (performance.now() - drawStart - drawMs) * .1;
+      signals.perf.ms = drawMs;
+      signals.perf.tier = tier;
+      signals.perf.pr = renderer.getPixelRatio();
+      signals.perf.pixels = width * height * signals.perf.pr * signals.perf.pr;
+      signals.perf.idle = !active;
     };
 
     /* Compile every program before the curtain opens.
@@ -1983,6 +2023,7 @@ ${shader.fragmentShader}`;
       restoreCursor();
       observer.disconnect();
       document.removeEventListener('visibilitychange', visibility);
+      removeEventListener('resize', reapply);
       renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
       renderer.domElement.removeEventListener('click', onClick);
       scene.traverse(o => {

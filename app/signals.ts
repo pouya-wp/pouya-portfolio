@@ -27,6 +27,8 @@ export type Signals = {
   aligned: number;
   /** 1 while the reader is holding the world's geometry open */
   zen: number;
+  /** what the render governor is doing, read by the ?perf panel */
+  perf: { fps: number; ms: number; tier: number; pr: number; pixels: number; idle: boolean };
 };
 
 export const signals: Signals = {
@@ -41,4 +43,5 @@ export const signals: Signals = {
   strictness: 0,
   aligned: 0,
   zen: 0,
+  perf: { fps: 0, ms: 0, tier: 0, pr: 1, pixels: 0, idle: false },
 };

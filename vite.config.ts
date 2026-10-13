@@ -2,12 +2,17 @@ import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
-import hostingConfig from './.openai/hosting.json';
+import { existsSync, readFileSync } from 'node:fs';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   '00000000-0000-4000-8000-000000000000';
 
-const { d1, r2 } = hostingConfig;
+/* The hosting file is written by the Sites tooling and is not in the repository, so a
+   fresh clone has none. Without it there are simply no D1/R2 bindings. */
+const hostingPath = new URL('./.openai/hosting.json', import.meta.url);
+const { d1, r2 } = (existsSync(hostingPath)
+  ? JSON.parse(readFileSync(hostingPath, 'utf8'))
+  : {}) as { d1?: string; r2?: string };
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';

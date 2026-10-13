@@ -257,7 +257,7 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
   background:repeating-linear-gradient(90deg,var(--bone-22) 0 2px,transparent 0 4px)}
 
 .spec{display:inline-flex;align-items:stretch;border:1px dashed var(--bone-22);
-  background:rgba(10,9,8,.55);backdrop-filter:blur(6px);border-radius:2px}
+  background:rgba(10,9,8,.78);border-radius:2px}
 .spec > .spec-k{padding:.65em .9em;font-size:var(--micro);letter-spacing:.16em;
   text-transform:uppercase;color:var(--bone-62)}
 .spec > .spec-v{padding:.65em .9em;font-size:var(--micro);letter-spacing:.1em;
@@ -365,9 +365,12 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
   font-family:var(--font-display);font-weight:600;
   font-size:calc(30 * var(--unit));letter-spacing:.02em;color:var(--bone);
   opacity:0;transform:translate3d(0,calc(-50% + 1.1em),0);
-  transition:opacity .5s var(--ease-out),transform .8s var(--ease-out);
-  mix-blend-mode:difference}
-#verdict.is-on{opacity:1;transform:translate3d(0,-50%,0)}
+  transition:opacity .5s var(--ease-out),transform .8s var(--ease-out),visibility 0s .8s;
+  visibility:hidden}
+/* blended only while it is actually showing: a full-width blend layer sitting at
+   opacity 0 is still composited against the canvas every frame */
+#verdict.is-on{opacity:1;transform:translate3d(0,-50%,0);visibility:visible;mix-blend-mode:difference;
+  transition:opacity .5s var(--ease-out),transform .8s var(--ease-out)}
 
 /* --------------------------------------------------------- 13. cursor label */
 
@@ -471,10 +474,15 @@ html.is-loading,html.is-loading body{overflow:hidden}
   top:50%;transform:translateY(-50%);width:calc(var(--span) * 3.45)}
 #hero-copy .t-body2{color:var(--bone)}
 #hero-copy .o-dash{margin:calc(var(--row) * 1.6) 0}
+#hero-copy .hero-seam{margin-top:.8em}
+.hero-jump{display:flex;flex-wrap:wrap;gap:.5em;margin-top:calc(var(--row) * 1.6)}
+.hero-jump .pill{padding:.95em 1.5em}
+#ui.is-light .hero-jump .pill{--pill-fg:var(--ink);border-color:rgba(16,9,4,.32)}
+#ui.is-light .hero-jump .pill:hover{--pill-fg-on:var(--bone);--pill-bg-on:var(--ink)}
 #hero-card{position:absolute;left:var(--pad-x);bottom:calc(var(--pad-y) + var(--row) * 5);
   width:calc(var(--span) * 3 + var(--col));padding:calc(var(--row) * 1.6);
   border:1px dashed var(--bone-22);border-radius:calc(var(--row) * .8);
-  background:rgba(10,9,8,.4);backdrop-filter:blur(8px)}
+  background:rgba(10,9,8,.62)}
 #hero-card .t-label{color:var(--bone)}
 #hero-card .t-micro{margin-top:.7em;color:var(--bone-62)}
 #hero-frame{left:calc(var(--pad-x) + var(--span) * 5.6);top:26%;
@@ -587,7 +595,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 .sheet:hover .sheet-enter{background:var(--gold-hot);color:var(--ink);border-color:var(--gold-hot)}
 #bp-note{position:absolute;left:50%;transform:translateX(-50%);
   bottom:calc(var(--pad-y) + var(--row) * 2);padding:.8em 1.4em;border-radius:3em;
-  background:rgba(16,9,4,.86);color:var(--bone);backdrop-filter:blur(6px)}
+  background:rgba(16,9,4,.92);color:var(--bone)}
 #blueprint #bp-note{transform:translateX(-50%) translateY(calc(var(--row) * 1.4)) scale(.985)}
 #blueprint #bp-note.is-lit{transform:translateX(-50%)}
 
@@ -602,7 +610,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ui.is-light #hero-word,#ui.is-light #hero-card .t-label{color:var(--ink)}
 #ui.is-light #hero-sub,#ui.is-light #hero-card .t-micro{color:rgba(16,9,4,.86)}
 #ui.is-light .annot,#ui.is-light .t-dim{color:rgba(16,9,4,.72)}
-#ui.is-light #hero-card{background:rgba(255,250,243,.5);border-color:rgba(16,9,4,.18)}
+#ui.is-light #hero-card{background:rgba(255,250,243,.74);border-color:rgba(16,9,4,.18)}
 #ui.is-light #hero-copy .o-dash{--dash:rgba(16,9,4,.24)}
 #ui.is-light #sound-toggle .seam i{background:rgba(16,9,4,.5)}
 #ui.is-light #sound-toggle:hover .seam i{background:var(--ink)}
@@ -996,7 +1004,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
    colour, and the render behind the type is composed so there is somewhere to put it.
    If a frame ever fights the words, the fix is the frame. */
 
-#verdict,#cursor-label{mix-blend-mode:difference}
+#cursor-label{mix-blend-mode:difference}
 
 #ui.is-light #work-head,#ui.is-light .work-row .w-name,
 #ui.is-light .work-row .w-num,#ui.is-light .work-row .w-domain,
@@ -1050,8 +1058,11 @@ html.is-loading,html.is-loading body{overflow:hidden}
      only while the cursor is in the right margin, so the compass is invisible and
      inert everywhere else and arrives before the hand does. Keyboard focus brings it
      in too, or it would be unreachable without a mouse. */
-  opacity:calc(var(--reach, 0) * .9);
-  pointer-events:none;
+  /* At rest the eleven dashes stay faintly visible, so a first-time reader knows
+     there is a way to move through the piece; the names arrive with the hand. */
+  opacity:calc(.42 + var(--reach, 0) * .5);
+  padding-left:calc(var(--row) * 1.2);
+  pointer-events:auto;
   transition:opacity .4s var(--ease-out)}
 #compass:focus-within{opacity:1;pointer-events:auto}
 #compass:hover,#compass[data-reach="1"]{pointer-events:auto}
@@ -1076,6 +1087,20 @@ html.is-loading,html.is-loading body{overflow:hidden}
 
 @media (max-width:767px), (max-width:1024px) and (orientation:portrait){
   /* A strip of eleven tap targets down the edge of a phone is in the way of the one
-     gesture the whole piece is driven by. */
+     gesture the whole piece is driven by, so on a phone the acts live behind one
+     button and open as a list. */
   #compass{display:none}
+  #compass.is-open{display:flex;opacity:1 !important;pointer-events:auto !important;
+    inset:0;transform:none;justify-content:center;align-items:flex-start;
+    padding:calc(var(--row) * 8) var(--pad-x);background:rgba(16,9,4,.96);z-index:65}
+  #compass.is-open button{opacity:1;justify-content:flex-start;flex-direction:row-reverse;padding:.55em 0}
+  #compass.is-open button span{opacity:1;transform:none;font-size:.8125rem}
+  #compass-toggle{display:inline-flex}
 }
+#compass-toggle{display:none;position:fixed;top:max(14px,env(safe-area-inset-top));right:var(--pad-x);z-index:66;
+  padding:.7em 1.1em;font-size:.75rem}
+#compass-toggle.is-hidden{display:none}
+
+/* ?perf */
+#perf{position:fixed;left:8px;bottom:8px;z-index:90;margin:0;padding:.6em .8em;pointer-events:none;
+  font:500 11px/1.5 var(--font-mono);color:#9f9;background:rgba(0,0,0,.78);border-radius:4px;white-space:pre}

@@ -248,12 +248,15 @@ export default function Home() {
      the scene both need, so it goes through signals as well - this copy exists only so
      the compass can dim itself out of the way. */
   const [zen, setZen] = useState(false);
+  const [actsOpen, setActsOpen] = useState(false);
 
   const audio = useRef<Soundscape | null>(null);
   const prevProgress = useRef(0);
   const portalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saidTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
+  const perfRef = useRef<HTMLPreElement>(null);
+  const [showPerf] = useState(() => typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf'));
   const labelRef = useRef<HTMLDivElement>(null);
   const goldRef = useRef<HTMLSpanElement>(null);
   const impactRef = useRef<HTMLSpanElement>(null);
@@ -345,7 +348,7 @@ export default function Home() {
 
     let lastY = 0, lastNow = performance.now(), raf = 0;
     let wasLight = false, currentAct = -1;
-    let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1;
+    let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1, lastLabel = '', lastPerf = 0;
     const cues: [number, Effect][] = [
       [.148, 'fracture'],
       [.232, 'whoosh'],
@@ -473,9 +476,20 @@ export default function Home() {
         if (shown !== lastGold) { lastGold = shown; goldRef.current.textContent = shown; }
       }
 
-      if (labelRef.current) {
-        labelRef.current.style.transform =
+      if (labelRef.current && pointer.active) {
+        const transform =
           `translate3d(${(pointer.x * innerWidth).toFixed(1)}px,${((1 - pointer.y) * innerHeight - 44).toFixed(1)}px,0) translate(-50%,-50%) scale(var(--cs,0))`;
+        if (transform !== lastLabel) { lastLabel = transform; labelRef.current.style.transform = transform; }
+      }
+
+      /* ?perf - the governor's own numbers, for testing on a real machine */
+      if (perfRef.current && now - lastPerf > 500) {
+        lastPerf = now;
+        const f = signals.perf;
+        perfRef.current.textContent =
+          `${f.idle ? 'IDLE' : 'LIVE'}  ${f.fps.toFixed(0)} fps  ${f.ms.toFixed(1)} ms cpu\n` +
+          `tier ${f.tier}  pr ${f.pr.toFixed(2)}  ${(f.pixels / 1e6).toFixed(2)} MP\n` +
+          `heap ${((performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? 0) / 1e6 | 0} MB`;
       }
 
       /* Two daylight passages: the studio the cast is photographed in before it
@@ -766,9 +780,13 @@ export default function Home() {
             percentage, no highlight tracking the reader's position - only eleven marks
             and a name that appears when you reach for one. At rest it is almost not
             there. */}
-        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''}`} aria-label="Acts">
+        <button id="compass-toggle" className={`pill is-ghost ${chrome}`} aria-expanded={actsOpen}
+          aria-controls="compass" onClick={() => setActsOpen(o => !o)}>
+          {actsOpen ? 'Close' : 'Acts'}
+        </button>
+        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''} ${actsOpen ? 'is-open' : ''}`} aria-label="Acts">
           {ACT_LAYOUT.map((a, i) => (
-            <button key={a.id} onClick={() => go(a.at + .004)} data-cursor=""
+            <button key={a.id} onClick={() => { setActsOpen(false); go(a.at + .004); }} data-cursor=""
               className={act === i ? 'is-here' : ''}
               aria-current={act === i ? 'step' : undefined}>
               <i aria-hidden="true" />
@@ -778,6 +796,7 @@ export default function Home() {
         </nav>
 
         <div id="cursor-label" ref={labelRef} aria-hidden="true" />
+        {showPerf && <pre id="perf" ref={perfRef} aria-hidden="true" />}
         <div id="grain" aria-hidden="true" />
 
         {/* The sound control is a seam, not a button.
@@ -819,9 +838,21 @@ export default function Home() {
                   </div>
                   <div id="hero-copy" className="blk is-lit" data-lit="0,1">
                     <p className="t-body2 rise" style={{ '--delay': '600ms' } as React.CSSProperties}>
-                      I build interfaces that keep the joint visible. Every constraint leaves a
-                      seam, and the seam is where the work becomes worth looking at.
+                      I design and build immersive websites and digital products: WebGL, motion
+                      and interface, from first sketch to launch.
                     </p>
+                    <p className="t-body3 t-dim rise hero-seam" style={{ '--delay': '680ms' } as React.CSSProperties}>
+                      Every constraint leaves a seam, and the seam is where the work becomes
+                      worth looking at.
+                    </p>
+                    <div className="hero-jump rise" style={{ '--delay': '720ms' } as React.CSSProperties}>
+                      <button className="pill is-ghost" onClick={() => go(ACT_LAYOUT[3].at + .02)} data-cursor="WORK">
+                        Selected work <span className="pill-arrow" aria-hidden="true">&darr;</span>
+                      </button>
+                      <button className="pill is-dashed" onClick={() => go(1)} data-cursor="WRITE">
+                        Contact
+                      </button>
+                    </div>
                     <div className="o-dash is-gold rise" style={{ '--delay': '760ms' } as React.CSSProperties} />
                     <div className="rise" style={{ '--delay': '860ms' } as React.CSSProperties}>
                       <Formula label="Profile" expr="r(s) = R (1 &minus; |s|&#8319;)<sup>1/n</sup>" note="R = 1.72   n = 4.2" />
