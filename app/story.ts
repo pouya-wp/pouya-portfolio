@@ -83,10 +83,7 @@ export const FRAGMENTS = 43;
     a coincidence worth wasting. This number is an outcome, never an input. */
 export const SURVIVORS = 30;
 
-export const PROJECTS = [
-  { id: 'sepehr', name: 'Sepehr', domain: 'sepehr.vision', url: 'https://sepehr.vision', number: '001', role: 'Design and build', year: '2026', live: true },
-  { id: 'p4sadx', name: 'P4SADX', domain: 'p4sadx.vercell.app', url: 'https://p4sadx.vercell.app', number: '002', role: 'Design and build', year: '2025', live: false },
-] as const;
+export { PROJECTS } from './projects';
 
 /* The years the fragments carry. Bare numerals, no captions - anyone who wants to
    do the arithmetic can do it, and the silence is louder than the sentence would be.

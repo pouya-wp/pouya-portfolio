@@ -64,15 +64,27 @@ width, which is what puts a highlight down the length of every repair.
   envelopes and an FM bell. No audio files.
 - Film grain in the shader, and a second grain over the DOM.
 
-## Content limits
+## Content
 
-- The sculpture is procedural. Drop a `.glb` in and load it in `app/sculpture.tsx` if
-  you would rather use a modelled one.
-- Contact details are empty on purpose. Fill in `CONTACT` at the top of
-  `app/page.tsx` and the capsules appear; nothing is invented.
-- `https://sepehr.vision` loads live in the portal. `https://p4sadx.vercell.app`
-  returned no page, so its card shows an honest unavailable state with a direct link.
-- Full cross-browser and mobile QA has not been done.
+- Projects and their case studies live in `app/projects.ts`. The cards on the sheet,
+  the keyboard list, the colophon, the noscript fallback and the case-study dialog all
+  read that one list. The case-study copy is a draft written without access to the
+  live sites: check every sentence before publishing.
+- Contact details are `CONTACT` at the top of `app/page.tsx`. WhatsApp has no link
+  format for a username, so it copies the handle until a phone number is added.
+- Build for production with `SITE_URL=https://your-domain node scripts/build-preview.mjs`
+  so the canonical link and the absolute `og:image` are written. `public/og.jpg` is a
+  1200x630 frame of the hero.
+
+## Performance notes
+
+- The render cadence is governed (`TIERS` in `app/sculpture.tsx`): resolution drops
+  first, then frame rate, when the device falls behind; it climbs back with hysteresis.
+- The physics bake is fetched as JSON, not bundled; the HDR sky loads after the opening.
+- No per-frame writes to the document root, no SVG filter on the DOM, no animated
+  blend-mode overlay. `--active-ratio` is written only when it changes and only near
+  the viewport.
+- Audio: each file is decoded once; the score streams through a media element.
 
 ## Important files
 

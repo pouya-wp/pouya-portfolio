@@ -6,7 +6,7 @@ import './globals.css';
    a portfolio - but the tab, which is chrome the visitor reads before the first
    frame, does not get to give the ending away. */
 export const metadata: Metadata = {
-  title: 'Architecting Possibilities',
+  title: 'Pouya Sadeghpour - Architecting Possibilities',
   description: 'Independent designer and creative developer. Portfolio of Pouya Sadeghpour: a study in stone, gold, and the possibilities hidden inside limitations.',
   icons: { icon: '/favicon.svg' },
 };

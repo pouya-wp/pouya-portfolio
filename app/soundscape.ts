@@ -15,21 +15,24 @@ export type Effect =
   | 'assemble'
   | 'place';
 
-type Asset = 'music' | Effect | 'stoneBreak' | 'impactB' | 'impactC';
+type Asset = Effect | 'stoneBreak' | 'impactB' | 'impactC';
+
+/* The score streams through a media element: decoded whole, three minutes of stereo
+   float PCM is about seventy megabytes held for the life of the tab. */
+const MUSIC = '/audio/floating-cities.mp3';
 
 const FILES: Record<Asset, string> = {
-  music: '/audio/floating-cities.mp3',
-  fracture: '/audio/cinematic-explosion.wav',
+  fracture: '/audio/cinematic-explosion.mp3',
   stoneBreak: '/audio/stone-break.ogg',
   impact: '/audio/stone-impact-a.ogg',
   impactB: '/audio/stone-impact-b.ogg',
   impactC: '/audio/stone-impact-c.ogg',
-  vacuum: '/audio/deep-whoosh.wav',
-  whoosh: '/audio/camera-whoosh.wav',
-  assemble: '/audio/deep-whoosh.wav',
+  vacuum: '/audio/deep-whoosh.mp3',
+  whoosh: '/audio/camera-whoosh.mp3',
+  assemble: '/audio/deep-whoosh.mp3',
   place: '/audio/stone-impact-c.ogg',
-  rise: '/audio/deep-whoosh.wav',
-  portal: '/audio/camera-whoosh.wav',
+  rise: '/audio/deep-whoosh.mp3',
+  portal: '/audio/camera-whoosh.mp3',
   chime: '/audio/stone-impact-c.ogg',
   cut: '/audio/cut.wav',
   tick: '/audio/ui-hover.wav',
@@ -66,7 +69,8 @@ export class Soundscape {
   private fxGain: GainNode;
   private buffers = new Map<Asset, AudioBuffer>();
   private ready: Promise<void>;
-  private music: AudioBufferSourceNode | null = null;
+  private music: HTMLAudioElement | null = null;
+  private musicSource: MediaElementAudioSourceNode | null = null;
   private zone = '';
   /* The resonance. Three sine partials and a slow filter, standing in for a struck
      bowl - a sample would be a recording of somebody else's bowl, and this one has to
@@ -112,26 +116,38 @@ export class Soundscape {
   }
 
   private async load(): Promise<void> {
+    /* Several cues share a recording. Each file is fetched and decoded once, and
+       every name that points at it gets the same buffer. */
+    const decoded = new Map<string, Promise<AudioBuffer | null>>();
+    const decode = (url: string) => {
+      let pending = decoded.get(url);
+      if (!pending) {
+        pending = fetch(url)
+          .then(response => { if (!response.ok) throw new Error(`Audio asset failed: ${url}`); return response.arrayBuffer(); })
+          .then(data => this.ctx.decodeAudioData(data))
+          .catch(() => null);
+        decoded.set(url, pending);
+      }
+      return pending;
+    };
     await Promise.all(Object.entries(FILES).map(async ([name, url]) => {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Audio asset failed: ${url}`);
-      const buffer = await this.ctx.decodeAudioData(await response.arrayBuffer());
-      this.buffers.set(name as Asset, buffer);
+      const buffer = await decode(url);
+      if (buffer) this.buffers.set(name as Asset, buffer);
     }));
   }
 
   private startMusic(): void {
-    if (this.music || !this.enabled) return;
-    const buffer = this.buffers.get('music');
-    if (!buffer) return;
-    const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.loopStart = Math.min(.08, buffer.duration * .02);
-    source.loopEnd = Math.max(source.loopStart + 1, buffer.duration - .12);
-    source.connect(this.musicGain);
-    source.start();
-    this.music = source;
+    if (!this.enabled) return;
+    if (!this.music) {
+      const element = new Audio(MUSIC);
+      element.loop = true;
+      element.preload = 'auto';
+      element.crossOrigin = 'anonymous';
+      this.musicSource = this.ctx.createMediaElementSource(element);
+      this.musicSource.connect(this.musicGain);
+      this.music = element;
+    }
+    void this.music.play().catch(() => { /* refused: the effects still play */ });
   }
 
   async toggle(): Promise<boolean> {
@@ -145,6 +161,8 @@ export class Soundscape {
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setTargetAtTime(this.enabled ? .72 : 0, t, this.enabled ? .55 : .18);
     if (this.enabled) this.effect('click');
+    // a muted score is paused once it has faded, so it stops costing decode time
+    else { const music = this.music; setTimeout(() => { if (!this.enabled) music?.pause(); }, 900); }
     return this.enabled;
   }
 
@@ -293,8 +311,11 @@ export class Soundscape {
     this.bowl = null;
     if (this.closing) return;
     this.closing = true;
-    try { this.music?.stop(); } catch { /* already stopped */ }
+    this.music?.pause();
+    this.musicSource?.disconnect();
+    if (this.music) { this.music.removeAttribute('src'); this.music.load(); }
     this.music = null;
+    this.musicSource = null;
     // Suspending is deliberately HMR-safe; Vite can run overlapping React
     // cleanups while replacing this module, whereas AudioContext.close() is final.
     if (this.ctx.state === 'running') void this.ctx.suspend().catch(() => { /* already suspended */ });

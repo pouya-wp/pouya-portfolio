@@ -8,7 +8,7 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { AOPass } from './ao';
 import { DofPass } from './dof';
 import { parseGlb, normaliseMesh, meshToGeometry, shardSeeds, fractureShell, seamRibbons, surfacePoints } from './sculpture-model';
-import { sampleBaked } from './physics-playback';
+import { loadBaked, sampleBaked } from './physics-playback';
 import { BOARD, createChessSet, createDesk, createMat, createSheet, createBackWall, createCyclorama, createPedestal, createProjectCard, createCutter, createPencil, createClip, createEraser, textSamples, makeParticles } from './scene-elements';
 import { ScenePass, GlowPass, GradePass, FinishPass } from './postfx';
 import { TRACKS, pointer, stepPointer } from './pointer';
@@ -454,27 +454,36 @@ ${shader.fragmentShader}`;
 
     /* Each project is a card dealt onto the sheet. A holder carries the angle it
        was thrown at; the card itself lies flat inside it. */
-    /* Two cards side by side is a landscape composition: in portrait the frame is
-       narrower than the pair and both get their outer edges cut off. Dealing them up
-       the sheet instead uses the axis the phone actually has, and it is how they
-       would land on a real drafting table anyway. */
-    const LANDSCAPE_SPREAD = [{ x: -1.72, z: .35, a: .13 }, { x: 1.78, z: -.2, a: -.1 }];
-    // a card is 3.57 deep lying flat, so the centres have to clear that or the near
-    // card buries the far one's title
-    const PORTRAIT_SPREAD = [{ x: -.3, z: -2.05, a: .1 }, { x: .26, z: 2.0, a: -.08 }];
+    /* Five cards are dealt onto the sheet. Landscape gets a row of three behind a
+       row of two, the way a hand of cards lands on a table; a portrait frame deals
+       them up the sheet in pairs instead, along the axis the phone actually has.
+       Each spot carries its own scale, because a card at full size is 3.57 deep and
+       five of them do not fit a 10.8 sheet without crowding the tools off it. */
+    const LANDSCAPE_SPREAD = [
+      { x: -2.42, z: -1.42, a: .1, s: .74 }, { x: .02, z: -1.6, a: -.04, s: .74 }, { x: 2.44, z: -1.38, a: -.11, s: .74 },
+      { x: -1.24, z: 1.5, a: -.06, s: .74 }, { x: 1.28, z: 1.42, a: .08, s: .74 },
+    ];
+    const PORTRAIT_SPREAD = [
+      { x: -.98, z: -2.82, a: .06, s: .68 }, { x: .98, z: -2.76, a: -.05, s: .68 },
+      { x: -.98, z: 0, a: -.04, s: .68 }, { x: .98, z: .04, a: .05, s: .68 },
+      { x: 0, z: 2.82, a: -.03, s: .68 },
+    ];
     const cards = PROJECTS.map((project) => {
       const built = createProjectCard(project);
       const holder = new THREE.Group();
       holder.add(built.group);
-      return { holder, built, base: new THREE.Vector3(), lift: 0, hot: false };
+      return { holder, built, base: new THREE.Vector3(), scale: 1, lift: 0, hot: false };
     });
+    const cardHolders = cards.map(c => c.holder);
     const layoutCards = () => {
       const spread = width < height ? PORTRAIT_SPREAD : LANDSCAPE_SPREAD;
       cards.forEach((card, i) => {
-        const place = spread[i] ?? { x: (i - .5) * 3.5, z: 0, a: 0 };
+        const place = spread[i] ?? { x: (i - 2) * 2, z: 0, a: 0, s: .7 };
         card.base.set(place.x, -2.585, place.z);
+        card.scale = place.s;
         card.holder.position.copy(card.base);
         card.holder.rotation.y = place.a;
+        card.holder.scale.setScalar(place.s);
       });
     };
     // the first placement comes from resize(), which runs before the first frame
@@ -555,7 +564,7 @@ ${shader.fragmentShader}`;
 
     const pick = () => {
       raycaster.setFromCamera(ndc, camera);
-      const hit = raycaster.intersectObjects(cards.map(c => c.holder), true)[0];
+      const hit = raycaster.intersectObjects(cardHolders, true)[0];
       if (!hit) return -1;
       return cards.findIndex(c => {
         let node: THREE.Object3D | null = hit.object;
@@ -731,13 +740,21 @@ ${shader.fragmentShader}`;
        held here rather than assigned to scene.environment directly, because the seven
        original acts have their own studio environment and must not inherit this one. */
     let skyEnv: THREE.Texture | null = null;
-    const cancelSky = loadRealSky(renderer, '/citrus_orchard_puresky_1k.hdr', (equirect, environment) => {
-      dome.material.map = equirect;
-      dome.material.needsUpdate = true;
-      sea.material.uniforms.tSky.value = equirect;
-      skyEnv = environment;
-      sky.dispose();
-    });
+    /* 1.3 MB that nothing in the first four acts looks at. It used to be requested
+       while the preloader was still competing for the same connection; it now waits
+       until the opening has rendered and the main thread has gone quiet. */
+    let cancelSky = () => { };
+    let skyEquirect: THREE.Texture | null = null;
+    const skyTimer = setTimeout(() => {
+      cancelSky = loadRealSky(renderer, '/citrus_orchard_puresky_1k.hdr', (equirect, environment) => {
+        dome.material.map = equirect;
+        dome.material.needsUpdate = true;
+        sea.material.uniforms.tSky.value = equirect;
+        skyEnv = environment;
+        skyEquirect = equirect;
+        sky.dispose();
+      });
+    }, 3500);
     const ripple = createRipple(renderer);
     const sea = createSea(sky, ripple.texture);
     sea.mesh.visible = false;
@@ -851,6 +868,8 @@ ${shader.fragmentShader}`;
     /* where a cooling filament ends up on its way to nothing */
     const TUNGSTEN_DYING = new THREE.Color('#8c2a06');
     const lampColour = new THREE.Color();
+    const SEAM_HOT = new THREE.Color(0xffe8c2);
+    const taken = new Set<number>();
 
 
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -888,40 +907,82 @@ ${shader.fragmentShader}`;
     };
     const observer = new ResizeObserver(resize); observer.observe(host); resize();
 
-    /* Twenty-four frames a second, on purpose.
+    /* The cadence is earned, not fixed.
 
-       Two reasons and they point the same way. The first is that this is shot like
-       film - there is a shutter in the post chain, there are cuts, there is a lens -
-       and film is 24. At 60 the motion is *too* clean: the strobe that makes a whip pan
-       read as a whip pan is gone, and the piece looks like a very good video game
-       instead of a very short film.
-
-       The second is that it is 40% of the work. Every frame here is a scene pass, an
-       occlusion pass, a defocus, a bloom, a grade and a finish, at full resolution.
-       Rendering 24 of those instead of 60 is not an optimisation of the frame; it is
-       simply fewer frames, which is the only kind of saving that cannot backfire.
+       This used to be held at 24 frames a second everywhere, for the film look and for
+       the budget. On a fast machine that read as judder against a page that scrolls at
+       the display's own rate; on a slow one, 24 full-resolution frames of a six-pass
+       chain were still more than the GPU had. So the frame now has a governor: it
+       starts at a tier the device can plausibly hold, measures what it actually
+       achieves over a short window, and steps the resolution down first and the frame
+       rate second when it falls behind - then back up, carefully, when there is room.
 
        The loop still *runs* at display rate. Pointer smoothing and the scroll damp are
        stepped every tick so input never feels coarse - only the render is held to the
        cadence, and it is handed the real elapsed time so nothing animates slower. */
-    const FRAME_RATE = 24;
-    const FRAME_STEP = 1 / FRAME_RATE;
+    const DEVICE_PR = Math.min(devicePixelRatio || 1, 1.5);
+    const TIERS = [
+      { fps: 60, pr: 1.5 }, { fps: 60, pr: 1.25 }, { fps: 60, pr: 1 },
+      { fps: 30, pr: 1 }, { fps: 30, pr: .8 }, { fps: 24, pr: .7 },
+    ];
+    const coarse = matchMedia('(pointer: coarse)').matches;
+    const lowMemory = ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
+    let tier = coarse || lowMemory ? 3 : 1;
+    const downgrades = Array.from({ length: TIERS.length }, () => 0);
+    let FRAME_STEP = 1 / TIERS[tier].fps;
     let backlog = 0;
+    let windowStart = 0, windowFrames = 0, slowWindows = 0, fastWindows = 0;
+    const pointMaterials: THREE.ShaderMaterial[] = [];
+    scene.traverse(node => {
+      const material = (node as THREE.Mesh).material as THREE.ShaderMaterial | undefined;
+      if (material?.uniforms?.uPixel) pointMaterials.push(material);
+    });
+    const applyTier = (next: number) => {
+      tier = Math.max(0, Math.min(TIERS.length - 1, next));
+      FRAME_STEP = 1 / TIERS[tier].fps;
+      const pr = Math.min(TIERS[tier].pr, DEVICE_PR);
+      if (Math.abs(renderer.getPixelRatio() - pr) > .01) {
+        renderer.setPixelRatio(pr);
+        pointMaterials.forEach(material => { material.uniforms.uPixel.value = Math.min(pr, 1.7); });
+        resize();
+      }
+      windowStart = 0; windowFrames = 0; slowWindows = 0; fastWindows = 0;
+    };
+    applyTier(tier);
+    /* One window is 1.5 s of rendered frames. Two slow windows in a row step down; it
+       takes six fast ones to step back up, and a tier that has had to be abandoned
+       twice is not tried again, so the governor cannot oscillate on a borderline GPU. */
+    const govern = (now: number) => {
+      if (!windowStart) { windowStart = now; windowFrames = 0; return; }
+      windowFrames++;
+      const span = (now - windowStart) / 1000;
+      if (span < 1.5) return;
+      const achieved = windowFrames / span, target = TIERS[tier].fps;
+      windowStart = now; windowFrames = 0;
+      if (achieved < target * .82) {
+        fastWindows = 0;
+        if (++slowWindows >= 2 && tier < TIERS.length - 1) { downgrades[tier]++; applyTier(tier + 1); }
+      } else if (achieved > target * .96) {
+        slowWindows = 0;
+        if (++fastWindows >= 6 && tier > 0 && downgrades[tier - 1] < 2) applyTier(tier - 1);
+      } else { slowWindows = 0; fastWindows = 0; }
+    };
 
     const draw = (now: number) => {
       frame = requestAnimationFrame(draw);
-      if (!visible || pause.current) { last = now; return; }
+      if (!visible || pause.current) { last = now; windowStart = 0; return; }
       const tick = Math.min((now - last) / 1000, .05); last = now;
       stepPointer(now);
 
       /* A frame that arrives a hair early is still a frame. Without the tolerance a
-         24Hz cadence beating against a 60Hz display drops to 20, because two ticks out
-         of every five land a millisecond short. */
+         30Hz cadence beating against a 60Hz display drops below target, because some
+         ticks land a millisecond short. */
       backlog += tick;
-      if (backlog < FRAME_STEP - .002) return;
+      if (backlog < FRAME_STEP - .003) return;
       const dt = Math.min(backlog, .05);
       backlog = 0;
       elapsed += dt;
+      govern(now);
 
       const goal = driver.current.progress;
       current = reduced ? goal : THREE.MathUtils.damp(current, goal, 14, dt);
@@ -1083,7 +1144,7 @@ ${shader.fragmentShader}`;
       seamHeatUniform.value = seamHeat * Math.min(1, signals.gold * 1.6);
       // cold metal is lit, not lit up; only the ignition puts light into it
       seamMaterial.emissiveIntensity = seamHeat * 7;
-      seamMaterial.color.setHex(0xf7c46e).lerp(new THREE.Color(0xffe8c2), seamHeat);
+      seamMaterial.color.setHex(0xf7c46e).lerp(SEAM_HOT, seamHeat);
       /* The reader's path, recorded. Act five resamples it to thirty points and the
          cloud converges on those, so the shape that resolves at the end of the piece
          is the one the person watching has been drawing all along. Nothing here
@@ -1521,7 +1582,7 @@ ${shader.fragmentShader}`;
       if (zoom > .001 && cards[Math.max(0, focusRef.current)]) {
         const card = cards[Math.max(0, focusRef.current)];
         cardUp.set(0, 0, -1).applyQuaternion(card.holder.quaternion);
-        tmp.copy(card.holder.position).setY(card.holder.position.y + 1.02);
+        tmp.copy(card.holder.position).setY(card.holder.position.y + 1.02 * card.scale);
         tmp.add(deskGroup.position);
         shot.lerp(tmp, zoom);
         tmp.copy(card.holder.position).add(deskGroup.position);
@@ -1633,7 +1694,7 @@ ${shader.fragmentShader}`;
         card.lift = THREE.MathUtils.damp(card.lift, want, 8, dt);
         card.holder.position.y = card.base.y + card.lift * .5;
         card.holder.rotation.x = -card.lift * .07;
-        card.holder.scale.setScalar(1 + card.lift * .035);
+        card.holder.scale.setScalar(card.scale * (1 + card.lift * .035));
       });
 
       if (board) {
@@ -1798,7 +1859,7 @@ ${shader.fragmentShader}`;
             screenD.push(Math.hypot((x - pointer.x) * aspect, y - pointer.y));
           }
 
-          const taken = new Set<number>();
+          taken.clear();
           for (let slot = 0; slot < TRACKS; slot++) {
             const held = trackSlots[slot];
             if (held >= 0 && screenD[held] < .33 && !taken.has(held)) { taken.add(held); continue; }
@@ -1915,7 +1976,9 @@ ${shader.fragmentShader}`;
 
     return () => {
       disposed = true;
+      clearTimeout(skyTimer);
       cancelSky();
+      skyEnv?.dispose(); skyEquirect?.dispose();
       cancelAnimationFrame(frame);
       restoreCursor();
       observer.disconnect();
@@ -1948,7 +2011,16 @@ ${shader.fragmentShader}`;
 
     void (async () => {
       try {
-        const response = await fetch(SCULPTURE.url);
+        /* The cast, the bake and the faces the canvases are drawn in all arrive
+           together. The cards and the point-cloud lines are rasterised from those
+           fonts at build time, so drawing them before the faces land prints them in
+           the fallback and they never recover. */
+        const [response] = await Promise.all([
+          fetch(SCULPTURE.url),
+          loadBaked(),
+          Promise.all(['600 64px Geist', '400 30px Geist', '600 26px "Geist Mono"']
+            .map(face => document.fonts?.load(face))).catch(() => { }),
+        ]);
         if (!response.ok) throw new Error(`Sculpture request failed: ${response.status}`);
         const source = await response.arrayBuffer();
         if (!cancelled) teardown = build(source);

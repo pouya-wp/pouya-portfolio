@@ -137,7 +137,7 @@ function matTextures() {
   // ruler scales along the top and left margins
   ctx.strokeStyle = 'rgba(255,237,215,.6)';
   ctx.fillStyle = 'rgba(255,237,215,.72)';
-  ctx.font = '600 20px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 20px "Geist Mono", system-ui, sans-serif';
   ctx.textBaseline = 'middle';
   for (let n = 0; n <= cells * 2; n++) {
     const v = MARGIN + n * step / 2;
@@ -191,7 +191,7 @@ function matTextures() {
 
   // stamps in the margin
   ctx.fillStyle = 'rgba(255,237,215,.5)';
-  ctx.font = '600 26px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillText('SELF-HEALING WORKING SURFACE  /  A1  /  SCALE 1:1', MARGIN, S - 42);
   ctx.textAlign = 'right';
@@ -199,7 +199,7 @@ function matTextures() {
   ctx.fillText('PS-04', S - MARGIN, S - 42);
   ctx.textAlign = 'left';
   ctx.fillStyle = 'rgba(255,237,215,.34)';
-  ctx.font = '600 22px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 22px "Geist Mono", system-ui, sans-serif';
   ctx.fillText('SHEET 04 OF 07', MARGIN, 58);
 
   // edge wear
@@ -536,9 +536,9 @@ function sheetTexture() {
 
   ctx.fillStyle = '#382416';
   ctx.textBaseline = 'middle';
-  ctx.font = '600 40px "Space Grotesk", system-ui, sans-serif';
+  ctx.font = '600 40px "Geist", system-ui, sans-serif';
   ctx.fillText('SELECTED WORK', tx + 22, ty + 36);
-  ctx.font = '600 22px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 22px "Geist Mono", system-ui, sans-serif';
   ctx.fillText('SHEET 04 / 07', tx + 22, ty + 108);
   ctx.fillText('SCALE 1 : 1', tx + 22, ty + 152);
   ctx.fillStyle = '#dc5000';
@@ -547,7 +547,7 @@ function sheetTexture() {
   ctx.fillText('2026 / REV 03', tx + 382, ty + 152);
 
   // the formulas that actually describe this piece
-  ctx.font = '400 30px "DM Sans", system-ui, sans-serif';
+  ctx.font = '400 30px "Geist", system-ui, sans-serif';
   ctx.fillStyle = 'rgba(56,36,22,.72)';
   const lines = [
     'PROFILE     r(s) = R (1 - |s|^n)^(1/n)      R = 1.72   n = 4.2',
@@ -556,7 +556,7 @@ function sheetTexture() {
   ];
   lines.forEach((line, i) => ctx.fillText(line, M + 42, M + 74 + i * 44));
 
-  ctx.font = '600 26px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
   ctx.fillStyle = '#dc5000';
   ctx.fillText('LIMITATIONS ARE JUST RAW MATERIALS', M + 42, S - M - 58);
 
@@ -628,7 +628,7 @@ function cardFace(spec: CardSpec) {
 
   ctx.fillStyle = '#ffedd7';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = '600 26px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
   ctx.fillStyle = '#dc5000';
   ctx.fillText(`DRAWING ${spec.number}`, M + 26, M + 62);
   ctx.textAlign = 'right';
@@ -637,13 +637,13 @@ function cardFace(spec: CardSpec) {
   ctx.textAlign = 'left';
 
   ctx.fillStyle = '#ffedd7';
-  ctx.font = '600 108px "Space Grotesk", system-ui, sans-serif';
+  ctx.font = '600 108px "Geist", system-ui, sans-serif';
   ctx.fillText(spec.name.toUpperCase(), M + 26, H - M - 148);
-  ctx.font = '400 30px "DM Sans", system-ui, sans-serif';
+  ctx.font = '400 30px "Geist", system-ui, sans-serif';
   ctx.fillStyle = 'rgba(255,237,215,.55)';
   ctx.fillText(spec.domain, M + 26, H - M - 96);
   ctx.fillStyle = '#dc5000';
-  ctx.font = '600 26px "DM Sans", system-ui, sans-serif';
+  ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
   ctx.fillText(spec.role.toUpperCase(), M + 26, H - M - 46);
 
   return textureOf(canvas);
@@ -664,7 +664,7 @@ function cardBack() {
   ctx.lineWidth = 3;
   ctx.strokeRect(24, 24, 402, 582);
   ctx.fillStyle = '#ffedd7';
-  ctx.font = '600 74px "Space Grotesk", system-ui, sans-serif';
+  ctx.font = '600 74px "Geist", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('PS', 225, 345);
   return textureOf(canvas);
@@ -816,7 +816,7 @@ export function createEraser() {
 /* ------------------------------------------------------ particles and type */
 
 export function textSamples(text: string, count: number, random: () => number, width = 8, height = 3.2,
-  font = '600 88px "Space Grotesk", system-ui, sans-serif') {
+  font = '600 88px "Geist", system-ui, sans-serif') {
   const { canvas, ctx } = canvasOf(1400);
   canvas.height = 600;
   ctx.font = font;

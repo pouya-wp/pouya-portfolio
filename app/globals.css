@@ -6,9 +6,14 @@
    everything. The palette, type and narrative are this project's own.
    ========================================================================= */
 
-@font-face{font-family:Italiana;src:url('/fonts/italiana.ttf') format('truetype');font-weight:400;font-display:swap}
-@font-face{font-family:'DM Sans';src:url('/fonts/dm-sans.ttf') format('truetype');font-weight:400;font-display:swap}
-@font-face{font-family:'Space Grotesk';src:url('/fonts/space-grotesk.ttf') format('truetype');font-weight:600;font-display:swap}
+/* Variable woff2, latin subset. Geist carries the display and the text at whatever
+   weight the role needs (the old DM Sans shipped one weight and every label was
+   synthesised bold), Geist Mono carries the instrument read-outs, and Instrument
+   Serif replaces Italiana, whose hairlines vanished below about 30px. */
+@font-face{font-family:Geist;src:url('/fonts/geist.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Geist Mono';src:url('/fonts/geist-mono.woff2') format('woff2');font-weight:100 900;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Instrument Serif';src:url('/fonts/instrument-serif-italic.woff2') format('woff2');font-weight:400;font-style:italic;font-display:swap}
 
 /* ---------------------------------------------------------------- 1. tokens */
 
@@ -20,6 +25,8 @@
   --bone:#FFEDD7;
   --bone-70:rgba(255,237,215,.7);
   --bone-45:rgba(255,237,215,.45);
+  /* the floor for any text a reader is expected to read: 4.5:1 on --ink */
+  --bone-62:rgba(255,237,215,.62);
   --bone-22:rgba(255,237,215,.22);
   --bone-00:rgba(255,237,215,0);
   --stone:#6C5F51;
@@ -36,9 +43,10 @@
   --gold-30:rgba(224,162,68,.34);
   --gold-00:rgba(224,162,68,0);
 
-  --font-display:'Space Grotesk',system-ui,sans-serif;
-  --font-serif:Italiana,Georgia,serif;
-  --font-text:'DM Sans',system-ui,sans-serif;
+  --font-display:Geist,system-ui,sans-serif;
+  --font-serif:'Instrument Serif',Georgia,serif;
+  --font-text:Geist,system-ui,sans-serif;
+  --font-mono:'Geist Mono',ui-monospace,monospace;
 
   /* page metrics */
   --vh:1vh;
@@ -92,7 +100,9 @@ body{
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
 }
-html.has-gl-cursor,html.has-gl-cursor body,html.has-gl-cursor *{cursor:none !important}
+html.has-gl-cursor:not(.is-portal),html.has-gl-cursor:not(.is-portal) body,html.has-gl-cursor:not(.is-portal) *{cursor:none !important}
+/* a visible focus ring everywhere; the drawn cursor is no help to a keyboard */
+:focus-visible{outline:2px solid var(--gold-hot);outline-offset:3px}
 h1,h2,h3,h4,h5,p,figure,ul{margin:0;padding:0}
 ul{list-style:none}
 a{color:inherit;text-decoration:none}
@@ -101,6 +111,10 @@ img,canvas,svg,iframe{display:block;max-width:100%}
 ::selection{background:var(--gold);color:var(--ink)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .bp-keyboard:not(.is-active){display:none}
+.bp-keyboard{position:absolute;left:var(--pad-x);bottom:calc(var(--pad-y) * .6);z-index:5;
+  display:flex;flex-wrap:wrap;gap:.5em;max-width:calc(100% - var(--pad-x) * 2);
+  clip-path:inset(50%);height:1px;overflow:hidden}
+.bp-keyboard:focus-within{clip-path:none;height:auto;overflow:visible}
 .no-select{-webkit-user-select:none;user-select:none}
 
 /* the native scrollbar, reduced to a hairline so it never competes with the rail */
@@ -126,8 +140,14 @@ html{scrollbar-width:thin;scrollbar-color:var(--gold-30) transparent}
 .t-label{font-size:var(--label);letter-spacing:.13em;text-transform:uppercase;line-height:1.35}
 .t-micro{font-size:var(--micro);letter-spacing:.16em;text-transform:uppercase;line-height:1.5}
 .t-caps{text-transform:uppercase}
+/* Instrument read-outs and labels are set in the mono, which already carries its own
+   width - so they take half the tracking the proportional face needed. */
+.t-label,.t-micro,.spec,.formula .f-label,.formula .f-note,.portal-bar,
+#compass button span,#ct-links h5,#ct-made h5,#ct-bottom,.pre-edge{font-family:var(--font-mono);font-weight:500}
+.t-label{letter-spacing:.08em}
+.t-micro{letter-spacing:.08em}
 .t-gold{color:var(--gold-hot)}
-.t-dim{color:var(--bone-45)}
+.t-dim{color:var(--bone-62)}
 em{font-style:normal;color:var(--gold-hot)}
 .t-serif em{font-family:var(--font-serif)}
 
@@ -230,8 +250,8 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 
 /* ---------------------------------------------------- 8. spec / annotation */
 
-.annot{font-family:var(--font-text);font-size:var(--micro);letter-spacing:.16em;
-  text-transform:uppercase;color:var(--bone-45);line-height:1.6}
+.annot{font-family:var(--font-mono);font-size:var(--micro);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--bone-62);line-height:1.6}
 .annot b{font-weight:400;color:var(--bone)}
 .annot .tick{display:inline-block;width:1.6em;height:1px;margin:0 .5em .3em 0;
   background:repeating-linear-gradient(90deg,var(--bone-22) 0 2px,transparent 0 4px)}
@@ -239,7 +259,7 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 .spec{display:inline-flex;align-items:stretch;border:1px dashed var(--bone-22);
   background:rgba(10,9,8,.55);backdrop-filter:blur(6px);border-radius:2px}
 .spec > .spec-k{padding:.65em .9em;font-size:var(--micro);letter-spacing:.16em;
-  text-transform:uppercase;color:var(--bone-45)}
+  text-transform:uppercase;color:var(--bone-62)}
 .spec > .spec-v{padding:.65em .9em;font-size:var(--micro);letter-spacing:.1em;
   color:var(--gold-hot);border-left:1px dashed var(--bone-22);
   font-variant-numeric:tabular-nums;min-width:5.6em}
@@ -264,7 +284,7 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 #gl-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 #gl-canvas canvas{width:100%;height:100%;display:block}
 .gl-fallback{position:fixed;inset:0;display:grid;place-content:center;text-align:center;
-  padding:var(--pad-x);color:var(--bone-45);font-size:var(--sub2);z-index:1;
+  padding:var(--pad-x);color:var(--bone-62);font-size:var(--sub2);z-index:1;
   background:radial-gradient(60% 60% at 50% 45%,#191410,var(--ink))}
 
 /* No z-index, and that is deliberate.
@@ -284,12 +304,10 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 
 .section{position:relative;width:100%;height:calc(var(--h,100) * var(--vh))}
 .section__inner{position:sticky;top:0;height:calc(var(--vh) * 100);width:100%;
-  overflow:hidden;will-change:filter}
+  overflow:hidden}
 .section__stage{position:absolute;inset:0;
   padding:var(--pad-y) var(--pad-x);display:block}
 
-/* the DOM half of the motion blur: only the pinned inner that is on screen */
-.section__inner.is-blurred{filter:url(#dom-motion-blur)}
 
 /* ------------------------------------------------- 10. the sound toggle
 
@@ -426,13 +444,11 @@ html.is-loading,html.is-loading body{overflow:hidden}
   .pre-edge--top{top:1rem}.pre-edge--bottom{bottom:1rem}
 }
 
-#grain{position:fixed;inset:-50%;z-index:50;pointer-events:none;opacity:.05;
-  background-image:var(--grain-src);background-size:180px 180px;
-  animation:grain-shift 1.1s steps(6) infinite;mix-blend-mode:overlay}
-@keyframes grain-shift{
-  0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}
-  40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-2%)}
-  80%{transform:translate(3%,1%)}100%{transform:translate(0,0)}}
+#grain{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:.05;
+  background-image:var(--grain-src);background-size:180px 180px}
+/* The grain used to crawl six times a second in overlay blend, which re-composited a
+   full-screen layer over the canvas on every step. The WebGL finish pass already
+   carries a moving grain, so this one only has to texture the type, and still. */
 
 /* ============================================================================
    ACT I - HERO
@@ -460,7 +476,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   border:1px dashed var(--bone-22);border-radius:calc(var(--row) * .8);
   background:rgba(10,9,8,.4);backdrop-filter:blur(8px)}
 #hero-card .t-label{color:var(--bone)}
-#hero-card .t-micro{margin-top:.7em;color:var(--bone-45)}
+#hero-card .t-micro{margin-top:.7em;color:var(--bone-62)}
 #hero-frame{left:calc(var(--pad-x) + var(--span) * 5.6);top:26%;
   width:calc(var(--span) * 4);height:calc(var(--span) * 4);border-radius:2px}
 #hero-annot{position:absolute;right:var(--pad-x);bottom:calc(var(--pad-y) + var(--row) * 5 + 10px);
@@ -480,7 +496,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   transform:translateY(-50%);mix-blend-mode:screen;color:var(--paper)}
 #frac-huge .t-h1{font-size:calc(150 * var(--unit));letter-spacing:-.045em}
 #frac-hint{position:absolute;left:calc(var(--pad-x) + var(--span) * 1);bottom:24%;
-  display:flex;align-items:center;gap:.9em;color:var(--bone-45)}
+  display:flex;align-items:center;gap:.9em;color:var(--bone-62)}
 #frac-hint .hand{width:calc(26 * var(--unit));height:calc(32 * var(--unit));
   animation:handwave 2.6s var(--ease-io) infinite}
 @keyframes handwave{0%,100%{transform:translate(-12%,0) rotate(-8deg)}50%{transform:translate(12%,-6%) rotate(6deg)}}
@@ -500,7 +516,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #drop-readout{position:absolute;left:50%;transform:translateX(-50%);bottom:26%;
   display:flex;gap:calc(var(--row) * .8)}
 #drop-formula{position:absolute;right:var(--pad-x);bottom:calc(var(--pad-y) + var(--row) * 6);
-  display:flex;align-items:baseline;gap:1.2em;color:var(--bone-45)}
+  display:flex;align-items:baseline;gap:1.2em;color:var(--bone-62)}
 #drop-formula .f{font-family:var(--font-serif);font-size:var(--h4);color:var(--bone)}
 
 /* ============================================================================
@@ -509,9 +525,11 @@ html.is-loading,html.is-loading body{overflow:hidden}
 
 #blueprint .section__stage{display:block}
 #bp-head{position:absolute;left:var(--pad-x);top:calc(var(--pad-y) + var(--row) * 6);
-  width:calc(var(--span) * 7);color:#fff;mix-blend-mode:difference}
-#bp-head .t-h2{margin-top:.45em;text-transform:uppercase}
-#bp-head .t-label,#ui.is-light #bp-head .t-label{color:#fff;opacity:.74}
+  width:calc(var(--span) * 6);color:var(--ink)}
+/* Smaller than the other act heads: five cards share the frame with it, and at h2
+   it ran three lines deep straight across the first one. */
+#bp-head .t-h2{margin-top:.45em;text-transform:uppercase;font-size:var(--h3)}
+#bp-head .t-label,#ui.is-light #bp-head .t-label{color:rgba(16,9,4,.78)}
 #blueprint #bp-head,#blueprint #bp-stamp{
   transform:translate3d(0,calc(var(--row) * 1.4),0) scale(.985)}
 #blueprint #bp-head.is-lit,#blueprint #bp-stamp.is-lit{transform:none}
@@ -536,7 +554,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   box-shadow:0 calc(var(--row) * 3) calc(var(--row) * 7) rgba(0,0,0,.7)}
 .sheet:hover::before{opacity:0}
 .sheet-top{position:relative;z-index:3;display:flex;justify-content:space-between;
-  font-size:var(--micro);letter-spacing:.16em;text-transform:uppercase;color:var(--bone-45)}
+  font-size:var(--micro);letter-spacing:.16em;text-transform:uppercase;color:var(--bone-62)}
 .sheet-top b{font-weight:400;color:var(--gold-hot)}
 .sheet-wire{position:absolute;inset:calc(var(--row) * 4) calc(var(--row) * 2);z-index:1;
   display:flex;flex-direction:column;gap:calc(var(--row) * .9);opacity:.85;
@@ -561,7 +579,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 .sheet-name{display:block;font-family:var(--font-display);font-weight:600;
   font-size:var(--h4);letter-spacing:-.02em;line-height:1}
 .sheet-domain{display:block;margin-top:.4em;font-size:var(--micro);letter-spacing:.16em;
-  text-transform:uppercase;color:var(--bone-45)}
+  text-transform:uppercase;color:var(--bone-62)}
 .sheet-enter{display:inline-flex;align-items:center;gap:.5em;padding:.7em 1.1em;
   border:1px solid var(--gold-30);border-radius:3em;font-size:var(--micro);
   letter-spacing:.18em;text-transform:uppercase;color:var(--gold-hot);
@@ -582,7 +600,8 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ui.is-light{color:var(--ink)}
 #ui.is-light #hero-tag,#ui.is-light #hero-sub,#ui.is-light #hero-copy .t-body2,
 #ui.is-light #hero-word,#ui.is-light #hero-card .t-label{color:var(--ink)}
-#ui.is-light #hero-sub,#ui.is-light #hero-card .t-micro{color:rgba(16,9,4,.62)}
+#ui.is-light #hero-sub,#ui.is-light #hero-card .t-micro{color:rgba(16,9,4,.86)}
+#ui.is-light .annot,#ui.is-light .t-dim{color:rgba(16,9,4,.72)}
 #ui.is-light #hero-card{background:rgba(255,250,243,.5);border-color:rgba(16,9,4,.18)}
 #ui.is-light #hero-copy .o-dash{--dash:rgba(16,9,4,.24)}
 #ui.is-light #sound-toggle .seam i{background:rgba(16,9,4,.5)}
@@ -601,17 +620,70 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #sound-toggle.is-hidden{opacity:0;pointer-events:none}
 #blueprint.is-entering .sheet{opacity:0;transform:scale(1.35);transition:all .85s var(--ease-anticipate)}
 
-/* the portal */
-.portal{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;
+/* the case study: copy on the left, the live site on the right */
+.case{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;
   margin:0;padding:0;border:0;z-index:70;background:var(--ink);color:var(--bone);
-  display:flex;flex-direction:column;pointer-events:auto}
-.portal-bar{display:flex;align-items:center;justify-content:space-between;gap:1em;
-  padding:calc(var(--row) * 1.2) var(--pad-x);border-bottom:1px solid var(--bone-22);
-  font-size:var(--micro);letter-spacing:.16em;text-transform:uppercase;color:var(--bone-45)}
-.portal-frame{flex:1;width:100%;border:0;background:var(--ink)}
-.portal-loading{position:absolute;inset:0;display:grid;place-content:center;text-align:center;
-  gap:.8em;color:var(--bone-45);font-size:var(--micro);letter-spacing:.2em;text-transform:uppercase}
-.portal-empty{flex:1;display:grid;place-content:center;text-align:center;gap:1em;padding:var(--pad-x)}
+  display:flex;flex-direction:column;overflow:hidden;pointer-events:auto}
+.case::backdrop{background:var(--ink)}
+.case[open]{animation:case-in .6s var(--ease-out) both}
+@keyframes case-in{from{opacity:0}to{opacity:1}}
+.case-bar{display:flex;align-items:center;justify-content:space-between;gap:1em;flex:none;
+  padding:calc(var(--row) * 1.1) var(--pad-x);border-bottom:1px solid var(--bone-22)}
+.case-count{font-family:var(--font-mono);font-size:var(--micro);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--bone-62)}
+.case-steps{display:flex;gap:.4em}
+.case-steps .pill{padding:.9em 1.2em}
+.case-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.case-copy{overflow-y:auto;overscroll-behavior:contain;
+  padding:calc(var(--row) * 4) var(--pad-x) calc(var(--row) * 6);
+  border-right:1px solid var(--bone-22);scrollbar-width:thin}
+.case-title{font-size:clamp(3rem,calc(120 * var(--unit)),8rem);margin:.18em 0 .12em;line-height:.9}
+.case-tagline{font-family:var(--font-serif);font-style:italic;font-size:clamp(1.35rem,calc(36 * var(--unit)),2.4rem);
+  line-height:1.15;color:var(--gold-hot);max-width:22em}
+.case-meta{display:grid;grid-template-columns:1fr 1fr;gap:1.1em 1.6em;margin:calc(var(--row) * 3) 0;
+  padding:calc(var(--row) * 1.6) 0;border-block:1px dashed var(--bone-22)}
+.case-meta dt{font-family:var(--font-mono);font-size:var(--micro);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--bone-62);margin-bottom:.35em}
+.case-meta dd{margin:0;font-size:var(--body3);line-height:1.4}
+.case-meta a{text-decoration:underline;text-decoration-color:var(--gold);text-underline-offset:.2em}
+.case-part{margin-top:calc(var(--row) * 2.6);max-width:38em}
+.case-part h3{font-family:var(--font-mono);font-size:var(--label);font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--gold-hot);margin-bottom:.8em}
+.case-part p,.case-part li{font-size:max(1.0625rem,calc(18 * var(--unit)));line-height:1.6;color:var(--bone)}
+.case-part ol{margin:0;padding:0;list-style:none;counter-reset:step}
+.case-part li{counter-increment:step;position:relative;padding:.7em 0 .7em 2.6em;border-top:1px solid var(--bone-22)}
+.case-part li::before{content:counter(step,decimal-leading-zero);position:absolute;left:0;top:.95em;
+  font-family:var(--font-mono);font-size:.75em;color:var(--gold)}
+.case-actions{display:flex;flex-wrap:wrap;gap:.6em;margin-top:calc(var(--row) * 4)}
+.case-rise{animation:case-rise .9s var(--ease-out) both;animation-delay:calc(var(--d,0) * 60ms + 120ms)}
+@keyframes case-rise{from{opacity:0;transform:translate3d(0,1.4rem,0)}to{opacity:1;transform:none}}
+.case-preview{position:relative;min-height:0;display:flex;background:#0b0603}
+.case-frame{flex:1;width:100%;height:100%;border:0;background:#0b0603}
+.case-loading{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:.8em;
+  font-family:var(--font-mono);color:var(--bone-62);font-size:var(--label);letter-spacing:.1em;text-transform:uppercase}
+.case-loading span{font-size:var(--micro);color:var(--bone-62)}
+.case-empty{flex:1;display:grid;place-content:center;justify-items:center;gap:1em;padding:var(--pad-x);text-align:center}
+@media (max-width:1023px){
+  .case-body{grid-template-columns:1fr;grid-template-rows:auto;overflow-y:auto}
+  .case-copy{overflow:visible;border-right:0;padding-top:calc(var(--row) * 3)}
+  .case-preview{min-height:42vh;border-top:1px solid var(--bone-22)}
+  .case-meta{grid-template-columns:1fr}
+  .case-count{display:none}
+}
+@media (prefers-reduced-motion:reduce){.case[open],.case-rise{animation:none}}
+
+/* contact */
+.ct-actions{display:flex;gap:.6em;flex-wrap:wrap;justify-content:flex-end}
+#ct-links .ct-h{font-family:var(--font-mono);font-size:var(--micro);font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--bone-62);margin-bottom:.9em}
+#ct-made .ct-h{font-family:var(--font-mono);font-size:var(--micro);font-weight:500;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--bone-62);margin:0 0 .8em}
+#ct-links .ct-link{display:flex;align-items:baseline;justify-content:space-between;gap:1em;width:100%;
+  text-align:left;cursor:pointer;font-size:var(--sub2);letter-spacing:.02em;
+  padding:.45em 0;border-bottom:1px solid var(--bone-22);margin:0}
+#ct-links .ct-sub{font-family:var(--font-mono);font-size:var(--micro);letter-spacing:.06em;color:var(--bone-62);
+  text-transform:none;white-space:nowrap}
+#ct-links .ct-link:hover .ct-sub,#ct-links .ct-link:focus-visible .ct-sub{color:var(--gold-hot)}
 
 /* ============================================================================
    ACT VIII - TWO WINGS
@@ -652,7 +724,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #man-thirty .annot{letter-spacing:.24em}
 
 #man-lines{position:absolute;left:var(--pad-x);bottom:calc(var(--pad-y) + var(--row) * 6);
-  width:calc(var(--span) * 6);color:var(--bone-45)}
+  width:calc(var(--span) * 6);color:var(--bone-62)}
 
 /* ============================================================================
    ACT VII - THE GOLDEN METAMORPHOSIS
@@ -706,8 +778,8 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ct-mid{margin:calc(var(--row) * 2) 0}
 #ct-links{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);
   margin-top:calc(var(--row) * 3)}
-#ct-links h5{font-size:var(--micro);letter-spacing:.18em;text-transform:uppercase;
-  color:var(--bone-45);font-weight:400;margin-bottom:.9em}
+#ct-links h5{font-size:var(--micro);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--bone-62);font-weight:400;margin-bottom:.9em}
 #ct-links a{display:block;font-size:var(--sub2);letter-spacing:.02em;margin-bottom:.35em}
 /* The wreckage, printed as flatly as a parts list. A leader rule does the work a
    table would otherwise need, and there is not one adjective in the column. */
@@ -720,8 +792,12 @@ html.is-loading,html.is-loading body{overflow:hidden}
   text-transform:uppercase;white-space:nowrap}
 
 #ct-made{margin-top:calc(var(--row) * 2.5);max-width:calc(var(--span) * 7)}
-#ct-made h5{font-size:var(--micro);letter-spacing:.18em;text-transform:uppercase;
-  color:var(--bone-45);margin:0 0 .8em}
+/* running prose is set as prose, not as a caps label */
+#ct-made p.annot{font-family:var(--font-text);text-transform:none;letter-spacing:0;
+  font-size:max(.875rem,calc(14 * var(--unit)));line-height:1.6;margin-bottom:.6em}
+#ct-made p.annot a{text-decoration:underline;text-decoration-color:var(--gold-30);text-underline-offset:.2em}
+#ct-made h5{font-size:var(--micro);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--bone-62);margin:0 0 .8em}
 #ct-replay{margin-top:calc(var(--row) * 2)}
 
 /* The only line about the maker, and it is the one that says the maker was not
@@ -729,7 +805,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ct-line{font-size:var(--label);letter-spacing:.28em;color:var(--bone)}
 
 #ct-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--gap);
-  color:var(--bone-45);padding-bottom:calc(var(--row) * 2)}
+  color:var(--bone-62);padding-bottom:calc(var(--row) * 2)}
 #ct-replay{margin-top:calc(var(--row) * 2)}
 
 /* ============================================================================
@@ -823,7 +899,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
     transition-duration:.001ms !important}
   .reveal > .w > span{transform:none;opacity:1}
   .rise{opacity:1;transform:none}
-  .section__inner.is-blurred{filter:none}
+
 }
 
 /* ============================================================================
@@ -902,8 +978,11 @@ html.is-loading,html.is-loading body{overflow:hidden}
    letterform. At these opacities it is invisible as an object and still buys the two
    stops of separation that make bone type hold over a bright sea. */
 
-#blueprint .section__inner{mix-blend-mode:difference}
-#blueprint .section__inner .t-gold{color:var(--bone)}
+/* The workbench used to set its whole layer in difference blend. Over the cream sheet
+   that printed the heading in a cold blue, and a blended full-screen layer is
+   composited against the canvas on every frame. The sheet is a known, even value,
+   so the type is simply set in ink on it. */
+#blueprint .section__inner .t-gold{color:#7a4a10}
 
 /* The scrim is gone.
 
@@ -975,7 +1054,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   pointer-events:none;
   transition:opacity .4s var(--ease-out)}
 #compass:focus-within{opacity:1;pointer-events:auto}
-html:has(#compass:hover) #compass,#compass[data-reach="1"]{pointer-events:auto}
+#compass:hover,#compass[data-reach="1"]{pointer-events:auto}
 #compass.is-hidden,#compass.is-dim{opacity:0 !important;pointer-events:none}
 
 #compass button{display:flex;align-items:center;justify-content:flex-end;gap:.8em;
@@ -993,7 +1072,7 @@ html:has(#compass:hover) #compass,#compass[data-reach="1"]{pointer-events:auto}
   white-space:nowrap;opacity:0;transform:translateX(.5em);
   transition:opacity .35s var(--ease-out),transform .45s var(--ease-out)}
 #compass button:hover span,#compass button:focus-visible span{opacity:1;transform:none}
-#compass button span em{font-style:normal;color:var(--bone-45);margin-left:.5em}
+#compass button span em{font-style:normal;color:var(--bone-62);margin-left:.5em}
 
 @media (max-width:767px), (max-width:1024px) and (orientation:portrait){
   /* A strip of eleven tap targets down the edge of a phone is in the way of the one

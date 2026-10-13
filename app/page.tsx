@@ -12,17 +12,27 @@ import gsap from 'gsap';
 
 /* Fill these in and the matching capsules appear in the colophon. Nothing here is
    invented: an empty value simply renders nothing. */
-const CONTACT: { email: string; links: { label: string; url: string }[] } = {
-  email: '',
-  links: [],
+const CONTACT: { email: string; links: { label: string; handle: string; url: string }[] } = {
+  email: 'pouya.sadeggpoor.1388@gmail.com',
+  links: [
+    { label: 'Telegram', handle: '@pouya_dmg', url: 'https://t.me/pouya_dmg' },
+    /* WhatsApp has no public link format for a username, only for a phone number
+       (https://wa.me/<number>). Until one is added the handle is copied instead. */
+    { label: 'WhatsApp', handle: '@pouya_dmg', url: '' },
+    { label: 'Instagram', handle: '@pouya.sadeghpour', url: 'https://www.instagram.com/pouya.sadeghpour/' },
+  ],
 };
 
 /* ------------------------------------------------------------------ helpers */
 
 /** Two stacked copies of every glyph; the stack slides up on hover. */
 function Flip({ children }: { children: string }) {
+  /* The glyph stack is hidden from assistive tech, so the word itself has to be
+     spoken by something: aria-label on a plain span is ignored, which left every
+     link built on this with no accessible name at all. */
   return (
-    <span className="flip" aria-label={children}>
+    <span className="flip">
+      <span className="sr-only">{children}</span>
       {children.split('').map((ch, i) => (
         <i key={i} style={{ '--i': i } as React.CSSProperties} aria-hidden="true">
           <span>{ch === ' ' ? ' ' : ch}</span>
@@ -30,6 +40,121 @@ function Flip({ children }: { children: string }) {
         </i>
       ))}
     </span>
+  );
+}
+
+/** The live site beside a case study. Keyed by project, so moving to the next case
+    starts it fresh. It loads by itself only where there is room for it and nobody has
+    asked to save data; anywhere else it waits to be asked for. */
+function LivePreview({ project }: { project: typeof PROJECTS[number] }) {
+  const [preview, setPreview] = useState(() => {
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+    return project.embeddable && !saveData && matchMedia('(min-width: 1024px)').matches;
+  });
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <aside className="case-preview" aria-label={`${project.name}, live site`}>
+      {preview ? (
+        <>
+          <iframe className="case-frame" src={project.url} title={`${project.name} website, live`}
+            loading="lazy" onLoad={() => setLoaded(true)}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+          {!loaded && <div className="case-loading" aria-hidden="true">{project.domain}<span>Loading the live site</span></div>}
+        </>
+      ) : (
+        <div className="case-empty">
+          <span className="t-label t-dim">{project.domain}</span>
+          {project.embeddable && (
+            <button className="pill is-ghost" onClick={() => setPreview(true)}>Load live preview</button>
+          )}
+          <a className="pill is-dashed" href={project.url} target="_blank" rel="noopener noreferrer">
+            Open the site <span className="pill-arrow" aria-hidden="true">&#8599;</span>
+          </a>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+/** The case study a card opens into. */
+function CaseStudy({ project, index, total, onClose, onStep }: {
+  project: typeof PROJECTS[number]; index: number; total: number;
+  onClose: () => void; onStep: (delta: number) => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  /* A real modal: the page behind goes inert, focus stays inside, and Escape is the
+     browser's own cancel. */
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    const cancel = (e: Event) => { e.preventDefault(); onClose(); };
+    dialog.addEventListener('cancel', cancel);
+    return () => dialog.removeEventListener('cancel', cancel);
+  }, [onClose]);
+
+
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  return (
+    <dialog className="case" ref={ref} aria-labelledby="case-title">
+      <div className="case-bar">
+        <button className="pill is-dashed" onClick={onClose} data-cursor="BACK" autoFocus>
+          <span aria-hidden="true">&#8601;</span> Back to the sheet
+        </button>
+        <span className="case-count" aria-hidden="true">Case {pad(index + 1)} / {pad(total)}</span>
+        <div className="case-steps">
+          <button className="pill is-ghost" onClick={() => onStep(-1)} aria-label="Previous project">&larr;</button>
+          <button className="pill is-ghost" onClick={() => onStep(1)} aria-label="Next project">&rarr;</button>
+        </div>
+      </div>
+
+      <div className="case-body" key={project.id}>
+        <article className="case-copy">
+          <p className="t-label t-gold case-rise" style={{ '--d': 0 } as React.CSSProperties}>
+            {project.number} &middot; {project.kind} &middot; {project.year}
+          </p>
+          <h2 id="case-title" className="t-h1 case-title case-rise" style={{ '--d': 1 } as React.CSSProperties}>{project.name}</h2>
+          <p className="case-tagline case-rise" style={{ '--d': 2 } as React.CSSProperties}>{project.tagline}</p>
+
+          <dl className="case-meta case-rise" style={{ '--d': 3 } as React.CSSProperties}>
+            <div><dt>Role</dt><dd>{project.role}</dd></div>
+            <div><dt>Services</dt><dd>{project.services.join(', ')}</dd></div>
+            <div><dt>Stack</dt><dd>{project.stack.join(', ')}</dd></div>
+            <div><dt>Live</dt><dd><a href={project.url} target="_blank" rel="noopener noreferrer">{project.domain}<span className="sr-only"> (opens in a new tab)</span></a></dd></div>
+          </dl>
+
+          <section className="case-part case-rise" style={{ '--d': 4 } as React.CSSProperties}>
+            <h3>Overview</h3>
+            <p>{project.overview}</p>
+          </section>
+          <section className="case-part case-rise" style={{ '--d': 5 } as React.CSSProperties}>
+            <h3>The problem</h3>
+            <p>{project.challenge}</p>
+          </section>
+          <section className="case-part case-rise" style={{ '--d': 6 } as React.CSSProperties}>
+            <h3>The approach</h3>
+            <ol>{project.approach.map(step => <li key={step}>{step}</li>)}</ol>
+          </section>
+          <section className="case-part case-rise" style={{ '--d': 7 } as React.CSSProperties}>
+            <h3>The result</h3>
+            <p>{project.outcome}</p>
+          </section>
+
+          <div className="case-actions case-rise" style={{ '--d': 8 } as React.CSSProperties}>
+            <a className="pill is-gold" href={project.url} target="_blank" rel="noopener noreferrer" data-cursor="VISIT">
+              <span className="pill-dot" />Visit {project.domain}<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <button className="pill is-dashed" onClick={() => onStep(1)}>
+              Next case <span className="pill-arrow" aria-hidden="true">&rarr;</span>
+            </button>
+          </div>
+        </article>
+
+        <LivePreview project={project} />
+      </div>
+    </dialog>
   );
 }
 
@@ -110,14 +235,11 @@ export default function Home() {
   const [ready, setReady] = useState(false);
   const [light, setLight] = useState(false);
   const [sound, setSound] = useState(false);
-  const [project, setProject] = useState<typeof PROJECTS[number] | null>(null);
-  const [portalOpen, setPortalOpen] = useState(false);
-  const [frameLoaded, setFrameLoaded] = useState(false);
   const [focus, setFocus] = useState(-1);
+  const [portalOpen, setPortalOpen] = useState(false);
   const [act, setAct] = useState(0);
   const [hoverCard, setHoverCard] = useState(-1);
-  const [clock, setClock] = useState('--:--');
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState('');
   /* The only two things this site ever says. Held in state because they are the one
      piece of chrome that has to interrupt; everything else is written straight to
      the DOM from inside the loop. */
@@ -131,7 +253,7 @@ export default function Home() {
   const prevProgress = useRef(0);
   const portalTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saidTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const blurRef = useRef<SVGFEGaussianBlurElement>(null);
+  const clockRef = useRef<HTMLSpanElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const goldRef = useRef<HTMLSpanElement>(null);
   const impactRef = useRef<HTMLSpanElement>(null);
@@ -139,12 +261,10 @@ export default function Home() {
   const alignRef = useRef<HTMLSpanElement>(null);
   const compassRef = useRef<HTMLElement>(null);
   const alignBarRef = useRef<HTMLElement>(null);
-  /* The portal is a real modal, so it owes the keyboard the usual contract: escape
-     leaves, tab stays inside it, and focus returns to whatever opened it. Both refs
-     are declared up here with the rest rather than beside the handlers, because the
-     compiler will not accept a ref being written by a function defined above it. */
+  /* Focus goes back to whatever opened the case study. Declared up here with the
+     rest rather than beside the handlers, because the compiler will not accept a ref
+     being written by a function defined above it. */
   const returnFocus = useRef<HTMLElement | null>(null);
-  const portalRef = useRef<HTMLDialogElement>(null);
 
   const go = useCallback((fraction: number) => {
     scrollToY(fraction * (document.documentElement.scrollHeight - innerHeight));
@@ -184,8 +304,12 @@ export default function Home() {
     };
     setVh(true);
 
-    const tickClock = () => setClock(new Date().toLocaleTimeString('en-GB',
-      { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit' }));
+    /* Written straight into its text node: as state, the clock re-rendered all eleven
+       acts every twenty seconds to change four characters. */
+    const tickClock = () => {
+      if (clockRef.current) clockRef.current.textContent = new Date().toLocaleTimeString('en-GB',
+        { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit' });
+    };
     tickClock();
     const clockTimer = setInterval(tickClock, 20000);
 
@@ -194,7 +318,7 @@ export default function Home() {
        synchronous layout, and five of those inside the render loop cost more than
        everything else the loop does put together. */
     const sections = Array.from(document.querySelectorAll<HTMLElement>('.section'))
-      .map(el => ({ el, top: 0, height: 1, runway: 1, ratio: 0, inner: el.firstElementChild as HTMLElement }));
+      .map(el => ({ el, top: 0, height: 1, runway: 1, ratio: 0, written: '' }));
     const measure = () => {
       for (const section of sections) {
         section.top = section.el.offsetTop;
@@ -207,8 +331,6 @@ export default function Home() {
       const host = el.closest('.section');
       return { el, a, b, section: sections.find(s => s.el === host)!, on: el.classList.contains('is-lit') };
     });
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const onResize = () => { setVh(); measure(); };
     measure();
     addEventListener('resize', onResize);
@@ -222,8 +344,16 @@ export default function Home() {
     document.fonts?.ready.then(measure).catch(() => { });
 
     let lastY = 0, lastNow = performance.now(), raf = 0;
-    let wasLight = false, blurred: HTMLElement | null = null, currentAct = -1;
-    let lastBlur = '', lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1;
+    let wasLight = false, currentAct = -1;
+    let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1;
+    const cues: [number, Effect][] = [
+      [.148, 'fracture'],
+      [.232, 'whoosh'],
+      [.402, 'whoosh'],
+      [.528, 'assemble'],
+      [.786, 'rise'],
+      [.902, 'place'],
+    ];
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
@@ -268,13 +398,19 @@ export default function Home() {
       signals.px = pointer.x;
       signals.py = pointer.y;
 
-      /* per section runway ratio, and the block windows that ride on it */
-      let activeInner: HTMLElement | null = null;
+      /* per section runway ratio, and the block windows that ride on it. The custom
+         property is only written when it changes, and only to sections that are on or
+         next to the screen: a write invalidates style for the whole subtree, and doing
+         it to eleven sections sixty times a second was most of the page's style work. */
       for (const section of sections) {
         const r = clamp(section.runway > 0 ? (y - section.top) / section.runway : (y >= section.top ? 1 : 0));
         section.ratio = r;
-        section.el.style.setProperty('--active-ratio', r.toFixed(4));
-        if (y >= section.top && y < section.top + section.height) activeInner = section.inner;
+        const near = y + innerHeight * 2 > section.top && y < section.top + section.height + innerHeight;
+        const written = r.toFixed(3);
+        if (near && written !== section.written) {
+          section.written = written;
+          section.el.style.setProperty('--active-ratio', written);
+        }
       }
       for (const b of blocks) {
         // A completed section keeps ratio=1 forever. Gate it by its physical
@@ -284,19 +420,10 @@ export default function Home() {
         if (on !== b.on) { b.on = on; b.el.classList.toggle('is-lit', on); }
       }
 
-      /* the DOM half of the motion blur */
-      const amount = reduced ? 0 : Math.min(Math.abs(driver.current.velocity) * 4.4, 7);
-      const deviation = amount.toFixed(2);
-      if (blurRef.current && deviation !== lastBlur) {
-        lastBlur = deviation;
-        blurRef.current.setAttribute('stdDeviation', `0 ${deviation}`);
-      }
-      const wantsBlur = amount > .5 ? activeInner : null;
-      if (wantsBlur !== blurred) {
-        blurred?.classList.remove('is-blurred');
-        wantsBlur?.classList.add('is-blurred');
-        blurred = wantsBlur;
-      }
+      /* There used to be a DOM half of the motion blur here: an SVG feGaussianBlur on
+         the pinned section, its deviation rewritten every frame. SVG filters on HTML
+         are rasterised on the CPU, so every scrolling frame repainted the whole act
+         in software. The WebGL pass keeps its own blur; the type now stays sharp. */
 
       /* No travel indicator of any kind. The two variables that remain are read by
          the type and the grain, and neither of them says how far there is to go. */
@@ -310,8 +437,9 @@ export default function Home() {
         compassRef.current?.setAttribute('data-reach', String(reach));
       }
 
-      document.documentElement.style.setProperty('--grip', tempo.grip.toFixed(3));
-      document.documentElement.style.setProperty('--scroll-velocity', driver.current.velocity.toFixed(3));
+      /* --grip and --scroll-velocity were written to the root here every frame and no
+         stylesheet read either of them - two full-document style invalidations a
+         frame for nothing. */
 
       /* the live instrument read-outs the acts print */
       const fracSection = sections[1];
@@ -372,14 +500,6 @@ export default function Home() {
         windowOpacity(p, .800, .935, .05),
       );
       audio.current?.update(p);
-      const cues: [number, Effect][] = [
-        [.148, 'fracture'],
-        [.232, 'whoosh'],
-        [.402, 'whoosh'],
-        [.528, 'assemble'],
-        [.786, 'rise'],
-        [.902, 'place'],
-      ];
       for (const [at, event] of cues) {
         if (prevProgress.current < at && p >= at && p - prevProgress.current < .1) audio.current?.effect(event);
       }
@@ -398,18 +518,18 @@ export default function Home() {
     const onInteractiveDown = (event: PointerEvent) => {
       if ((event.target as Element | null)?.closest(interactive)) audio.current?.effect('click');
     };
-    /* Hold space and the materials stand down.
+    /* Hold Z and the materials stand down.
 
        It is not a debug view. Everything in this piece is a surface pretending to be
        stone or metal or water, and underneath all of it is the same thing: a few
        thousand triangles and the arithmetic that places them. Holding the key shows
        that, in gold, and letting go puts the world back. Nothing announces it. */
+    /* It used to be the space bar, which is also how a keyboard scrolls a page by a
+       screen - so holding it here took page-down away from anyone not using a mouse. */
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat) return;
+      if (e.code !== 'KeyZ' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
-      // space is also how a focused button is pressed, and that has to keep working
-      if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'TEXTAREA') return;
-      e.preventDefault();
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       const down = e.type === 'keydown';
       signals.zen = down ? 1 : 0;
       setZen(down);
@@ -574,56 +694,48 @@ export default function Home() {
     catch { setSound(false); }
   }
   const openProject = useCallback((index: number) => {
-    const selected = PROJECTS[index];
-    if (!selected) return;
+    if (!PROJECTS[index]) return;
     if (portalTimer.current) clearTimeout(portalTimer.current);
     returnFocus.current = document.activeElement as HTMLElement | null;
-    setProject(selected);
     setFocus(index);
-    setFrameLoaded(false);
     audio.current?.effect('portal');
+    /* The camera dives through the card first; the case study takes over as the lens
+       reaches its face. Opened from the colophon, the bench is not on screen and there
+       is nothing to dive through, so it opens at once. */
+    const onBench = act === 3;
     portalTimer.current = setTimeout(() => setPortalOpen(true),
-      matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1080);
-  }, []);
-  function leavePortal() {
+      !onBench || matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1080);
+  }, [act]);
+  const leavePortal = useCallback(() => {
     if (portalTimer.current) clearTimeout(portalTimer.current);
     setPortalOpen(false); setFocus(-1);
     audio.current?.effect('portal');
-    returnFocus.current?.focus();
-    returnFocus.current = null;
-  }
+  }, []);
+  const stepProject = useCallback((delta: number) => {
+    setFocus(f => (f + delta + PROJECTS.length) % PROJECTS.length);
+    audio.current?.effect('tick');
+  }, []);
+  /* The native cursor comes back inside the case study: the drawn one lives in the
+     WebGL frame, and the frame is paused underneath the dialog. */
   useEffect(() => {
-    if (!portalOpen) return;
-    const keys = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); leavePortal(); return; }
-      if (e.key !== 'Tab') return;
-      const host = portalRef.current;
-      if (!host) return;
-      const focusable = host.querySelectorAll<HTMLElement>('a[href],button,iframe,[tabindex]:not([tabindex="-1"])');
-      if (!focusable.length) return;
-      const first = focusable[0], last = focusable[focusable.length - 1];
-      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    };
-    addEventListener('keydown', keys);
-    return () => removeEventListener('keydown', keys);
+    document.documentElement.classList.toggle('is-portal', portalOpen);
+    /* Focus goes home only once the modal is gone: while it is still in the top
+       layer everything behind it is inert and refuses the focus. */
+    if (!portalOpen && returnFocus.current) {
+      returnFocus.current.focus({ preventScroll: true });
+      returnFocus.current = null;
+    }
   }, [portalOpen]);
 
-  async function copyLink() {
-    try { await navigator.clipboard.writeText(location.href); setCopied(true); setTimeout(() => setCopied(false), 2200); }
-    catch { /* clipboard refused; the address bar still has it */ }
+  async function copy(text: string, what: string) {
+    try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(''), 2200); }
+    catch { /* clipboard refused; the text is still on the page */ }
   }
 
   const chrome = portalOpen ? 'is-hidden' : '';
 
   return (
     <>
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
-        <filter id="dom-motion-blur" x="-12%" y="-12%" width="124%" height="124%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur ref={blurRef} stdDeviation="0 0" edgeMode="duplicate" />
-        </filter>
-      </svg>
-
       <Sculpture
         driver={driver}
         onReady={() => setReady(true)}
@@ -822,18 +934,19 @@ export default function Home() {
                     <span className="t-label">
                       {hoverCard >= 0
                         ? <>Drawing {PROJECTS[hoverCard].number} &mdash; {PROJECTS[hoverCard].domain}</>
-                        : <>Two cards on the sheet &middot; click one to step inside it</>}
+                        : <>{PROJECTS.length} cards on the sheet &middot; click one to open its case study</>}
                     </span>
                   </div>
-                  {/* The cards live in WebGL, so the keyboard needs its own way in. */}
-                  <div className={`sr-only bp-keyboard ${act === 3 ? 'is-active' : ''}`}>
-                    <h3>Selected work</h3>
+                  {/* The cards live in WebGL, so the keyboard needs its own way in. It is
+                      off screen until it takes focus, then it shows where the focus is. */}
+                  <nav className={`bp-keyboard ${act === 3 ? 'is-active' : ''}`} aria-label="Selected work">
+                    <h3 className="sr-only">Selected work</h3>
                     {PROJECTS.map((p, i) => (
-                      <button key={p.id} onClick={() => openProject(i)}>
-                        Open {p.name}, {p.domain}, {p.role}, {p.year}
+                      <button key={p.id} onClick={() => openProject(i)} className="pill is-ghost">
+                        {p.number} {p.name}<span className="sr-only">, {p.kind}, {p.year}. Open the case study</span>
                       </button>
                     ))}
-                  </div>
+                  </nav>
                 </div>
               </div>
             </section>
@@ -1000,17 +1113,19 @@ export default function Home() {
                       <Reveal>If a constraint can build this,</Reveal><br />
                       <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
                     </h2>
-                    <div style={{ display: 'flex', gap: '.6em', flexWrap: 'wrap' }}>
+                    <div className="ct-actions">
                       {CONTACT.email && (
-                        <a className="pill is-gold" href={`mailto:${CONTACT.email}`} data-cursor="WRITE"
+                        <a className="pill is-gold" href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('A project')}`} data-cursor="WRITE"
                           onPointerMove={magnetise} onPointerLeave={release}>
                           <span className="pill-dot" />Start a project
                         </a>
                       )}
-                      <button className="pill is-ghost" onClick={copyLink} data-cursor="COPY"
-                        onPointerMove={magnetise} onPointerLeave={release}>
-                        {copied ? 'Link copied' : 'Copy link'}
-                      </button>
+                      {CONTACT.email && (
+                        <button className="pill is-ghost" onClick={() => copy(CONTACT.email, 'email')} data-cursor="COPY"
+                          onPointerMove={magnetise} onPointerLeave={release}>
+                          {copied === 'email' ? 'Email copied' : CONTACT.email}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1019,20 +1134,27 @@ export default function Home() {
                   <div>
                     <div id="ct-links" className="blk" data-lit="0.1,1">
                       <div>
-                        <h5>Selected work</h5>
-                        {PROJECTS.map(p => (
-                          <a key={p.id} className="flip-host" href={p.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                        <h3 className="ct-h">Selected work</h3>
+                        {PROJECTS.map((p, i) => (
+                          <button key={p.id} className="flip-host ct-link" onClick={() => openProject(i)} data-cursor="READ">
                             <Flip>{p.name.toUpperCase()}</Flip>
-                          </a>
+                            <span className="ct-sub">{p.kind}</span>
+                          </button>
                         ))}
                       </div>
                       {CONTACT.links.length > 0 && (
                         <div>
-                          <h5>Elsewhere</h5>
-                          {CONTACT.links.map(l => (
-                            <a key={l.url} className="flip-host" href={l.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                          <h3 className="ct-h">Contact</h3>
+                          {CONTACT.links.map(l => l.url ? (
+                            <a key={l.label} className="flip-host ct-link" href={l.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
                               <Flip>{l.label.toUpperCase()}</Flip>
+                              <span className="ct-sub">{l.handle}<span className="sr-only"> (opens in a new tab)</span></span>
                             </a>
+                          ) : (
+                            <button key={l.label} className="flip-host ct-link" onClick={() => copy(l.handle, l.label)} data-cursor="COPY">
+                              <Flip>{l.label.toUpperCase()}</Flip>
+                              <span className="ct-sub">{copied === l.label ? 'Copied' : l.handle}</span>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -1040,7 +1162,7 @@ export default function Home() {
                           also prints what died making it, flatly, with no adjective
                           anywhere - it is the only place the cost is admitted. */}
                       <div id="ct-killed">
-                        <h5>Did not live</h5>
+                        <h3 className="ct-h">Did not live</h3>
                         <ul>
                           {KILLED.map(k => (
                             <li key={k.what}><span>{k.what}</span><i /><span className="t-dim">{k.lived}</span></li>
@@ -1050,7 +1172,7 @@ export default function Home() {
                     </div>
 
                     <div id="ct-made" className="blk" data-lit="0.1,1">
-                      <h5>How it is made</h5>
+                      <h3 className="ct-h">How it is made</h3>
                       <p className="annot">
                         A plaster cast, carved into {FRAGMENTS} Voronoi shell shards, dropped once in an
                         offline solver and scrubbed by the scroll. Per-pixel motion blur, a cursor
@@ -1059,7 +1181,8 @@ export default function Home() {
                       <p className="annot">
                         Music: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018"
                           target="_blank" rel="noopener noreferrer">Floating Cities &mdash; Kevin MacLeod</a>
-                        {' '}(CC BY 4.0). Interface sounds by Kenney (CC0).
+                        {' '}(CC BY 4.0). Impact: &ldquo;Long Deep Impact&rdquo; by ROHHSA (CC BY-SA 4.0).
+                        Interface sounds by Kenney (CC0).
                       </p>
                       {/* Nietzsche. The last thing the site does is put the road back in
                           front of the reader and ask nothing else. */}
@@ -1076,7 +1199,7 @@ export default function Home() {
                       one that says the maker was not what was on offer. */}
                   <div id="ct-bottom" className="annot blk" data-lit="0.1,1">
                     <span id="ct-line">Not the maker. The made.</span>
-                    <span>Tehran &middot; {clock} &middot; 2026 &copy; version 04</span>
+                    <span>Tehran &middot; <span ref={clockRef}>--:--</span> &middot; 2026 &copy; version 05</span>
                   </div>
                 </div>
               </div>
@@ -1085,41 +1208,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ----------------------------------------------------------- portal */}
-        {portalOpen && project && (
-          <dialog className="portal" ref={portalRef} open aria-label={`${project.name} live project`}>
-            <div className="portal-bar">
-              <button className="pill is-dashed" onClick={leavePortal} data-cursor="BACK" autoFocus>
-                <span aria-hidden="true">&#8601;</span> Back
-              </button>
-              <span>{project.name} &mdash; {project.domain}</span>
-              <a className="flip-host" href={project.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
-                <Flip>OPEN SEPARATELY</Flip>
-              </a>
-            </div>
-            {project.live ? (
-              <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
-                <iframe className="portal-frame" src={project.url} title={`${project.name} website`}
-                  onLoad={() => setFrameLoaded(true)}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
-                {!frameLoaded && (
-                  <div className="portal-loading">
-                    {project.name.toUpperCase()}
-                    <span>Use &ldquo;open separately&rdquo; if the project does not appear</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="portal-empty">
-                <span className="t-label t-dim">{project.number}</span>
-                <h2 className="t-h2">{project.name}</h2>
-                <p className="t-body3 t-dim">This address is not returning a page right now.</p>
-                <a className="pill is-ghost" href={project.url} target="_blank" rel="noopener noreferrer">
-                  Try it directly <span className="pill-arrow" aria-hidden="true">&#8599;</span>
-                </a>
-              </div>
-            )}
-          </dialog>
+        {/* ------------------------------------------------------- case study */}
+        {portalOpen && focus >= 0 && PROJECTS[focus] && (
+          <CaseStudy project={PROJECTS[focus]} index={focus} total={PROJECTS.length}
+            onClose={leavePortal} onStep={stepProject} />
         )}
 
         {/* ---------------------------------------------------------- preloader
