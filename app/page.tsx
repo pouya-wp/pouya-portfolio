@@ -311,7 +311,7 @@ export default function Home() {
        acts every twenty seconds to change four characters. */
     const tickClock = () => {
       if (clockRef.current) clockRef.current.textContent = new Date().toLocaleTimeString('en-GB',
-        { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit' });
+        { hour: '2-digit', minute: '2-digit' });
     };
     tickClock();
     const clockTimer = setInterval(tickClock, 20000);
@@ -1230,7 +1230,7 @@ export default function Home() {
                       one that says the maker was not what was on offer. */}
                   <div id="ct-bottom" className="annot blk" data-lit="0.1,1">
                     <span id="ct-line">Not the maker. The made.</span>
-                    <span>Tehran &middot; <span ref={clockRef}>--:--</span> &middot; 2026 &copy; version 05</span>
+                    <span><span ref={clockRef}>--:--</span> &middot; 2026 &copy; version 05</span>
                   </div>
                 </div>
               </div>
@@ -1253,7 +1253,7 @@ export default function Home() {
         <output id="preloader" ref={shellRef} aria-label="Loading">
           <div className="pre-edge pre-edge--top" aria-hidden="true">
             <span>PS / PORTFOLIO</span>
-            <span>TEHRAN &mdash; IR</span>
+            <span>STUDIO &mdash; ARCHIVE</span>
           </div>
 
           <svg className="pre-orbits" ref={orbitRef} viewBox="-500 -500 1000 1000"
