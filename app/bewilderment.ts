@@ -146,11 +146,26 @@ export function createBewilderment(surface: Float32Array, random: () => number) 
      and leaving the figure full of gaps. */
   const facing = new THREE.Quaternion();
   const surfaceFacing = new THREE.Quaternion();
+  const targetQuats = new Float32Array(count * 4);
   const lookMatrix = new THREE.Matrix4();
   const UP = new THREE.Vector3(0, 1, 0);
   const ZERO = new THREE.Vector3();
   lookMatrix.lookAt(SWEET_EYE, SWEET_LOOK, UP);
   facing.setFromRotationMatrix(lookMatrix);
+
+  // Pre-calculate target orientation for every chip once
+  const tempRay = new THREE.Vector3();
+  const tempFacing = new THREE.Quaternion();
+  for (let i = 0; i < count; i++) {
+    tempRay.set(normal[i * 3], normal[i * 3 + 1], normal[i * 3 + 2]);
+    lookMatrix.lookAt(tempRay, ZERO, UP);
+    tempFacing.setFromRotationMatrix(lookMatrix);
+    tempFacing.slerp(facing, .34);
+    targetQuats[i * 4] = tempFacing.x;
+    targetQuats[i * 4 + 1] = tempFacing.y;
+    targetQuats[i * 4 + 2] = tempFacing.z;
+    targetQuats[i * 4 + 3] = tempFacing.w;
+  }
 
   return {
     group,
@@ -182,6 +197,7 @@ export function createBewilderment(surface: Float32Array, random: () => number) 
      */
     step(elapsed: number, resolve: number, present: number, reduced: boolean) {
       material.opacity = present;
+      if (present <= 0.001) return;
       const drift = reduced ? 0 : 1;
 
       for (let i = 0; i < count; i++) {
@@ -212,10 +228,7 @@ export function createBewilderment(surface: Float32Array, random: () => number) 
            which opens holes in the silhouette; all station and there is no shading at
            all. A third of the way back toward the reader keeps the outline closed and
            still lets the form read. */
-        ray.set(normal[j], normal[j + 1], normal[j + 2]);
-        lookMatrix.lookAt(ray, ZERO, UP);
-        surfaceFacing.setFromRotationMatrix(lookMatrix);
-        surfaceFacing.slerp(facing, .34);
+        surfaceFacing.fromArray(targetQuats, i * 4);
         quaternion.setFromEuler(euler).slerp(surfaceFacing, resolve);
 
         /* They grow into each other. At their scattered size the resolved figure is a

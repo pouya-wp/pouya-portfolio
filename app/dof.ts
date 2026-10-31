@@ -25,7 +25,7 @@
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
-const TAPS = 40;
+const TAPS = 22;
 
 const VERTEX = `varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`;
@@ -213,7 +213,7 @@ export class DofPass extends Pass {
 
           // the half resolution buffer is only worth reaching for once the blur is
           // wider than the pixels it was rendered into
-          float mixAmount = smoothstep(.0006, .004, coc);
+          float mixAmount = (isnan(coc) || isinf(coc)) ? 0.0 : smoothstep(.0020, .0090, coc);
           gl_FragColor = vec4(mix(sharp.rgb, blurred, mixAmount), sharp.a);
         }`,
     });

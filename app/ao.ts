@@ -102,7 +102,10 @@ export class AOPass extends Pass {
              quad agrees on them. Taken inside, they are undefined along silhouettes
              and print a rim of false occlusion down every edge. */
           vec3 dx = dFdx(p), dy = dFdy(p);
-          vec3 n = normalize(cross(dx, dy));
+          vec3 cr = cross(dx, dy);
+          float crLen = length(cr);
+          if (crLen < 1e-5 || isnan(crLen) || isinf(crLen)) { gl_FragColor = vec4(1.); return; }
+          vec3 n = cr / crLen;
 
           /* Even taken safely, a derivative across a silhouette is a normal invented
              from two surfaces metres apart. That is what put the speckled fringe
@@ -263,13 +266,14 @@ export class AOPass extends Pass {
              When no neighbour is trustworthy, take the texel under the pixel rather
              than the dark. */
           ao = clamp(total > 1e-3 ? ao / total : texture2D(tAO, vUv).x, 0., 1.);
+          if (isnan(ao) || isinf(ao)) ao = 1.0;
           /* The clamp above is not tidiness. A normalised weighted average of texels
              that all hold 1 comes back as 1 plus a rounding error, and pow() of the
              negative number that leaves is undefined - it returned NaN, the clamp
              below could not rescue it, and every pixel it happened on printed as a
              black hairline across the mat and the bench. */
           // bend the response so flat faces are untouched and only real creases go
-          float shade = clamp(1. - pow(1. - ao, 1.7) * uIntensity, 0., 1.);
+          float shade = clamp(1. - pow(clamp(1. - ao, 0., 1.), 1.7) * uIntensity, 0., 1.);
           /* Creases in this room are not neutral grey. What little light reaches them
              has bounced off umber wood and warm plaster, so the occluded end of the
              ramp carries that rather than going dead. */

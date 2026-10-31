@@ -16,7 +16,7 @@ const canvasOf = (size: number) => {
 const textureOf = (canvas: HTMLCanvasElement, srgb = true, repeat = 1) => {
   const texture = new THREE.CanvasTexture(canvas);
   if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
+  texture.anisotropy = 16;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(repeat, repeat);
   return texture;
@@ -24,7 +24,10 @@ const textureOf = (canvas: HTMLCanvasElement, srgb = true, repeat = 1) => {
 
 /* ---------------------------------------------------------------- the desk */
 
+let cachedDeskTextures: { map: THREE.CanvasTexture; roughnessMap: THREE.CanvasTexture } | null = null;
+
 function deskTextures() {
+  if (cachedDeskTextures) return cachedDeskTextures;
   const { canvas, ctx } = canvasOf(1024);
   const grad = ctx.createLinearGradient(0, 0, 1024, 1024);
   grad.addColorStop(0, '#4a2f1b');
@@ -33,14 +36,14 @@ function deskTextures() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 1024, 1024);
 
-  // long grain: many low-contrast strokes with slow vertical drift
-  for (let i = 0; i < 2600; i++) {
+  // long grain: low-contrast strokes with slow vertical drift
+  for (let i = 0; i < 1100; i++) {
     const y = Math.random() * 1024;
     const w = 40 + Math.random() * 600;
     const x = Math.random() * 1024;
     const light = Math.random() > .55;
     ctx.strokeStyle = light ? `rgba(150,105,64,${.02 + Math.random() * .05})` : `rgba(24,13,6,${.03 + Math.random() * .07})`;
-    ctx.lineWidth = .4 + Math.random() * 2.2;
+    ctx.lineWidth = .5 + Math.random() * 2.2;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.bezierCurveTo(x + w * .33, y + (Math.random() - .5) * 7, x + w * .66, y + (Math.random() - .5) * 7, x + w, y + (Math.random() - .5) * 4);
@@ -49,7 +52,7 @@ function deskTextures() {
   // a few knots
   for (let k = 0; k < 5; k++) {
     const cx = Math.random() * 1024, cy = Math.random() * 1024;
-    for (let r = 3; r < 30; r += 2.2) {
+    for (let r = 3; r < 30; r += 2.5) {
       ctx.strokeStyle = `rgba(22,12,5,${.16 - r * .004})`;
       ctx.lineWidth = 1.3;
       ctx.beginPath();
@@ -61,12 +64,13 @@ function deskTextures() {
   const rough = canvasOf(512);
   rough.ctx.fillStyle = '#b4b4b4';
   rough.ctx.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 9000; i++) {
+  for (let i = 0; i < 2400; i++) {
     const v = 150 + Math.random() * 90;
     rough.ctx.fillStyle = `rgb(${v},${v},${v})`;
-    rough.ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 1);
+    rough.ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 1.5);
   }
-  return { map: textureOf(canvas), roughnessMap: textureOf(rough.canvas, false) };
+  cachedDeskTextures = { map: textureOf(canvas), roughnessMap: textureOf(rough.canvas, false) };
+  return cachedDeskTextures;
 }
 
 export function createDesk() {
@@ -101,7 +105,10 @@ function roundedPlane(width: number, height: number, radius: number) {
   return geometry;
 }
 
+let cachedMatTextures: { map: THREE.CanvasTexture; roughnessMap: THREE.CanvasTexture; normalMap: THREE.CanvasTexture } | null = null;
+
 function matTextures() {
+  if (cachedMatTextures) return cachedMatTextures;
   const S = 2048;
   const { canvas, ctx } = canvasOf(S);
 
@@ -112,9 +119,9 @@ function matTextures() {
   base.addColorStop(1, '#37452a');
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, S, S);
-  for (let i = 0; i < 24000; i++) {
-    ctx.fillStyle = `rgba(${Math.random() > .5 ? '93,108,73' : '46,58,34'},${Math.random() * .12})`;
-    ctx.fillRect(Math.random() * S, Math.random() * S, 2 + Math.random() * 5, 2 + Math.random() * 5);
+  for (let i = 0; i < 4000; i++) {
+    ctx.fillStyle = `rgba(${Math.random() > .5 ? '93,108,73' : '46,58,34'},${Math.random() * .14})`;
+    ctx.fillRect(Math.random() * S, Math.random() * S, 3 + Math.random() * 8, 3 + Math.random() * 8);
   }
 
   const MARGIN = 96;
@@ -220,10 +227,10 @@ function matTextures() {
     rough.ctx.moveTo(x / 2, y / 2); rough.ctx.lineTo(x2 / 2, y2 / 2);
     rough.ctx.stroke();
   }
-  for (let i = 0; i < 26000; i++) {
+  for (let i = 0; i < 3500; i++) {
     const v = 90 + Math.random() * 70;
     rough.ctx.fillStyle = `rgb(${v},${v},${v})`;
-    rough.ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 1.6, 1.6);
+    rough.ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 2.5, 2.5);
   }
 
   /* a fine tiling normal map so the vinyl catches the lamp */
@@ -238,11 +245,12 @@ function matTextures() {
   }
   norm.ctx.putImageData(image, 0, 0);
 
-  return {
+  cachedMatTextures = {
     map: textureOf(canvas),
     roughnessMap: textureOf(rough.canvas, false),
     normalMap: textureOf(norm.canvas, false, 46),
   };
+  return cachedMatTextures;
 }
 
 export function createMat() {
@@ -265,7 +273,16 @@ export function createMat() {
 
 /** A pale pegboard wall. It is what turns the bench from an object floating in
     black into a room you could actually work in. */
+let cachedBackWallTexture: THREE.CanvasTexture | null = null;
+
 export function createBackWall() {
+  if (cachedBackWallTexture) {
+    const material = new THREE.MeshStandardMaterial({ map: cachedBackWallTexture, roughness: .92, metalness: 0 });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(64, 22), material);
+    mesh.position.set(0, 6.4, -12.5);
+    mesh.receiveShadow = true;
+    return { mesh, material, map: cachedBackWallTexture };
+  }
   const S = 1024;
   const { canvas, ctx } = canvasOf(S);
   const wash = ctx.createLinearGradient(0, 0, 0, S);
@@ -275,22 +292,28 @@ export function createBackWall() {
   ctx.fillStyle = wash;
   ctx.fillRect(0, 0, S, S);
 
-  // the peg holes
+  // the peg holes: pre-draw a single hole stamp to avoid recreating thousands of gradients
   const step = 30;
-  for (let y = step; y < S; y += step) for (let x = step; x < S; x += step) {
-    const g = ctx.createRadialGradient(x, y, 0, x, y, 5.4);
-    g.addColorStop(0, 'rgba(74,56,36,.62)');
-    g.addColorStop(.72, 'rgba(120,96,66,.28)');
-    g.addColorStop(1, 'rgba(255,246,232,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(x, y, 5.4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,250,240,.5)';
-    ctx.fillRect(x - 2.4, y + 2.6, 4.8, 1.1);
+  const { canvas: holeCanvas, ctx: holeCtx } = canvasOf(step);
+  const hg = holeCtx.createRadialGradient(step / 2, step / 2, 0, step / 2, step / 2, 5.4);
+  hg.addColorStop(0, 'rgba(74,56,36,.62)');
+  hg.addColorStop(.72, 'rgba(120,96,66,.28)');
+  hg.addColorStop(1, 'rgba(255,246,232,0)');
+  holeCtx.fillStyle = hg;
+  holeCtx.beginPath(); holeCtx.arc(step / 2, step / 2, 5.4, 0, Math.PI * 2); holeCtx.fill();
+  holeCtx.fillStyle = 'rgba(255,250,240,.5)';
+  holeCtx.fillRect(step / 2 - 2.4, step / 2 + 2.6, 4.8, 1.1);
+
+  for (let y = step; y < S; y += step) {
+    for (let x = step; x < S; x += step) {
+      ctx.drawImage(holeCanvas, x - step / 2, y - step / 2);
+    }
   }
+
   // grime and a soft occlusion where the wall meets the bench
-  for (let i = 0; i < 12000; i++) {
-    ctx.fillStyle = `rgba(120,96,66,${Math.random() * .05})`;
-    ctx.fillRect(Math.random() * S, Math.random() * S, 3, 3);
+  for (let i = 0; i < 2000; i++) {
+    ctx.fillStyle = `rgba(120,96,66,${Math.random() * .06})`;
+    ctx.fillRect(Math.random() * S, Math.random() * S, 3.5, 3.5);
   }
   const foot = ctx.createLinearGradient(0, S * .8, 0, S);
   foot.addColorStop(0, 'rgba(60,42,26,0)');
@@ -300,6 +323,7 @@ export function createBackWall() {
 
   const map = textureOf(canvas);
   map.repeat.set(3.2, 1);
+  cachedBackWallTexture = map;
   const material = new THREE.MeshStandardMaterial({ map, roughness: .92, metalness: 0 });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(64, 22), material);
   mesh.position.set(0, 6.4, -12.5);
@@ -472,15 +496,18 @@ export function createPedestal() {
 
 /* ----------------------------------------------- the drafting sheet on top */
 
+let cachedSheetTexture: THREE.CanvasTexture | null = null;
+
 function sheetTexture() {
+  if (cachedSheetTexture) return cachedSheetTexture;
   const S = 2048;
   const { canvas, ctx } = canvasOf(S);
   ctx.fillStyle = '#e7d0ad';
   ctx.fillRect(0, 0, S, S);
   // paper tooth
-  for (let i = 0; i < 40000; i++) {
-    ctx.fillStyle = `rgba(${Math.random() > .5 ? '255,255,255' : '150,120,90'},${Math.random() * .09})`;
-    ctx.fillRect(Math.random() * S, Math.random() * S, 2, 2);
+  for (let i = 0; i < 4000; i++) {
+    ctx.fillStyle = `rgba(${Math.random() > .5 ? '255,255,255' : '150,120,90'},${Math.random() * .1})`;
+    ctx.fillRect(Math.random() * S, Math.random() * S, 3.5, 3.5);
   }
 
   const M = 84;
@@ -560,7 +587,8 @@ function sheetTexture() {
   ctx.fillStyle = '#dc5000';
   ctx.fillText('LIMITATIONS ARE JUST RAW MATERIALS', M + 42, S - M - 58);
 
-  return textureOf(canvas);
+  cachedSheetTexture = textureOf(canvas);
+  return cachedSheetTexture;
 }
 
 export function createSheet() {
@@ -583,19 +611,35 @@ function cardFace(spec: CardSpec) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#100904';
+  ctx.fillStyle = '#0c0704';
   ctx.fillRect(0, 0, W, H);
-  const wash = ctx.createRadialGradient(W * .3, H * .22, 40, W * .5, H * .5, H * .8);
-  wash.addColorStop(0, 'rgba(220,80,0,.20)');
-  wash.addColorStop(1, 'rgba(16,9,4,0)');
+  const wash = ctx.createRadialGradient(W * .4, H * .28, 40, W * .5, H * .5, H * .8);
+  wash.addColorStop(0, 'rgba(235,180,75,.22)');
+  wash.addColorStop(.55, 'rgba(180,120,40,.07)');
+  wash.addColorStop(1, 'rgba(12,7,4,0)');
   ctx.fillStyle = wash;
   ctx.fillRect(0, 0, W, H);
 
+  // Helper: authentic metallic gold leaf / gold foil gradient
+  const goldFoil = (x0: number, y0: number, x1: number, y1: number) => {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, '#fef1ca');
+    g.addColorStop(.22, '#f5c353');
+    g.addColorStop(.48, '#d49626');
+    g.addColorStop(.72, '#ffdf7e');
+    g.addColorStop(.9, '#e2a336');
+    g.addColorStop(1, '#b5791a');
+    return g;
+  };
+
   const M = 54;
-  ctx.strokeStyle = 'rgba(220,80,0,.55)';
-  ctx.lineWidth = 3;
+  // Gold foil outer border
+  ctx.strokeStyle = goldFoil(M, M, W - M, H - M);
+  ctx.lineWidth = 3.5;
   ctx.strokeRect(M, M, W - M * 2, H - M * 2);
-  ctx.strokeStyle = 'rgba(255,237,215,.16)';
+
+  // Subtle interior grid in faint gold wire
+  ctx.strokeStyle = 'rgba(255,225,160,.12)';
   ctx.lineWidth = 1;
   for (let n = 1; n < 12; n++) {
     const v = M + n * (W - M * 2) / 12;
@@ -606,43 +650,58 @@ function cardFace(spec: CardSpec) {
     ctx.beginPath(); ctx.moveTo(M, v); ctx.lineTo(W - M, v); ctx.stroke();
   }
 
-  // a drawing of the thing: nested arcs and a construction cross
+  // Gold foil technical drawings & sacred geometry
   const cx = W / 2, cy = H * .44;
-  ctx.strokeStyle = 'rgba(220,80,0,.85)';
-  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = goldFoil(cx - 260, cy - 260, cx + 260, cy + 260);
+  ctx.lineWidth = 2.6;
   for (const r of [110, 180, 250]) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
   ctx.save();
   ctx.setLineDash([10, 8]);
-  ctx.strokeStyle = 'rgba(255,237,215,.5)';
+  ctx.strokeStyle = 'rgba(255,225,160,.45)';
   ctx.lineWidth = 1.4;
   ctx.beginPath();
   ctx.moveTo(cx - 320, cy); ctx.lineTo(cx + 320, cy);
   ctx.moveTo(cx, cy - 320); ctx.lineTo(cx, cy + 320);
   ctx.stroke();
   ctx.restore();
-  ctx.strokeStyle = 'rgba(255,237,215,.75)';
-  ctx.lineWidth = 2;
+
+  // Heavy gold leaf arc highlight
+  ctx.strokeStyle = goldFoil(cx, cy - 250, cx + 250, cy + 250);
+  ctx.lineWidth = 3.2;
   ctx.beginPath();
   ctx.arc(cx, cy, 250, -Math.PI * .18, Math.PI * .42);
   ctx.stroke();
 
-  ctx.fillStyle = '#ffedd7';
+  // Scatter of delicate gold leaf / gold foil flecks
+  for (let i = 0; i < 300; i++) {
+    const gx = M + Math.random() * (W - M * 2);
+    const gy = M + Math.random() * (H - M * 2);
+    ctx.fillStyle = `rgba(${230 + Math.random() * 25},${175 + Math.random() * 40},${55 + Math.random() * 50},${.06 + Math.random() * .18})`;
+    ctx.fillRect(gx, gy, 1.5 + Math.random() * 3, 1.5 + Math.random() * 3);
+  }
+
+  // Drawing number in brilliant gold leaf
   ctx.textBaseline = 'alphabetic';
   ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
-  ctx.fillStyle = '#dc5000';
+  ctx.fillStyle = goldFoil(M + 26, M + 30, M + 240, M + 70);
   ctx.fillText(`DRAWING ${spec.number}`, M + 26, M + 62);
+
   ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(255,237,215,.6)';
+  ctx.fillStyle = 'rgba(255,237,215,.68)';
   ctx.fillText(spec.year, W - M - 26, M + 62);
   ctx.textAlign = 'left';
 
-  ctx.fillStyle = '#ffedd7';
+  // Project title in luminous bone
+  ctx.fillStyle = '#ffeed7';
   ctx.font = '600 108px "Geist", system-ui, sans-serif';
   ctx.fillText(spec.name.toUpperCase(), M + 26, H - M - 148);
+
   ctx.font = '400 30px "Geist", system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,237,215,.55)';
+  ctx.fillStyle = 'rgba(255,237,215,.65)';
   ctx.fillText(spec.domain, M + 26, H - M - 96);
-  ctx.fillStyle = '#dc5000';
+
+  // Role tag in rich gold leaf
+  ctx.fillStyle = goldFoil(M + 26, H - M - 60, M + 360, H - M - 30);
   ctx.font = '600 26px "Geist Mono", system-ui, sans-serif';
   ctx.fillText(spec.role.toUpperCase(), M + 26, H - M - 46);
 
@@ -653,18 +712,33 @@ function cardBack() {
   const canvas = document.createElement('canvas');
   canvas.width = 450; canvas.height = 630;
   const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#382416';
+  ctx.fillStyle = '#120c06';
   ctx.fillRect(0, 0, 450, 630);
-  ctx.strokeStyle = 'rgba(255,237,215,.22)';
+
+  // Fine gold foil pinstripes
+  ctx.strokeStyle = 'rgba(235,185,85,.24)';
   ctx.lineWidth = 1;
-  for (let x = -630; x < 450; x += 16) {
+  for (let x = -630; x < 450; x += 15) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 630, 630); ctx.stroke();
   }
-  ctx.strokeStyle = 'rgba(220,80,0,.8)';
-  ctx.lineWidth = 3;
+
+  const bgFoil = ctx.createLinearGradient(24, 24, 426, 606);
+  bgFoil.addColorStop(0, '#fef1ca');
+  bgFoil.addColorStop(.3, '#f5c353');
+  bgFoil.addColorStop(.7, '#d49626');
+  bgFoil.addColorStop(1, '#ffdf7e');
+
+  ctx.strokeStyle = bgFoil;
+  ctx.lineWidth = 3.2;
   ctx.strokeRect(24, 24, 402, 582);
-  ctx.fillStyle = '#ffedd7';
-  ctx.font = '600 74px "Geist", system-ui, sans-serif';
+
+  ctx.strokeStyle = 'rgba(255,225,160,.4)';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(32, 32, 386, 566);
+
+  // Embossed gold leaf monogram
+  ctx.fillStyle = bgFoil;
+  ctx.font = '600 78px "Geist", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('PS', 225, 345);
   return textureOf(canvas);
@@ -680,11 +754,11 @@ export function createProjectCard(spec: CardSpec) {
 
   const body = new THREE.Mesh(
     roundedPlane(CARD.width, CARD.height, .14),
-    new THREE.MeshStandardMaterial({ map: front, roughness: .52, metalness: .04 }));
+    new THREE.MeshStandardMaterial({ map: front, roughness: .35, metalness: .36 }));
   body.position.z = CARD.depth / 2 + .004;
   const reverse = new THREE.Mesh(
     roundedPlane(CARD.width, CARD.height, .14),
-    new THREE.MeshStandardMaterial({ map: back, roughness: .62, metalness: .04 }));
+    new THREE.MeshStandardMaterial({ map: back, roughness: .42, metalness: .32 }));
   reverse.position.z = -CARD.depth / 2 - .004;
   reverse.rotation.y = Math.PI;
 
@@ -695,9 +769,10 @@ export function createProjectCard(spec: CardSpec) {
   shape.lineTo(w, h - r); shape.quadraticCurveTo(w, h, w - r, h);
   shape.lineTo(-w + r, h); shape.quadraticCurveTo(-w, h, -w, h - r);
   shape.lineTo(-w, -h + r); shape.quadraticCurveTo(-w, -h, -w + r, -h);
+  // Gilded gold leaf card edges
   const edge = new THREE.Mesh(
     new THREE.ExtrudeGeometry(shape, { depth: CARD.depth, bevelEnabled: false, curveSegments: 8 }),
-    new THREE.MeshStandardMaterial({ color: 0xe6d5bb, roughness: .8, metalness: 0 }));
+    new THREE.MeshStandardMaterial({ color: 0xdfad48, roughness: .24, metalness: .92 }));
   edge.position.z = -CARD.depth / 2;
 
   group.add(edge, body, reverse);
@@ -815,8 +890,13 @@ export function createEraser() {
 
 /* ------------------------------------------------------ particles and type */
 
+const textSampleCache = new Map<string, Float32Array>();
+
 export function textSamples(text: string, count: number, random: () => number, width = 8, height = 3.2,
   font = '600 88px "Geist", system-ui, sans-serif') {
+  const cacheKey = `${text}_${count}_${width}_${height}_${font}`;
+  const cached = textSampleCache.get(cacheKey);
+  if (cached) return cached.slice();
   const { canvas, ctx } = canvasOf(1400);
   canvas.height = 600;
   ctx.font = font;
@@ -860,6 +940,7 @@ export function textSamples(text: string, count: number, random: () => number, w
     out[i * 3 + 1] = (.5 - (points[j + 1] + (random() - .5) * 2 * spread) / 600) * height;
     out[i * 3 + 2] = (random() - .5) * .035;
   }
+  textSampleCache.set(cacheKey, out);
   return out;
 }
 

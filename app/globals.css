@@ -100,7 +100,35 @@ body{
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
 }
-html.has-gl-cursor:not(.is-portal),html.has-gl-cursor:not(.is-portal) body,html.has-gl-cursor:not(.is-portal) *{cursor:none !important}
+html.has-gl-cursor:not(.is-portal),
+html.has-gl-cursor:not(.is-portal) body {
+  cursor: none !important;
+}
+
+/* Ensure cursor is clearly visible over all interactive DOM elements */
+html.has-gl-cursor:not(.is-portal) a,
+html.has-gl-cursor:not(.is-portal) button,
+html.has-gl-cursor:not(.is-portal) [role="button"],
+html.has-gl-cursor:not(.is-portal) .pill,
+html.has-gl-cursor:not(.is-portal) .ct-link,
+html.has-gl-cursor:not(.is-portal) .interactive,
+html.has-gl-cursor:not(.is-portal) .pointer,
+html.has-gl-cursor:not(.is-portal) [data-cursor],
+html.has-gl-cursor:not(.is-portal) #menu,
+html.has-gl-cursor:not(.is-portal) #menu *,
+html.has-gl-cursor:not(.is-portal) #compass,
+html.has-gl-cursor:not(.is-portal) #compass *,
+html.has-gl-cursor:not(.is-portal) .oracle-trigger,
+html.has-gl-cursor:not(.is-portal) .oracle-trigger *,
+html.has-gl-cursor:not(.is-portal) .oracle-monolith,
+html.has-gl-cursor:not(.is-portal) .oracle-monolith * {
+  cursor: pointer !important;
+}
+
+html.has-gl-cursor:not(.is-portal) input,
+html.has-gl-cursor:not(.is-portal) textarea {
+  cursor: text !important;
+}
 /* a visible focus ring everywhere; the drawn cursor is no help to a keyboard */
 :focus-visible{outline:2px solid var(--gold-hot);outline-offset:3px}
 h1,h2,h3,h4,h5,p,figure,ul{margin:0;padding:0}
@@ -126,7 +154,7 @@ html{scrollbar-width:thin;scrollbar-color:var(--gold-30) transparent}
 
 /* ------------------------------------------------------------------ 3. type */
 
-.t-h1,.t-h2,.t-h3,.t-h4{font-family:var(--font-display);font-weight:600;letter-spacing:-.03em;line-height:.88}
+.t-h1,.t-h2,.t-h3,.t-h4{font-family:var(--font-display);font-weight:600;letter-spacing:-.03em;line-height:.88;color:var(--bone)}
 .t-h1{font-size:var(--h1)}
 .t-h2{font-size:var(--h2);line-height:.92}
 .t-h3{font-size:var(--h3);line-height:.98}
@@ -605,19 +633,21 @@ html.is-loading,html.is-loading body{overflow:hidden}
    on near black everywhere else, which on a cyclorama is invisible, so the whole
    instrument inverts - ink on paper, with the gold left alone because it is the one
    colour that holds on either ground. */
-#ui.is-light{color:var(--ink)}
+#ui.is-light{color:var(--bone)}
 #ui.is-light #hero-tag,#ui.is-light #hero-sub,#ui.is-light #hero-copy .t-body2,
-#ui.is-light #hero-word,#ui.is-light #hero-card .t-label{color:var(--ink)}
-#ui.is-light #hero-sub,#ui.is-light #hero-card .t-micro{color:rgba(16,9,4,.86)}
-#ui.is-light .annot,#ui.is-light .t-dim{color:rgba(16,9,4,.72)}
-#ui.is-light #hero-card{background:rgba(255,250,243,.74);border-color:rgba(16,9,4,.18)}
-#ui.is-light #hero-copy .o-dash{--dash:rgba(16,9,4,.24)}
-#ui.is-light #sound-toggle .seam i{background:rgba(16,9,4,.5)}
-#ui.is-light #sound-toggle:hover .seam i{background:var(--ink)}
+#ui.is-light #hero-word,#ui.is-light #hero-card .t-label{color:var(--bone)}
+#ui.is-light #hero-sub,#ui.is-light #hero-card .t-micro{color:var(--bone-70)}
+#ui.is-light .annot,#ui.is-light .t-dim{color:var(--bone-62)}
+#ui.is-light #hero-card{background:rgba(20,11,4,.78);border-color:rgba(255,237,215,.18)}
+#ui.is-light #hero-copy .o-dash{--dash:rgba(255,237,215,.24)}
+#ui.is-light #sound-toggle .seam i{background:rgba(255,237,215,.5)}
+#ui.is-light #sound-toggle:hover .seam i{background:var(--bone)}
 #ui.is-light #sound-toggle.is-on .seam i{background:var(--gold)}
 #ui.is-light #grain{opacity:.028}
 
-#ui.is-light #bp-stamp{color:var(--ink)}
+#ui.is-light #bp-stamp{color:var(--gold-hot)}
+#lit-head .t-h2{color:var(--bone) !important}
+#lit-head p{color:var(--bone-70) !important}
 #ui.is-light .formula{--f-line:rgba(16,9,4,.25);color:var(--umber);
   border-color:rgba(16,9,4,.22);border-left-color:var(--gold);
   background:rgba(16,9,4,.94);box-shadow:0 14px 36px rgba(16,9,4,.2)}
@@ -1048,42 +1078,208 @@ html.is-loading,html.is-loading body{overflow:hidden}
    track. At rest the whole thing is eleven faint dashes in the margin.
    ========================================================================= */
 
-#compass{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:42;
-  display:flex;flex-direction:column;gap:calc(var(--row) * .55);
-  padding:var(--row) calc(var(--pad-x) * .55) var(--row) calc(var(--row) * 3);
-  /* Out of the way until it is reached for.
+#compass {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 6px;
+  max-width: 34px;
+  overflow: hidden;
+  background: rgba(14, 8, 4, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 237, 215, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 200, 120, 0.06) inset;
+  pointer-events: auto;
+  opacity: 0.92;
+  transition: max-width 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.3s ease,
+              border-color 0.35s ease,
+              box-shadow 0.4s ease,
+              opacity 0.35s ease;
+}
 
-     At a quarter opacity it was still ink on top of the artwork, and in three acts it
-     landed squarely on a read-out. `--reach` is written by the pointer loop: it is 1
-     only while the cursor is in the right margin, so the compass is invisible and
-     inert everywhere else and arrives before the hand does. Keyboard focus brings it
-     in too, or it would be unreachable without a mouse. */
-  /* At rest the eleven dashes stay faintly visible, so a first-time reader knows
-     there is a way to move through the piece; the names arrive with the hand. */
-  opacity:calc(.42 + var(--reach, 0) * .5);
-  padding-left:calc(var(--row) * 1.2);
-  pointer-events:auto;
-  transition:opacity .4s var(--ease-out)}
-#compass:focus-within{opacity:1;pointer-events:auto}
-#compass:hover,#compass[data-reach="1"]{pointer-events:auto}
-#compass.is-hidden,#compass.is-dim{opacity:0 !important;pointer-events:none}
+#compass:hover,
+#compass:focus-within,
+#compass[data-reach="1"] {
+  max-width: 290px;
+  padding: 14px 14px;
+  background: rgba(10, 5, 2, 0.94);
+  border-color: rgba(220, 80, 0, 0.45);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 171, 82, 0.18) inset;
+  opacity: 1;
+}
 
-#compass button{display:flex;align-items:center;justify-content:flex-end;gap:.8em;
-  background:none;border:0;padding:.18em 0;cursor:pointer;color:var(--bone);
-  opacity:.55;transition:opacity .3s ease}
-#compass button:hover,#compass button:focus-visible,#compass button.is-here{opacity:1}
+#compass.is-hidden,
+#compass.is-dim {
+  opacity: 0 !important;
+  pointer-events: none;
+}
 
-#compass button i{display:block;width:calc(16 * var(--unit));height:1px;
-  background:currentColor;flex:none;
-  transition:width .45s var(--ease-out),background .3s ease}
-#compass button:hover i,#compass button:focus-visible i{width:calc(30 * var(--unit))}
-#compass button.is-here i{width:calc(26 * var(--unit));background:var(--gold-hot)}
+/* Header inside dock */
+.compass-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 1px solid rgba(255, 237, 215, 0.08);
+  transition: opacity 0.3s ease, height 0.35s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.35s ease;
+}
 
-#compass button span{font-size:var(--micro);letter-spacing:.18em;text-transform:uppercase;
-  white-space:nowrap;opacity:0;transform:translateX(.5em);
-  transition:opacity .35s var(--ease-out),transform .45s var(--ease-out)}
-#compass button:hover span,#compass button:focus-visible span{opacity:1;transform:none}
-#compass button span em{font-style:normal;color:var(--bone-62);margin-left:.5em}
+#compass:hover .compass-header,
+#compass:focus-within .compass-header,
+#compass[data-reach="1"] .compass-header {
+  height: 22px;
+  opacity: 1;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+}
+
+.compass-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--gold-hot);
+  text-transform: uppercase;
+}
+
+.compass-progress {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--bone-62);
+}
+
+/* Items list */
+.compass-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+#compass button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--bone);
+  white-space: nowrap;
+  width: 100%;
+  opacity: 0.55;
+  transition: opacity 0.25s ease, background 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#compass button:hover,
+#compass button:focus-visible {
+  opacity: 1;
+  background: rgba(255, 237, 215, 0.08);
+  transform: translateX(-2px);
+}
+
+#compass button.is-here {
+  opacity: 1;
+  color: var(--gold-hot);
+  background: linear-gradient(90deg, rgba(220, 80, 0, 0.22), rgba(220, 80, 0, 0.04));
+  border-left: 2px solid var(--gold-hot);
+}
+
+/* Dash indicator */
+#compass button i {
+  display: block;
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 237, 215, 0.32);
+  flex: none;
+  transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+
+#compass button:hover i,
+#compass button:focus-visible i {
+  background: var(--bone);
+}
+
+#compass button.is-here i {
+  width: 18px;
+  height: 3px;
+  background: var(--gold-hot);
+  box-shadow: 0 0 10px rgba(255, 171, 82, 0.8);
+}
+
+/* Metadata label: Roman numeral + Name */
+.compass-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(8px);
+  max-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#compass:hover .compass-meta,
+#compass:focus-within .compass-meta,
+#compass[data-reach="1"] .compass-meta {
+  opacity: 0.9;
+  transform: translateX(0);
+  max-width: 240px;
+  pointer-events: auto;
+}
+
+#compass button:hover .compass-meta,
+#compass button.is-here .compass-meta {
+  opacity: 1;
+}
+
+.compass-roman {
+  display: inline-block;
+  width: 24px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--gold-warm);
+  opacity: 0.85;
+}
+
+.compass-name {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bone);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#compass button.is-here .compass-name {
+  color: var(--gold-hot);
+  font-weight: 600;
+}
 
 @media (max-width:767px), (max-width:1024px) and (orientation:portrait){
   /* A strip of eleven tap targets down the edge of a phone is in the way of the one
@@ -1091,10 +1287,14 @@ html.is-loading,html.is-loading body{overflow:hidden}
      button and open as a list. */
   #compass{display:none}
   #compass.is-open{display:flex;opacity:1 !important;pointer-events:auto !important;
-    inset:0;transform:none;justify-content:center;align-items:flex-start;
-    padding:calc(var(--row) * 8) var(--pad-x);background:rgba(16,9,4,.96);z-index:65}
-  #compass.is-open button{opacity:1;justify-content:flex-start;flex-direction:row-reverse;padding:.55em 0}
-  #compass.is-open button span{opacity:1;transform:none;font-size:.8125rem}
+    inset:0;transform:none;max-width:100% !important;justify-content:center;align-items:flex-start;
+    padding:calc(var(--row) * 8) var(--pad-x);background:rgba(12,6,2,.97);z-index:65}
+  #compass.is-open .compass-header{opacity:1;height:26px;margin-bottom:12px;max-width:320px;margin-inline:auto}
+  #compass.is-open .compass-items{max-width:320px;margin-inline:auto;gap:8px}
+  #compass.is-open button{opacity:1;justify-content:flex-start;padding:.55em 0}
+  #compass.is-open .compass-meta{opacity:1;transform:none;max-width:none;pointer-events:auto}
+  #compass.is-open .compass-name{font-size:.875rem}
+  #compass.is-open .compass-roman{font-size:.875rem;width:28px}
   #compass-toggle{display:inline-flex}
 }
 #compass-toggle{display:none;position:fixed;top:max(14px,env(safe-area-inset-top));right:var(--pad-x);z-index:66;
@@ -1104,3 +1304,449 @@ html.is-loading,html.is-loading body{overflow:hidden}
 /* ?perf */
 #perf{position:fixed;left:8px;bottom:8px;z-index:90;margin:0;padding:.6em .8em;pointer-events:none;
   font:500 11px/1.5 var(--font-mono);color:#9f9;background:rgba(0,0,0,.78);border-radius:4px;white-space:pre}
+
+/* ============================================================================
+   AI ASSISTANT (POUYA AI / ORACLE)
+   ========================================================================= */
+
+.ai-trigger {
+  position: fixed;
+  left: 20px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(14, 8, 4, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 215, 170, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(255, 171, 82, 0.12) inset;
+  cursor: pointer;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================================================
+   KINTSUGI ORACLE — ARCHITECTURAL INTELLIGENCE MONOLITH
+   ========================================================================= */
+
+.oracle-trigger {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 55;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 14px;
+  background: rgba(16, 9, 4, 0.88);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(223, 173, 72, 0.4);
+  border-radius: 999px;
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(223, 173, 72, 0.12), inset 0 1px 0 rgba(255, 237, 215, 0.15);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.oracle-trigger::before {
+  content: '[';
+  color: var(--gold-hot);
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.oracle-trigger-glyph {
+  font-size: 11px;
+  color: var(--gold-hot);
+  animation: oracle-sparkle 3s infinite ease-in-out;
+}
+
+.oracle-trigger-core {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.oracle-trigger-title {
+  color: var(--bone);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.oracle-trigger-status {
+  font-size: 7.5px;
+  color: var(--gold-hot);
+  letter-spacing: 0.22em;
+  opacity: 0.85;
+}
+
+.oracle-trigger-bracket {
+  color: var(--gold-hot);
+  opacity: 0.8;
+  font-weight: 700;
+}
+
+.oracle-trigger:hover,
+.oracle-trigger.is-active {
+  background: rgba(22, 12, 5, 0.96);
+  border-color: var(--gold-hot);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.9), 0 0 24px rgba(223, 173, 72, 0.4), inset 0 1px 0 rgba(255, 237, 215, 0.25);
+  transform: translateY(-2px);
+}
+
+@keyframes oracle-sparkle {
+  0%, 100% { opacity: 0.6; transform: scale(0.92) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.18) rotate(45deg); filter: drop-shadow(0 0 4px var(--gold-hot)); }
+}
+
+/* The Monolith Container */
+.oracle-monolith {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
+  width: min(440px, calc(100vw - 40px));
+  height: min(600px, calc(100vh - 120px));
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 6, 3, 0.96);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(223, 173, 72, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 32px 84px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 237, 215, 0.08) inset, 0 0 40px rgba(223, 173, 72, 0.08);
+  overflow: hidden;
+  animation: oracle-manifest 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes oracle-manifest {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Header Rail */
+.oracle-rail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(223, 173, 72, 0.2);
+  background: linear-gradient(180deg, rgba(223, 173, 72, 0.08) 0%, rgba(16, 9, 4, 0.4) 100%);
+  position: relative;
+}
+
+.oracle-rail::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(223, 173, 72, 0.6), transparent);
+}
+
+.oracle-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.oracle-spec-tag {
+  display: inline-block;
+  padding: 3px 7px;
+  background: rgba(223, 173, 72, 0.12);
+  border: 1px solid rgba(223, 173, 72, 0.3);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-hot);
+}
+
+.oracle-header-titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.oracle-brand {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 14.5px;
+  letter-spacing: 0.06em;
+  color: var(--bone);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.oracle-coords {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: var(--bone-62);
+  margin-top: 3px;
+}
+
+.oracle-live-pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold-hot);
+  box-shadow: 0 0 8px var(--gold-hot);
+  animation: pip-pulse 2s infinite ease-in-out;
+}
+
+@keyframes pip-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+
+.oracle-close {
+  background: rgba(255, 237, 215, 0.04);
+  border: 1px solid rgba(255, 237, 215, 0.12);
+  color: var(--bone-62);
+  font-size: 18px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.oracle-close:hover {
+  color: var(--bone);
+  border-color: var(--gold-hot);
+  background: rgba(223, 173, 72, 0.15);
+  transform: rotate(90deg);
+}
+
+/* Curated Topic Folios */
+.oracle-folios {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 237, 215, 0.06);
+}
+
+.oracle-folio-btn {
+  background: rgba(255, 237, 215, 0.03);
+  border: 1px solid rgba(223, 173, 72, 0.18);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--bone-70);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.oracle-folio-btn:hover {
+  background: rgba(223, 173, 72, 0.12);
+  border-color: var(--gold-hot);
+  color: var(--gold-hot);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Transcript Stream */
+.oracle-ledger {
+  flex: 1;
+  padding: 18px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(223, 173, 72, 0.25) transparent;
+}
+
+.oracle-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: entry-fade 0.3s ease-out;
+}
+
+@keyframes entry-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.oracle-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+}
+
+.oracle-entry.assistant .oracle-entry-author {
+  color: var(--gold-hot);
+  font-weight: 700;
+}
+
+.oracle-entry.user .oracle-entry-author {
+  color: var(--bone-62);
+  font-weight: 600;
+}
+
+.oracle-entry-time {
+  color: var(--bone-22);
+}
+
+.oracle-entry-content {
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.oracle-entry.assistant .oracle-entry-content {
+  background: rgba(255, 237, 215, 0.035);
+  border: 1px solid rgba(223, 173, 72, 0.22);
+  border-left: 2.5px solid var(--gold-hot);
+  color: var(--bone);
+  font-family: var(--font-text);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.oracle-entry.user .oracle-entry-content {
+  background: linear-gradient(135deg, rgba(220, 80, 0, 0.16), rgba(223, 173, 72, 0.08));
+  border: 1px solid rgba(223, 173, 72, 0.3);
+  color: var(--bone);
+  align-self: flex-end;
+  max-width: 90%;
+  border-radius: 8px 8px 2px 8px;
+}
+
+.oracle-entry-text {
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* Typing state */
+.oracle-computing-dots {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 237, 215, 0.03);
+  border: 1px solid rgba(223, 173, 72, 0.15);
+  border-left: 2px solid var(--gold-hot);
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.oracle-computing-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold-hot);
+  animation: dot-glow 1.4s infinite ease-in-out;
+}
+
+.oracle-computing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.oracle-computing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-glow {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); filter: drop-shadow(0 0 3px var(--gold-hot)); }
+}
+
+/* Terminal Input Chamber */
+.oracle-terminal-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(14, 8, 3, 0.98);
+  border-top: 1px solid rgba(223, 173, 72, 0.2);
+  position: relative;
+}
+
+.oracle-prompt-symbol {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-hot);
+}
+
+.oracle-text-field {
+  flex: 1;
+  background: rgba(255, 237, 215, 0.04);
+  border: 1px solid rgba(255, 237, 215, 0.12);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-family: var(--font-text);
+  font-size: 11.5px;
+  color: var(--bone);
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+.oracle-text-field:focus {
+  border-color: var(--gold-hot);
+  background: rgba(255, 237, 215, 0.07);
+  box-shadow: 0 0 12px rgba(223, 173, 72, 0.18);
+}
+
+.oracle-text-field::placeholder {
+  color: var(--bone-62);
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.oracle-transmit-btn {
+  background: linear-gradient(135deg, var(--gold-hot), #cf8828);
+  border: 0;
+  color: #100904;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  padding: 9px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.oracle-transmit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(223, 173, 72, 0.6);
+  background: linear-gradient(135deg, #ffdf7e, var(--gold-hot));
+}
+
+.oracle-transmit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}

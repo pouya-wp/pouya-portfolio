@@ -78,13 +78,28 @@ function fbm(x: number, y: number, z: number): number {
 
 export type BakedNoise = { texture: THREE.Data3DTexture; dispose(): void };
 
+export function createPlasterNoiseTexture(data: Uint8Array): BakedNoise {
+  const texture = new THREE.Data3DTexture(data, SIZE, SIZE, SIZE);
+  texture.format = THREE.RGBAFormat;
+  texture.type = THREE.UnsignedByteType;
+  texture.minFilter = texture.magFilter = THREE.LinearFilter;
+  texture.wrapS = texture.wrapT = texture.wrapR = THREE.RepeatWrapping;
+  texture.unpackAlignment = 1;
+  texture.needsUpdate = true;
+
+  return { texture, dispose: () => texture.dispose() };
+}
+
 /* The frequencies are folded into the bake rather than left to the sampler.
 
    Each channel is baked at the frequency it is going to be read at, and the shader then
    samples all four at one shared, low rate. That is what makes a single fetch able to
    stand in for four different scales - and it is why the fine grain does not tile
    visibly, which a naive "bake one field and sample it four ways" would. */
-export function bakePlasterNoise(): BakedNoise {
+export function bakePlasterNoise(preloadedData?: Uint8Array | null): BakedNoise {
+  if (preloadedData && preloadedData.byteLength === SIZE * SIZE * SIZE * 4) {
+    return createPlasterNoiseTexture(preloadedData);
+  }
   const data = new Uint8Array(SIZE * SIZE * SIZE * 4);
   const step = 1 / SIZE;
 

@@ -65,8 +65,8 @@ export class ScenePass extends Pass {
         uInvViewProj: { value: new THREE.Matrix4() },
         uPrevViewProj: { value: new THREE.Matrix4() },
         uGlobal: { value: new THREE.Vector2() },
-        uStrength: { value: 0.72 },
-        uMax: { value: 0.055 },
+        uStrength: { value: 0.28 },
+        uMax: { value: 0.045 },
         uNear: { value: .1 },
         uFar: { value: 90 },
         uAspect: { value: 1 },
@@ -83,31 +83,44 @@ export class ScenePass extends Pass {
         varying vec2 vUv;
         ${HASH}
         void main(){
+          vec4 sharp = texture2D(tDiffuse, vUv);
           float depth = texture2D(tDepth, vUv).x;
           vec2 vel = uGlobal;
           if(depth < 0.9999){
             vec4 ndc = vec4(vUv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
-            vec4 world = uInvViewProj * ndc; world /= world.w;
-            vec4 back = uPrevViewProj * world; back /= back.w;
-            vel += (vUv - (back.xy * 0.5 + 0.5)) * uStrength;
+            vec4 world = uInvViewProj * ndc;
+            if(abs(world.w) > 0.0001){
+              world /= world.w;
+              vec4 back = uPrevViewProj * world;
+              if(back.w > 0.0001){
+                back /= back.w;
+                vec2 reprojected = back.xy * 0.5 + 0.5;
+                vec2 diff = (vUv - reprojected) * uStrength;
+                if(abs(diff.x) < 0.35 && abs(diff.y) < 0.35){
+                  vel += diff;
+                }
+              }
+            }
           }
           float len = length(vel);
-          if(len > uMax) vel *= uMax / len;
-          vec4 base;
-          if(len < 0.00035){
-            base = texture2D(tDiffuse, vUv);
-          } else {
-            float jitter = hash12(gl_FragCoord.xy + fract(uTime) * 137.0) - 0.5;
-            vec4 sum = vec4(0.0);
-            for(int i = 0; i < ${MOTION_SAMPLES}; i++){
-              float t = (float(i) + 0.5 + jitter) / float(${MOTION_SAMPLES}) - 0.5;
-              sum += texture2D(tDiffuse, vUv - vel * t);
-            }
-            base = sum / float(${MOTION_SAMPLES});
+          if(isnan(len) || isinf(len) || len < 0.0018){
+            gl_FragColor = sharp;
+            return;
           }
+          if(len > uMax) vel *= uMax / len;
 
+          float jitter = hash12(gl_FragCoord.xy + fract(uTime) * 137.0) - 0.5;
+          vec4 sum = vec4(0.0);
+          for(int i = 0; i < ${MOTION_SAMPLES}; i++){
+            float t = (float(i) + 0.5 + jitter) / float(${MOTION_SAMPLES}) - 0.5;
+            vec2 sampleUv = clamp(vUv - vel * t, 0.0, 1.0);
+            sum += texture2D(tDiffuse, sampleUv);
+          }
+          vec4 base = sum / float(${MOTION_SAMPLES});
+          if(isnan(base.r) || isnan(base.g) || isnan(base.b) || isinf(base.r) || isinf(base.g) || isinf(base.b)){
+            base = sharp;
+          }
           gl_FragColor = base;
-
         }`,
     });
     this.quad = new FullScreenQuad(this.material);
@@ -171,7 +184,7 @@ export class GradePass extends Pass {
       depthWrite: false,
       uniforms: {
         tDiffuse: { value: null },
-        uChroma: { value: 0.0021 },
+        uChroma: { value: 0.0006 },
         uVignette: { value: 0.62 },
         uShadow: { value: new THREE.Color(0.86, 0.79, 0.7) },
         uHighlight: { value: new THREE.Color(1.05, 0.98, 0.86) },
@@ -425,7 +438,7 @@ export class FinishPass extends Pass {
         uPresence: { value: 0 },
         uRipple: { value: 0 },
         uTime: { value: 0 },
-        uGrain: { value: 0.04 },
+        uGrain: { value: 0.012 },
         uTint: { value: new THREE.Color('#F0B45C') },
         uBone: { value: new THREE.Color('#FFEDD7') },
       },

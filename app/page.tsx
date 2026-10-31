@@ -9,11 +9,13 @@ import { createTempo, markVisit, type Verdict } from './tempo';
 import { createGold } from './gold';
 import { signals } from './signals';
 import gsap from 'gsap';
+import { analytics } from './analytics';
+import { AssistantWidget } from './assistant';
 
 /* Fill these in and the matching capsules appear in the colophon. Nothing here is
    invented: an empty value simply renders nothing. */
 const CONTACT: { email: string; links: { label: string; handle: string; url: string }[] } = {
-  email: 'pouya.sadeggpoor.1388@gmail.com',
+  email: 'pouyas.one@outlook.com',
   links: [
     { label: 'Telegram', handle: '@pouya_dmg', url: 'https://t.me/pouya_dmg' },
     /* WhatsApp has no public link format for a username, only for a phone number
@@ -237,7 +239,7 @@ export default function Home() {
   const [sound, setSound] = useState(false);
   const [focus, setFocus] = useState(-1);
   const [portalOpen, setPortalOpen] = useState(false);
-  const [act, setAct] = useState(0);
+  const currentActRef = useRef(0);
   const [hoverCard, setHoverCard] = useState(-1);
   const [copied, setCopied] = useState('');
   /* The only two things this site ever says. Held in state because they are the one
@@ -263,6 +265,7 @@ export default function Home() {
   const tiltRef = useRef<HTMLSpanElement>(null);
   const alignRef = useRef<HTMLSpanElement>(null);
   const compassRef = useRef<HTMLElement>(null);
+  const actProgressRef = useRef<HTMLSpanElement>(null);
   const alignBarRef = useRef<HTMLElement>(null);
   /* Focus goes back to whatever opened the case study. Declared up here with the
      rest rather than beside the handlers, because the compiler will not accept a ref
@@ -337,6 +340,7 @@ export default function Home() {
     const onResize = () => { setVh(); measure(); };
     measure();
     addEventListener('resize', onResize);
+    void analytics.init();
 
     /* measure() reads offsetTop and offsetHeight, which only mean anything once the
        stylesheet has actually applied. Measuring a single time at mount is a race,
@@ -433,7 +437,7 @@ export default function Home() {
       /* The compass only exists while the hand is in the right margin. Written here
          rather than from a mouseenter, because the strip is pointer-inert until it is
          reached for - it cannot receive the event that would reveal it. */
-      const reach = pointer.x > .88 ? 1 : 0;
+      const reach = pointer.x > .82 ? 1 : 0;
       if (reach !== lastReach) {
         lastReach = reach;
         document.documentElement.style.setProperty('--reach', String(reach));
@@ -458,7 +462,24 @@ export default function Home() {
 
       let index = 0;
       for (let i = 0; i < ACT_LAYOUT.length; i++) if (p >= ACT_LAYOUT[i].at) index = i;
-      if (index !== currentAct) { currentAct = index; setAct(index); }
+      if (index !== currentAct) {
+        currentAct = index;
+        currentActRef.current = index;
+        if (actProgressRef.current) {
+          actProgressRef.current.textContent = `${index + 1} / ${ACT_LAYOUT.length}`;
+        }
+        if (compassRef.current) {
+          const btns = compassRef.current.querySelectorAll('.compass-items button');
+          btns.forEach((btn, i) => {
+            btn.classList.toggle('is-here', i === index);
+            if (i === index) btn.setAttribute('aria-current', 'step');
+            else btn.removeAttribute('aria-current');
+          });
+        }
+        const bpNav = document.querySelector('.bp-keyboard');
+        if (bpNav) bpNav.classList.toggle('is-active', index === 3);
+        analytics.trackActProgress(index, ACT_LAYOUT[index]?.name || '', p * 100);
+      }
 
       /* How near the reader is to the one station, and nothing about which way. A
          direction would turn a valley into a fetch quest. */
@@ -503,7 +524,7 @@ export default function Home() {
          this piece gets. The interface was painting ink on black in there and the
          headings simply were not there. If the act spans in story.ts move again,
          these move with them. */
-      const isLight = p < .085 || (p > .345 && p < .462);
+      const isLight = false;
       if (isLight !== wasLight) { wasLight = isLight; setLight(isLight); }
 
       /* The bowl. Heat is the burn itself, bright is the ring that follows it and
@@ -704,11 +725,17 @@ export default function Home() {
 
   /* --------------------------------------------------------------- actions */
   async function toggleSound() {
-    try { audio.current ??= new Soundscape(); setSound(await audio.current.toggle()); }
+    try {
+      audio.current ??= new Soundscape();
+      const next = await audio.current.toggle();
+      setSound(next);
+      analytics.trackSoundToggle(next);
+    }
     catch { setSound(false); }
   }
   const openProject = useCallback((index: number) => {
     if (!PROJECTS[index]) return;
+    analytics.trackCardView(`Drawing ${PROJECTS[index].number}: ${PROJECTS[index].name} (${PROJECTS[index].domain})`);
     if (portalTimer.current) clearTimeout(portalTimer.current);
     returnFocus.current = document.activeElement as HTMLElement | null;
     setFocus(index);
@@ -716,10 +743,10 @@ export default function Home() {
     /* The camera dives through the card first; the case study takes over as the lens
        reaches its face. Opened from the colophon, the bench is not on screen and there
        is nothing to dive through, so it opens at once. */
-    const onBench = act === 3;
+    const onBench = currentActRef.current === 3;
     portalTimer.current = setTimeout(() => setPortalOpen(true),
       !onBench || matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1080);
-  }, [act]);
+  }, []);
   const leavePortal = useCallback(() => {
     if (portalTimer.current) clearTimeout(portalTimer.current);
     setPortalOpen(false); setFocus(-1);
@@ -785,19 +812,29 @@ export default function Home() {
           {actsOpen ? 'Close' : 'Acts'}
         </button>
         <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''} ${actsOpen ? 'is-open' : ''}`} aria-label="Acts">
-          {ACT_LAYOUT.map((a, i) => (
-            <button key={a.id} onClick={() => { setActsOpen(false); go(a.at + .004); }} data-cursor=""
-              className={act === i ? 'is-here' : ''}
-              aria-current={act === i ? 'step' : undefined}>
-              <i aria-hidden="true" />
-              <span>{a.roman} <em>{a.name}</em></span>
-            </button>
-          ))}
+          <div className="compass-header" aria-hidden="true">
+            <span className="compass-title">ACTS</span>
+            <span className="compass-progress" ref={actProgressRef}>1 / {ACT_LAYOUT.length}</span>
+          </div>
+          <div className="compass-items">
+            {ACT_LAYOUT.map((a, i) => (
+              <button key={a.id} onClick={() => { setActsOpen(false); go(a.at + .004); }} data-cursor=""
+                className={i === 0 ? 'is-here' : ''}
+                aria-current={i === 0 ? 'step' : undefined}>
+                <i aria-hidden="true" />
+                <span className="compass-meta">
+                  <span className="compass-roman">{a.roman}</span>
+                  <span className="compass-name">{a.name}</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </nav>
 
         <div id="cursor-label" ref={labelRef} aria-hidden="true" />
         {showPerf && <pre id="perf" ref={perfRef} aria-hidden="true" />}
         <div id="grain" aria-hidden="true" />
+        <AssistantWidget />
 
         {/* The sound control is a seam, not a button.
 
@@ -970,7 +1007,7 @@ export default function Home() {
                   </div>
                   {/* The cards live in WebGL, so the keyboard needs its own way in. It is
                       off screen until it takes focus, then it shows where the focus is. */}
-                  <nav className={`bp-keyboard ${act === 3 ? 'is-active' : ''}`} aria-label="Selected work">
+                  <nav className="bp-keyboard" aria-label="Selected work">
                     <h3 className="sr-only">Selected work</h3>
                     {PROJECTS.map((p, i) => (
                       <button key={p.id} onClick={() => openProject(i)} className="pill is-ghost">
@@ -1095,23 +1132,11 @@ export default function Home() {
                   <div id="man-readout" className="blk" data-lit="0.06,0.62">
                     <Formula label="Cloud" expr="N = 11 000" note="points sampled on r(s)" />
                   </div>
-                  <div id="man-lines" className="blk" data-lit="0.14,0.60">
+                  <div id="man-lines" className="blk" data-lit="0.14,1">
                     <p className="t-sub2">
                       Born in limitations, bred in isolation. We don&rsquo;t just survive the
                       restrictions; we architect them into golden opportunities.
                     </p>
-                  </div>
-                  {/* The cloud then stops spelling anything and goes looking for a shape.
-                      What it finds is the reader's own path through the document, resampled
-                      to thirty places to stand. */}
-                  {/* The window is stated in section ratio, which is not the same number as the
-                      WebGL timeline's p. The document is TOTAL_VH tall but only
-                      TOTAL_VH - 100 of it is scrollable, so p runs ahead of the
-                      layout: this section's runway is spent by p .88, which is why
-                      the convergence is timed to resolve at .866 rather than later. */}
-                  <div id="man-thirty" className="blk" data-lit="0.60,1">
-                    <span className="t-h1 t-gold">{SURVIVORS}</span>
-                    <span className="annot">of {FRAGMENTS} arrive</span>
                   </div>
                 </div>
               </div>

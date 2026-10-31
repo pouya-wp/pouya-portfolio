@@ -8,6 +8,7 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { AOPass } from './ao';
 import { DofPass } from './dof';
 import { parseGlb, normaliseMesh, meshToGeometry, shardSeeds, fractureShell, seamRibbons, surfacePoints } from './sculpture-model';
+import { unpackBakedShards, type BakedShards } from './shards-bake';
 import { loadBaked, sampleBaked } from './physics-playback';
 import { BOARD, createChessSet, createDesk, createMat, createSheet, createBackWall, createCyclorama, createPedestal, createProjectCard, createCutter, createPencil, createClip, createEraser, textSamples, makeParticles } from './scene-elements';
 import { ScenePass, GlowPass, GradePass, FinishPass } from './postfx';
@@ -116,7 +117,7 @@ export default function Sculpture({ driver, onReady, paused = false, focus = -1,
     selectCb.current = onCardSelect;
   }, [focus, onCardHover, onCardSelect, onReady, paused]);
 
-  function build(source: ArrayBuffer): () => void {
+  function build(source: ArrayBuffer, preloadedNoise?: Uint8Array | null, bakedShardsData?: ArrayBuffer | null): () => void {
     const host = mount.current!;
     let renderer: THREE.WebGLRenderer;
     try {
@@ -135,7 +136,7 @@ export default function Sculpture({ driver, onReady, paused = false, focus = -1,
        defocus, the bloom, the grade, the finish - pays for this squared, so the step
        down is about a tenth off the whole frame for a difference nobody can see on a
        retina panel. */
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+    renderer.setPixelRatio(Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 2, 2.0));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
@@ -238,7 +239,7 @@ export default function Sculpture({ driver, onReady, paused = false, focus = -1,
     /* The plaster's noise, baked once into a 3D texture. See noise-bake.ts - the
        material used to evaluate about three hundred sines per fragment for a surface
        that never changes. */
-    const baked = bakePlasterNoise();
+    const baked = bakePlasterNoise(preloadedNoise);
     const noiseUniform = { value: baked.texture };
 
     const NOISE = `
@@ -296,8 +297,8 @@ ${shader.fragmentShader}`;
            noise arithmetic at all: the hardware is already computing this quantity for
            every quad it shades, and it is being thrown away. */
         float n0 = plasterField(vCast).a;
-        vec3 bump = vec3(dFdx(n0), dFdy(n0), 0.) * 42.;
-        normal = normalize(normal + bump * .28);`);
+        vec3 bump = vec3(dFdx(n0), dFdy(n0), 0.) * 10.;
+        normal = normalize(normal + bump * .10);`);
     };
 
     /* The inside of a break is raw, unpolished rock. The metal only pools along the
@@ -341,9 +342,13 @@ ${shader.fragmentShader}`;
     sculpture.add(spinner);
     scene.add(sculpture);
 
-    const cast = normaliseMesh(parseGlb(source), SCULPTURE.height);
-    const cells = fractureShell(cast, shardSeeds(cast, SCULPTURE.shards, random), SCULPTURE.thickness);
-    const shards = cells.map(({ geometry, centre }) => {
+    let bakedShards: BakedShards | null = null;
+    if (bakedShardsData) {
+      try { bakedShards = unpackBakedShards(bakedShardsData); } catch (e) { console.warn('[sculpture] failed to unpack baked shards', e); }
+    }
+    const cast = bakedShards ? null : normaliseMesh(parseGlb(source), SCULPTURE.height);
+    const cells = (!bakedShards && cast) ? fractureShell(cast, shardSeeds(cast, SCULPTURE.shards, random), SCULPTURE.thickness) : null;
+    const shards = (bakedShards ? bakedShards.shards : cells!).map(({ geometry, centre }) => {
       const mesh = new THREE.Mesh(geometry, [plaster, fracture]);
       mesh.position.copy(centre);
       mesh.castShadow = mesh.receiveShadow = true;
@@ -357,13 +362,14 @@ ${shader.fragmentShader}`;
 
     // the widest shard is the one that can fill the lens on its way past
     let wipeIndex = 0, widest = 0;
-    cells.forEach(({ geometry }, i) => {
-      geometry.computeBoundingSphere();
-      const r = geometry.boundingSphere?.radius ?? 0;
+    shards.forEach(({ mesh }, i) => {
+      mesh.geometry.computeBoundingSphere();
+      const r = mesh.geometry.boundingSphere?.radius ?? 0;
       if (r > widest) { widest = r; wipeIndex = i; }
     });
 
-    const wholeGeometry = meshToGeometry(cast);
+    const wholeGeometry = bakedShards ? bakedShards.wholeGeometry : meshToGeometry(cast!);
+    try { wholeGeometry.computeVertexNormals(); } catch { }
     const whole = new THREE.Mesh(wholeGeometry, plaster);
     whole.castShadow = whole.receiveShadow = true;
     spinner.add(whole);
@@ -371,7 +377,7 @@ ${shader.fragmentShader}`;
     /* The seams are flat ribbons, but the shader rounds them into a bead: the
        normal is bent across the width, so a highlight runs the length of every
        repair the way it does on real inlaid metal. */
-    const seamGeometry = seamRibbons(cells);
+    const seamGeometry = bakedShards ? bakedShards.seamGeometry : seamRibbons(cells!);
     /* Gold is a metal, so metalness is 1. At .52 the shader mixes a dielectric and a
        conductor response and the result reads as painted plastic - which, with a
        strong orange emissive on top, is why the repairs looked like hot wire laid on
@@ -579,7 +585,7 @@ ${shader.fragmentShader}`;
     /* Eleven thousand of them, sampled off the surface of the cast itself: the same
        object as the shards and the seams, one geometry wearing another appearance. */
     const particleCount = 11000;
-    const cloudPositions = surfacePoints(cast, particleCount, random);
+    const cloudPositions = bakedShards ? bakedShards.points : surfacePoints(cast!, particleCount, random);
     const phrases = [
       'BORN IN LIMITATIONS,\nBRED IN ISOLATION.',
       'WE DON’T JUST SURVIVE\nTHE RESTRICTIONS;',
@@ -589,34 +595,12 @@ ${shader.fragmentShader}`;
     const cloud = makeParticles(cloudPositions, texts[0]); scene.add(cloud);
     let phrase = -1, phraseBlend = 1;
     let disposed = false;
-    void document.fonts.ready.then(() => {
+    const fontReady = typeof document !== 'undefined' && document.fonts?.check ? document.fonts.check('600 88px Geist') : true;
+    if (!fontReady) void document.fonts.ready.then(() => {
       if (!disposed) { texts = phrases.map(t => textSamples(t, particleCount, random, 10.6, 4.2)); phrase = -1; }
     });
 
-    /* And then a fourth thing to say, which is not a sentence.
 
-       After the three lines have burned off, the cloud goes looking for a shape and
-       what it finds is thirty places to stand - read out of the path the reader has
-       been drawing since the first frame. The shape that resolves at the end of the
-       act was being drawn by the person watching, the whole way, without being told.
-       It rides the same crossfade the phrases use, so it costs nothing extra. */
-    const signatureTarget = new Float32Array(particleCount * 3);
-    let signatureWritten = false;
-    const writeSignature = (points: [number, number, number][]) => {
-      for (let i = 0; i < particleCount; i++) {
-        const [x, y, z] = points[i % points.length];
-        /* a knot, not a point: a little spread keeps each one reading as a body of
-           fragments rather than as a rendering artefact */
-        signatureTarget[i * 3] = x + (random() - .5) * .34;
-        signatureTarget[i * 3 + 1] = y + (random() - .5) * .34;
-        signatureTarget[i * 3 + 2] = z + (random() - .5) * .34;
-      }
-      const target = cloud.geometry.getAttribute('aText') as THREE.BufferAttribute;
-      const was = cloud.geometry.getAttribute('aWas') as THREE.BufferAttribute;
-      (was.array as Float32Array).set(target.array as Float32Array);
-      (target.array as Float32Array).set(signatureTarget);
-      target.needsUpdate = was.needsUpdate = true;
-    };
 
 
     /* ================================================================ ACT V
@@ -809,7 +793,7 @@ ${shader.fragmentShader}`;
     const dof = new DofPass();
     dof.setDepth(scenePass.target.depthTexture);
     const glow = new GlowPass();
-    glow.strength = .4; glow.threshold = 1.02;
+    glow.strength = .50; glow.threshold = 0.98;
     const grade = new GradePass();
     /* The burn runs in display space, after tone mapping, because it is standing in
        for something that happened to the print rather than to the scene. */
@@ -843,7 +827,7 @@ ${shader.fragmentShader}`;
        transitions this is meant to smooth. `autoUpdate` is the right lever. It is not
        part of any signature; it just stops the pass. Each lamp then asks for one map
        on the frames it is actually lighting something. */
-    const casters = [lamp, stageLight, studioKey, candle.light];
+    const casters = [lamp, stageLight, studioKey];
     casters.forEach(light => { light.shadow.autoUpdate = false; light.shadow.needsUpdate = true; });
 
     /* ------------------------------------------------------------ the loop */
@@ -897,12 +881,12 @@ ${shader.fragmentShader}`;
       camera.updateProjectionMatrix();
       layoutCards();
       renderer.setSize(width, height);
-      composer.setSize(width, height);
       const pr = renderer.getPixelRatio();
+      composer.setPixelRatio(pr);
+      composer.setSize(width, height);
       scenePass.setSize(Math.round(width * pr), Math.round(height * pr));
       finish.material.uniforms.uAspect.value = width / height;
-      const pixel = renderer.getPixelRatio();
-      fxaa.material.uniforms.resolution.value.set(1 / (width * pixel), 1 / (height * pixel));
+      fxaa.material.uniforms.resolution.value.set(1 / (width * pr), 1 / (height * pr));
       backdropMaterial.uniforms.uAspect.value = width / height;
     };
     const observer = new ResizeObserver(resize); observer.observe(host); resize();
@@ -926,18 +910,18 @@ ${shader.fragmentShader}`;
        turn of the cast survive that, and a laptop's fans notice the difference - and
        no tier ever draws more than its pixel budget, whatever the panel's density.
        A 4K screen at 1.5x used to be eight million pixels through a six-pass chain. */
+    const maxDpr = Math.min(typeof window !== 'undefined' ? window.devicePixelRatio : 2, 2.0);
     const TIERS = [
-      { fps: 60, pr: 1.25, pixels: 2.6e6 },
-      { fps: 60, pr: 1, pixels: 2.1e6 },
-      { fps: 30, pr: 1, pixels: 2.1e6 },
-      { fps: 30, pr: .85, pixels: 1.5e6 },
-      { fps: 24, pr: .75, pixels: 1.1e6 },
+      { fps: 60, pr: maxDpr, pixels: 8.3e6 },
+      { fps: 60, pr: Math.min(maxDpr, 1.75), pixels: 6.0e6 },
+      { fps: 60, pr: Math.min(maxDpr, 1.5), pixels: 4.5e6 },
+      { fps: 45, pr: Math.min(maxDpr, 1.25), pixels: 3.2e6 },
+      { fps: 30, pr: 1.0, pixels: 2.1e6 },
     ];
-    const IDLE_FPS = 20;
+    const IDLE_FPS = 30;
     const coarse = matchMedia('(pointer: coarse)').matches;
     const lowMemory = ((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8) <= 4;
-    const fewCores = (navigator.hardwareConcurrency || 8) <= 4;
-    let tier = coarse || lowMemory || fewCores ? 3 : 1;
+    let tier = coarse || lowMemory ? 2 : 0;
     const downgrades = Array.from({ length: TIERS.length }, () => 0);
     let FRAME_STEP = 1 / TIERS[tier].fps;
     let backlog = 0;
@@ -950,7 +934,7 @@ ${shader.fragmentShader}`;
     });
     const pixelRatioFor = (t: number) => {
       const area = Math.max(1, host.clientWidth * host.clientHeight);
-      return Math.max(.5, Math.min(TIERS[t].pr, devicePixelRatio || 1, Math.sqrt(TIERS[t].pixels / area)));
+      return Math.max(1.0, Math.min(TIERS[t].pr, maxDpr, Math.sqrt(TIERS[t].pixels / area)));
     };
     const applyTier = (next: number) => {
       tier = Math.max(0, Math.min(TIERS.length - 1, next));
@@ -958,7 +942,8 @@ ${shader.fragmentShader}`;
       const pr = pixelRatioFor(tier);
       if (Math.abs(renderer.getPixelRatio() - pr) > .01) {
         renderer.setPixelRatio(pr);
-        pointMaterials.forEach(material => { material.uniforms.uPixel.value = Math.min(pr, 1.7); });
+        composer.setPixelRatio(pr);
+        pointMaterials.forEach(material => { material.uniforms.uPixel.value = Math.min(pr, 2.0); });
         resize();
       }
       windowStart = 0; windowFrames = 0; slowWindows = 0; fastWindows = 0;
@@ -1292,7 +1277,8 @@ ${shader.fragmentShader}`;
          been drawing since the first frame: the thing that resolves at the end of
          the act was being drawn by the person watching, the whole way, without ever
          being told. It rides the same crossfade the sentences use. */
-      const cloudVisible = windowOpacity(p, .735, .930, .012);
+      /* the manifesto cloud: spells out the three core phrases and then gracefully dissolves into stardust */
+      const cloudVisible = windowOpacity(p, .735, .825, .016);
       cloud.visible = cloudVisible > 0 && legacy > .004;
       cloud.material.uniforms.uOpacity.value = cloudVisible;
       cloud.material.uniforms.uTime.value = reduced ? 0 : elapsed;
@@ -1301,31 +1287,16 @@ ${shader.fragmentShader}`;
 
       const target = cloud.geometry.getAttribute('aText') as THREE.BufferAttribute;
       const was = cloud.geometry.getAttribute('aWas') as THREE.BufferAttribute;
-      if (converge <= .001) {
-        const pi = Math.min(2, Math.max(0, Math.floor(range(p, .748, .812) * 3)));
-        if (pi !== phrase) {
-          // hand the phrase we are leaving to aWas, then let uBlend carry the crossing
-          (was.array as Float32Array).set(target.array as Float32Array);
-          (target.array as Float32Array).set(texts[pi]);
-          was.needsUpdate = target.needsUpdate = true;
-          phraseBlend = phrase < 0 ? 1 : 0;
-          phrase = pi;
-        }
-      } else if (!signatureWritten) {
-        /* The trace has to be finished before it can be resampled, so this is written
-           once, on the frame the convergence starts. Rewriting it every frame would
-           let the shape keep changing under the reader while they watch it resolve,
-           which reads as noise rather than as a portrait. */
-        signatureWritten = true;
-        writeSignature(flock.signature());
-        phraseBlend = 0;
+      const pi = Math.min(2, Math.max(0, Math.floor(range(p, .748, .812) * 3)));
+      if (pi !== phrase) {
+        (was.array as Float32Array).set(target.array as Float32Array);
+        (target.array as Float32Array).set(texts[pi]);
+        was.needsUpdate = target.needsUpdate = true;
+        phraseBlend = phrase < 0 ? 1 : 0;
+        phrase = pi;
       }
       phraseBlend = Math.min(1, phraseBlend + dt / 1.15);
       cloud.material.uniforms.uBlend.value = phraseBlend;
-      /* The morph starts at the seam rather than a beat after it. The cloud is
-         sampled off the cast's own surface, so at morph 0 it is a statue made of
-         eleven thousand dots - which is what was arriving out of the burn: the same
-         image again, in a different medium. It has to already be leaving. */
       cloud.material.uniforms.uMorph.value = smooth(p, .7355, .7515);
       cloud.scale.setScalar(mobile ? .63 : 1);
       cloud.position.set(0, .1, 0);
@@ -1658,10 +1629,10 @@ ${shader.fragmentShader}`;
          The manifesto because its particles write no depth (see below), and the
          The sea keeps a little, because there the far water genuinely should fall
          off. */
-      dof.setFocus(camera.position.distanceTo(look),
-        reduced ? 0 : (mobile ? .014 : .024) * (1 - zoom * .38)
-          * (1 - lab) * (1 - seaOn * .45) * (1 - flyOn * .86)
-          * (1 - lostOn * .95));
+      const wantDist = camera.position.distanceTo(look);
+      const wantAperture = reduced ? 0 : (mobile ? .008 : .013) * (1 - zoom * .38) * (1 - lab) * (1 - seaOn * .45) * (1 - flyOn * .86) * (1 - lostOn * .95);
+      dof.enabled = wantAperture > 0.0005 && !zenApplied;
+      dof.setFocus(wantDist, wantAperture);
 
       /* The cut on a passing object.
 
@@ -1690,12 +1661,12 @@ ${shader.fragmentShader}`;
            bare angular coverage implies, because the sphere is conservative: the mesh
            is a Voronoi cell, not a ball, so its silhouette leaves corners of the
            frame open at any distance that respects the sphere honestly. */
-        const coverScale = 1 + grip * 2.4;
+        const coverScale = 1 + grip * 1.6;
         const coverRadius = widest * coverScale;
         // a slower sweep so the piece dwells over the lens through the whole cut
         const swing = (wipe - .5) * 2.5;
         coverPoint.copy(camera.position)
-          .addScaledVector(forward, coverRadius * 1.06 + Math.abs(wipe - .5) * 1.6)
+          .addScaledVector(forward, Math.max(camera.near + 0.38, coverRadius * 1.2) + Math.abs(wipe - .5) * 1.6)
           .addScaledVector(sideward, swing)
           .addScaledVector(camera.up, -.09);
         spinner.worldToLocal(coverPoint);
@@ -1867,8 +1838,8 @@ ${shader.fragmentShader}`;
 
       /* motion blur: the reprojection handles the camera, this is the scroll smear */
       const flick = THREE.MathUtils.clamp(driver.current.velocity, -3.6, 3.6);
-      scenePass.setGlobalVelocity(0, reduced ? 0 : flick * .0055);
-      scenePass.setShutter(reduced ? 0 : .72 + Math.min(Math.abs(flick) * .1, .5));
+      scenePass.setGlobalVelocity(0, reduced ? 0 : flick * .0028);
+      scenePass.setShutter(reduced ? 0 : .40 + Math.min(Math.abs(flick) * .08, .30));
 
       renderer.toneMappingExposure = 1.05 - deskLight * .26 - daylight * .18 + inStudio * .12;
       /* hand the cursor the vertices nearest to it, keeping each bracket on the
@@ -1942,17 +1913,17 @@ ${shader.fragmentShader}`;
          a frame which is black except for one-pixel warm lines, dragged the entire
          thing magenta. This state is not a photograph of a room. It is the arithmetic
          underneath, and it is shown unprocessed. */
-      (ao as unknown as { enabled: boolean }).enabled = !zenOn;
+      (ao as unknown as { enabled: boolean }).enabled = !zenOn && seaOn < 0.4 && lab < 0.4;
       (grade as unknown as { enabled: boolean }).enabled = !zenOn;
       if (zenOn) (scene.background as THREE.Color).setHex(0x07040f);
 
       /* And the lens opens all the way. There is nothing here for depth of field to
          say - a diagram has no focal plane - and a hairline is the one thing defocus
          destroys completely rather than softening. */
-      if (zenOn) dof.setFocus(camera.position.distanceTo(look), 0);
+      if (zenOn) { dof.setFocus(camera.position.distanceTo(look), 0); dof.enabled = false; }
 
       /* One map per lamp that is doing something, and none for the rest. */
-      for (const light of casters) light.shadow.needsUpdate = light.intensity > .01;
+      for (const light of casters) light.shadow.needsUpdate = light.intensity > .01 && (active || (frame & 63) === 0);
 
       finish.sync(width / height, elapsed);
       composer.render();
@@ -1986,19 +1957,23 @@ ${shader.fragmentShader}`;
       deskGroup, props, cardGroup, chess.group,
       sea.mesh, dome.mesh,
       lost.group, flight.group, candle.group, cloud,
-    ];
+      whole, seams, studio, pedestal.group, cyc.mesh, wall.mesh,
+      ...shards.map(s => s.mesh),
+    ].filter(Boolean) as THREE.Object3D[];
     const warmWas = warmUp.map(o => o.visible);
     warmUp.forEach(o => { o.visible = true; });
     burn.enabled = true;
     burn.material.uniforms.uAmount.value = .5;
 
-    void renderer.compileAsync(scene, camera)
-      .catch(() => { /* a driver that refuses to pre-compile still runs, just colder */ })
-      .finally(() => {
-        warmUp.forEach((o, i) => { o.visible = warmWas[i]; });
-        burn.enabled = false;
-        burn.material.uniforms.uAmount.value = 0;
-      });
+    // Warm-up full frame through composer and shadow maps so all shaders precompile
+    try {
+      for (const light of casters) light.shadow.needsUpdate = true;
+      composer.render();
+    } catch { }
+
+    warmUp.forEach((o, i) => { o.visible = warmWas[i]; });
+    burn.enabled = false;
+    burn.material.uniforms.uAmount.value = 0;
 
     frame = requestAnimationFrame(draw);
     ready.current();
@@ -2040,6 +2015,11 @@ ${shader.fragmentShader}`;
       environment.dispose();
       scenePass.dispose(); grade.dispose(); finish.dispose();
       flight.dispose();
+      lost.dispose();
+      candle.dispose();
+      ripple.dispose();
+      casters.forEach(light => light.shadow.map?.dispose());
+      buffer.dispose();
       zenWire.dispose();
       glow.dispose(); burn.dispose(); output.dispose(); fxaa.dispose(); composer.dispose();
       renderer.dispose(); renderer.domElement.remove();
@@ -2056,15 +2036,19 @@ ${shader.fragmentShader}`;
            together. The cards and the point-cloud lines are rasterised from those
            fonts at build time, so drawing them before the faces land prints them in
            the fallback and they never recover. */
-        const [response] = await Promise.all([
+        const [response, noiseRes, shardsRes] = await Promise.all([
           fetch(SCULPTURE.url),
+          fetch('/plaster-noise.bin').catch(() => null),
+          fetch('/shards-baked.bin').catch(() => null),
           loadBaked(),
-          Promise.all(['600 64px Geist', '400 30px Geist', '600 26px "Geist Mono"']
+          Promise.all(['600 88px Geist', '600 64px Geist', '400 30px Geist', '600 26px "Geist Mono"']
             .map(face => document.fonts?.load(face))).catch(() => { }),
         ]);
         if (!response.ok) throw new Error(`Sculpture request failed: ${response.status}`);
         const source = await response.arrayBuffer();
-        if (!cancelled) teardown = build(source);
+        const noiseData = noiseRes && 'ok' in noiseRes && noiseRes.ok ? new Uint8Array(await (noiseRes as Response).arrayBuffer()) : null;
+        const shardsData = shardsRes && 'ok' in shardsRes && shardsRes.ok ? await (shardsRes as Response).arrayBuffer() : null;
+        if (!cancelled) teardown = build(source, noiseData, shardsData);
       } catch (error) {
         /* Swallowing this is what made the scene impossible to debug from the page:
            the only symptom was a stalled preloader and a sentence about drivers. */

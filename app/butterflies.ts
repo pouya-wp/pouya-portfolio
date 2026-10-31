@@ -522,9 +522,7 @@ export function createCandle() {
      is the whole look and is free. */
   const light = new THREE.PointLight(0xffb066, 6.5, 9, 2.1);
   light.position.y = .78;
-  light.castShadow = true;
-  light.shadow.mapSize.set(512, 512);
-  light.shadow.bias = -.004;
+  light.castShadow = false;
   group.add(light);
 
   /** where the heat actually is, in world space */
@@ -542,6 +540,15 @@ export function createCandle() {
       const flicker = .82 + .18 * Math.sin(elapsed * 17) * Math.sin(elapsed * 6.3);
       light.intensity = opacity * (6.5 + flare * 22) * flicker;
       (wax.material as THREE.MeshStandardMaterial).emissiveIntensity = opacity * (.18 + flare * .5);
+    },
+    dispose() {
+      wax.geometry.dispose();
+      (wax.material as THREE.Material).dispose();
+      wick.geometry.dispose();
+      (wick.material as THREE.Material).dispose();
+      flame.geometry.dispose();
+      flameMaterial.dispose();
+      light.shadow.map?.dispose();
     },
   };
 }
