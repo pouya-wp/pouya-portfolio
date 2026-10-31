@@ -128,7 +128,7 @@ export function AssistantWidget() {
 
   return (
     <>
-      {/* Precision Obsidian & Gilded Trigger Button */}
+      {/* Precision Obsidian & Gilded Trigger Button (English Monospace Style) */}
       <button
         id="ai-assistant-toggle"
         className={`oracle-trigger ${isOpen ? 'is-active' : ''}`}
@@ -146,7 +146,13 @@ export function AssistantWidget() {
 
       {/* Luxury Architectural Monolith Modal */}
       {isOpen && (
-        <aside className="oracle-monolith" aria-label="Kintsugi Oracle Terminal">
+        <aside
+          className="oracle-monolith"
+          aria-label="Kintsugi Oracle Terminal"
+          data-native-scroll="true"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {/* Top Architectural Rail */}
           <div className="oracle-rail">
             <div className="oracle-meta">
@@ -184,7 +190,12 @@ export function AssistantWidget() {
           </div>
 
           {/* Ledger / Transcript Stream */}
-          <div className="oracle-ledger">
+          <div
+            className="oracle-ledger"
+            data-native-scroll="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {messages.map(m => (
               <div key={m.id} className={`oracle-entry ${m.sender}`}>
                 <div className="oracle-entry-header">

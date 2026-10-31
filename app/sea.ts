@@ -80,6 +80,8 @@ export function dreamSky(): THREE.Texture {
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
   /* This one line is the difference between a sky and no sky.
@@ -518,7 +520,7 @@ export function createSkyDome(sky: THREE.Texture) {
        stop having shape and the sea has nothing worth reflecting. */
     toneMapped: true,
   });
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(78, 40, 24), material);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(140, 48, 32), material);
   mesh.frustumCulled = false;
   // behind everything, and it must never occlude the water it is being reflected in
   mesh.renderOrder = -100;

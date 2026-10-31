@@ -152,7 +152,7 @@ export default function Sculpture({ driver, onReady, paused = false, focus = -1,
     const GROUND_BG = GROUND.clone();
     scene.background = GROUND_BG;
     scene.fog = new THREE.FogExp2(0x100904, .019);
-    const camera = new THREE.PerspectiveCamera(34, 1, .1, 90);
+    const camera = new THREE.PerspectiveCamera(34, 1, .1, 280);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
@@ -1155,10 +1155,10 @@ ${shader.fragmentShader}`;
       /* The cast is introduced whole. Showing the repair before the break would
          hand the reader the end of the act in its first frame - and the page above it
          says WHOLE, which a set of gold cracks flatly contradicts. */
-      seams.visible = intact && (p < .135 || signals.gold > .004);
-      seamMaterial.opacity = Math.min(1, signals.gold * 1.35);
-      seamMaterial.transparent = signals.gold < .995;
-      seamHeatUniform.value = seamHeat * Math.min(1, signals.gold * 1.6);
+      seams.visible = intact;
+      seamMaterial.opacity = 1.0;
+      seamMaterial.transparent = false;
+      seamHeatUniform.value = seamHeat;
       // cold metal is lit, not lit up; only the ignition puts light into it
       seamMaterial.emissiveIntensity = seamHeat * 7;
       seamMaterial.color.setHex(0xf7c46e).lerp(SEAM_HOT, seamHeat);
@@ -1320,7 +1320,7 @@ ${shader.fragmentShader}`;
           Math.sin(elapsed * .17) * .04);
         sculpture.scale.setScalar(mobile ? .82 : 1);
         whole.visible = true;
-        seams.visible = signals.gold > .004;
+        seams.visible = true;
         shards.forEach(({ mesh }) => { mesh.visible = false; });
       }
 
@@ -1422,6 +1422,9 @@ ${shader.fragmentShader}`;
       const skyOn = seaOn;
       dome.mesh.visible = skyOn > .002;
       dome.material.opacity = skyOn;
+      if (skyOn > .002) {
+        dome.mesh.position.copy(camera.position);
+      }
       /* and the same sky is the only thing lighting the cast through the middle */
       if (skyEnv && newActs > .004) {
         if (scene.environment !== skyEnv) scene.environment = skyEnv;

@@ -37,7 +37,7 @@ export const signals: Signals = {
   grip: 1,
   verdict: null,
   alive: 0,
-  gold: 0,
+  gold: 1,
   px: .5,
   py: .5,
   strictness: 0,

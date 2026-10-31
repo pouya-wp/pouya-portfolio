@@ -35,7 +35,7 @@ export function attachSmoothScroll(): () => void {
 
   const wheel = (e: WheelEvent) => {
     if (e.ctrlKey) return;                       // pinch zoom
-    if ((e.target as Element | null)?.closest?.('[data-native-scroll]')) return;
+    if ((e.target as Element | null)?.closest?.('[data-native-scroll], .oracle-monolith, .oracle-ledger')) return;
     e.preventDefault();
     // deltaMode 1 is lines, 2 is pages
     const scale = e.deltaMode === 1 ? 20 : e.deltaMode === 2 ? innerHeight : 1.15;

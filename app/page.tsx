@@ -608,6 +608,7 @@ export default function Home() {
      the sculpture reports that its first frame is ready. */
   const countRef = useRef<HTMLSpanElement>(null);
   const wordRef = useRef<HTMLElement>(null);
+  const ruleRef = useRef<HTMLElement>(null);
   const shellRef = useRef<HTMLOutputElement>(null);
   const orbitRef = useRef<SVGSVGElement>(null);
   const count = useRef(0);
@@ -692,33 +693,87 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    let raf = 0, last = performance.now(), shown = -1;
-    const step = (now: number) => {
-      const dt = Math.min((now - last) / 1000, .25); last = now;
-      /* It climbs to 92 on its own and waits there. A bar that sprints to 100 and then
-         sits is lying about what is happening; this one is honest that the last of it
-         is the scene, not the assets. */
-      const ceiling = ready ? 100 : 92;
-      count.current = Math.min(ceiling, count.current + dt * Math.max(14, (ceiling - count.current) * .75));
+    let raf = 0;
+    let last = performance.now();
+    let shown = -1;
+    let completed = false;
+    const startTime = performance.now();
 
-      const whole = Math.floor(count.current);
+    // Narrative stages that educate, intrigue and retain the visitor
+    const getStageText = (pct: number, isSceneReady: boolean) => {
+      if (pct >= 99.5) return 'SYNCHRONIZED // ENTERING ARCHIVE';
+      if (isSceneReady) return 'SCENE READY // FINALIZING PASSES';
+      if (pct > 86) return 'WARMING GLSL ILLUMINATION';
+      if (pct > 66) return 'INFUSING KINTSUGI GOLD SEAMS';
+      if (pct > 44) return 'SOLVING VORONOI FRACTURE';
+      if (pct > 22) return 'PRE-WARMING SHADER PIPELINE';
+      return 'INITIALIZING ARCHITECTURAL SPACE';
+    };
+
+    const step = (now: number) => {
+      if (completed) return;
+      const elapsed = (now - startTime) / 1000;
+      const dt = Math.min(Math.max((now - last) / 1000, 0.001), 0.1);
+      last = now;
+
+      // Safety guarantee: If 3D scene takes more than 5.5s on slow mobile networks, auto-proceed
+      const effectiveReady = ready || elapsed > 5.5;
+
+      // Pacing designed for maximum user engagement and zero stalls:
+      let targetSpeed = 0;
+      if (effectiveReady) {
+        // Accelerate swiftly to 100 once scene is initialized
+        targetSpeed = Math.max(34, (100.5 - count.current) * 5.2);
+      } else {
+        if (count.current < 38) {
+          // Swift initial ramp to confirm immediate response
+          targetSpeed = 44;
+        } else if (count.current < 72) {
+          // Steady progression during asset parsing
+          targetSpeed = 22;
+        } else if (count.current < 88) {
+          // Measured cadence during shader compilation
+          targetSpeed = 12;
+        } else if (count.current < 98) {
+          // Asymptotic micro-crawling: NEVER stops dead, keeps ticking frame-by-frame
+          targetSpeed = Math.max(1.8, (98.5 - count.current) * 0.42);
+        } else {
+          // Continuous micro-ticks until ready
+          targetSpeed = 0.35;
+        }
+      }
+
+      // Strictly monotonic increase: never goes down, never negative, never exceeds 100
+      count.current = Math.min(100, Math.max(count.current, count.current + dt * targetSpeed));
+
+      const whole = Math.max(0, Math.min(100, Math.floor(count.current)));
       if (whole !== shown) {
         shown = whole;
         if (countRef.current) countRef.current.textContent = String(whole);
+        if (ruleRef.current) ruleRef.current.style.setProperty('--progress', `${whole}%`);
       }
-      if (count.current >= 99.9) {
+
+      const statusText = getStageText(count.current, effectiveReady);
+      if (wordRef.current && wordRef.current.textContent !== statusText) {
+        wordRef.current.textContent = statusText;
+      }
+
+      if (count.current >= 99.9 && !completed) {
+        completed = true;
         if (countRef.current) countRef.current.textContent = '100';
-        if (wordRef.current) wordRef.current.textContent = 'ENTERING';
-        // one frame of the finished count, or the reader never sees it land
-        requestAnimationFrame(() => dismissLoader());
+        if (ruleRef.current) ruleRef.current.style.setProperty('--progress', '100%');
+        if (wordRef.current) wordRef.current.textContent = 'SYNCHRONIZED // ENTERING ARCHIVE';
+        
+        // Satisfying cinematic moment at 100% before transition
+        setTimeout(() => {
+          dismissLoader();
+        }, 140);
         return;
       }
-      if (wordRef.current) {
-        const word = ready ? 'READY' : count.current > 62 ? 'CASTING' : count.current > 28 ? 'GYPSUM' : 'SETTING OUT';
-        if (wordRef.current.textContent !== word) wordRef.current.textContent = word;
-      }
+
       raf = requestAnimationFrame(step);
     };
+
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [dismissLoader, ready]);
@@ -1303,7 +1358,7 @@ export default function Home() {
               <span className="pre-count" ref={countRef}>0</span>
               <span className="pre-unit">%</span>
             </div>
-            <i className="pre-center-rule" />
+            <i className="pre-center-rule" ref={ruleRef} />
             <b className="pre-status" ref={wordRef}>SETTING OUT</b>
           </div>
 

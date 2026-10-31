@@ -17,8 +17,11 @@ const FULL = 96;
 export type Gold = ReturnType<typeof createGold>;
 
 export function createGold() {
-  let seconds = 0;
-  try { seconds = Math.max(0, Math.min(FULL, Number(localStorage.getItem(KEY)) || 0)); } catch { /* private mode: this visit starts cold */ }
+  let seconds = FULL;
+  try {
+    const stored = localStorage.getItem(KEY);
+    seconds = stored !== null ? Math.max(0, Math.min(FULL, Number(stored) || FULL)) : FULL;
+  } catch { seconds = FULL; }
 
   let flush = 0;
 
