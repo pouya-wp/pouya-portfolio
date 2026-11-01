@@ -68,26 +68,24 @@ function studioEnvironment(): THREE.Texture {
   blob(440, 180, 220, 140, '#ffdfa4', .70);    // side fill
   blob(520, 470, 470, 150, '#e07820', .25);    // warm floor bounce
 
-  // Studio softboxes: crisp rectangular streaks that give gold and stone sharp specular definition
+  // Studio softbox: this is the streak that reads as polish on the stone
   const box = ctx.createLinearGradient(120, 40, 120, 250);
   box.addColorStop(0, 'rgba(255,255,255,0)');
-  box.addColorStop(.22, 'rgba(255,250,238,1)');
-  box.addColorStop(.78, 'rgba(255,242,216,1)');
+  box.addColorStop(.22, 'rgba(255,248,232,.95)');
+  box.addColorStop(.78, 'rgba(255,240,214,.95)');
   box.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.save();
-  ctx.filter = 'blur(8px)';
+  ctx.filter = 'blur(10px)';
   ctx.fillStyle = box;
   ctx.fillRect(86, 40, 74, 210);
-  // Rear quadrant softbox so back of sculpture has brilliant gold specular glints
-  ctx.fillRect(640, 40, 74, 210);
-  ctx.fillStyle = 'rgba(255,238,206,.75)';
-  ctx.fillRect(820, 60, 54, 180);
+  ctx.fillStyle = 'rgba(255,236,200,.35)';
+  ctx.fillRect(680, 50, 60, 180);
   ctx.restore();
 
   // horizon strip
   const horizon = ctx.createLinearGradient(0, 246, 0, 268);
   horizon.addColorStop(0, 'rgba(255,237,215,0)');
-  horizon.addColorStop(.5, 'rgba(255,224,170,.45)');
+  horizon.addColorStop(.5, 'rgba(255,214,158,.16)');
   horizon.addColorStop(1, 'rgba(255,237,215,0)');
   ctx.fillStyle = horizon;
   ctx.fillRect(0, 246, 1024, 22);
@@ -426,7 +424,6 @@ ${shader.fragmentShader}`;
         float held = uDrain < 0. ? 1. : smoothstep(uDrain + .55, uDrain - .55, vDrainY);
         totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
-        float shoulder = 1.0 - abs(vAcross);
         float viewDot = clamp(dot(normal, normalize(-vViewPosition)), 0.0, 1.0);
         float rimFresnel = pow(1.0 - viewDot, 3.0);
 
@@ -1423,9 +1420,9 @@ ${shader.fragmentShader}`;
            powder settles into them. If the cast kept its seams the whole way through,
            the insect would simply be a decoration that happened to be the same
            colour. */
-        seams.visible = flight.seamsAway < .985;
-        seamMaterial.transparent = true;
-        seamMaterial.opacity = 1 - flight.seamsAway;
+        seams.visible = true;
+        seamMaterial.transparent = false;
+        seamMaterial.opacity = 1.0;
 
         candle.tip.getWorldPosition(flyLight);
         // the gold leaves from the seams, so that is where they start
@@ -1760,6 +1757,7 @@ ${shader.fragmentShader}`;
       const theatre = (1 - inStudio * .86) * legacy;
       key.intensity = intro * (3.4 - deskLight * 1.1 - stand * 2.2) * theatre;
       rim.intensity = intro * (2.6 - deskLight * .6 + stand * 1.2) * theatre;
+      goldBackKicker.intensity = intro * 2.8 * theatre;
       /* Some flat ambient stays: it is standing in for the bounce a real white room
          would give back, which there is no global illumination here to provide. */
       ambient.intensity = (.35 + deskLight * .5 - stand * .3) * theatre + inStudio * .15;
