@@ -141,12 +141,16 @@ html.has-gl-cursor:not(.is-portal) .sitemap-modal button,
 html.has-gl-cursor:not(.is-portal) .sitemap-modal [role="button"],
 html.has-gl-cursor:not(.is-portal) .sitemap-modal a,
 html.has-gl-cursor:not(.is-portal) .cv-dialog button,
-html.has-gl-cursor:not(.is-portal) .cv-dialog a {
+html.has-gl-cursor:not(.is-portal) .cv-dialog a,
+html.has-gl-cursor:not(.is-portal) .commission-dialog button,
+html.has-gl-cursor:not(.is-portal) .commission-dialog a {
   cursor: pointer !important;
 }
 
 html.has-gl-cursor:not(.is-portal) .cv-dialog,
-html.has-gl-cursor:not(.is-portal) .cv-dialog * {
+html.has-gl-cursor:not(.is-portal) .cv-dialog *,
+html.has-gl-cursor:not(.is-portal) .commission-dialog,
+html.has-gl-cursor:not(.is-portal) .commission-dialog * {
   cursor: default !important;
   user-select: text !important;
 }
@@ -2900,81 +2904,139 @@ html.is-loading,html.is-loading body{overflow:hidden}
   .hero-scroll-cue { display: none; }
 }
 
-.inquiry-chamber {
+/* ============================================================================
+   COMMISSION MODAL
+   ========================================================================= */
+
+.commission-dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: min(640px, calc(100vw - 32px));
   width: 100%;
-  box-sizing: border-box;
-  background: rgba(18, 16, 14, 0.62);
-  border: 1px solid rgba(212, 160, 23, 0.22);
-  border-radius: 2px;
-  padding: clamp(16px, 2.4vw, 24px);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  max-height: calc(100vh - 40px);
+  border-radius: 12px;
+  color: var(--bone);
+  outline: none;
+  z-index: 75;
+  overflow: hidden;
+  box-shadow: 0 32px 96px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(223, 173, 72, 0.35);
+  position: fixed;
+  inset: 0;
+  margin: auto;
+}
+
+.commission-dialog::backdrop {
+  background: rgba(6, 3, 1, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.commission-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  transition: border-color .3s ease;
-  margin-top: 4px;
+  background: #0d0704;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
-.inquiry-chamber:focus-within {
-  border-color: rgba(212, 160, 23, 0.55);
-}
-
-.inquiry-header {
+.commission-bar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.inquiry-badge {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: calc(11 * var(--unit));
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--gold-hot);
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #170f07;
+  border-bottom: 1px solid rgba(223, 173, 72, 0.25);
+  flex-shrink: 0;
 }
 
-.inquiry-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold-hot);
-  box-shadow: 0 0 8px var(--gold-hot);
-}
-
-.inquiry-sub {
-  margin: 0;
-  font-size: var(--sub2);
-  color: var(--bone-62);
-  line-height: 1.45;
-}
-
-.inquiry-form {
+.commission-bar-meta {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.inquiry-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  align-items: center;
   gap: 12px;
 }
 
-@media (max-width: 768px) {
-  .inquiry-inputs { grid-template-columns: 1fr; }
+.commission-glyph {
+  color: var(--gold-hot);
+  font-size: 1.1rem;
 }
 
-.inquiry-field {
+.commission-badge {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: calc(10 * var(--unit));
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--gold-hot);
+  margin-bottom: 2px;
+}
+
+.commission-title {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+  font-weight: 500;
+  color: var(--bone);
+  letter-spacing: .02em;
+}
+
+.commission-close {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--bone);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: all .2s ease;
+}
+
+.commission-close:hover {
+  background: rgba(223, 173, 72, 0.15);
+  border-color: var(--gold-hot);
+  color: #fff;
+}
+
+.commission-body {
+  padding: clamp(20px, 3vw, 32px);
+  overflow-y: auto;
+  max-height: calc(85vh - 70px);
+}
+
+.commission-intro {
+  margin: 0 0 20px;
+  font-size: var(--sub2);
+  line-height: 1.55;
+  color: var(--bone-70);
+  font-family: var(--font-text);
+}
+
+.commission-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.commission-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .commission-inputs { grid-template-columns: 1fr; }
+}
+
+.commission-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.inquiry-lbl {
+.commission-lbl {
   font-family: var(--font-mono);
   font-size: calc(10 * var(--unit));
   letter-spacing: .12em;
@@ -2982,13 +3044,13 @@ html.is-loading,html.is-loading body{overflow:hidden}
   color: var(--bone-62);
 }
 
-.inquiry-input, .inquiry-textarea {
+.commission-input, .commission-textarea {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  padding: 10px 14px;
   font-family: var(--font-mono);
   font-size: calc(13 * var(--unit));
   color: var(--bone);
@@ -2996,65 +3058,74 @@ html.is-loading,html.is-loading body{overflow:hidden}
   transition: border-color .2s ease, background .2s ease;
 }
 
-.inquiry-input:focus, .inquiry-textarea:focus {
+.commission-input:focus, .commission-textarea:focus {
   border-color: var(--gold-hot);
-  background: rgba(212, 160, 23, 0.05);
+  background: rgba(223, 173, 72, 0.05);
 }
 
-.inquiry-textarea {
+.commission-textarea {
   resize: vertical;
-  min-height: 54px;
+  min-height: 85px;
+  line-height: 1.5;
 }
 
-.inquiry-bottom {
+.commission-footer {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.inquiry-submit {
+.commission-submit {
   cursor: pointer;
   font-size: calc(12 * var(--unit));
   letter-spacing: .1em;
 }
 
-.inquiry-err {
+.commission-err {
   font-family: var(--font-mono);
   font-size: calc(11 * var(--unit));
   color: #ff6b6b;
 }
 
-.inquiry-receipt {
+.commission-success {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  background: rgba(212, 160, 23, 0.08);
-  border: 1px dashed var(--gold-hot);
-  border-radius: 2px;
+  text-align: center;
+  padding: 24px 12px;
+  gap: 14px;
 }
 
-.inquiry-receipt-icon {
+.commission-success-glyph {
+  font-size: 2.2rem;
   color: var(--gold-hot);
-  font-size: 1.4rem;
 }
 
-.inquiry-receipt-text strong {
-  display: block;
+.commission-success-title {
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: calc(12 * var(--unit));
-  letter-spacing: .12em;
+  font-size: calc(13 * var(--unit));
+  letter-spacing: .14em;
   color: var(--gold-hot);
-  margin-bottom: 3px;
 }
 
-.inquiry-receipt-text p {
+.commission-success-desc {
   margin: 0;
   font-size: var(--sub2);
+  line-height: 1.6;
   color: var(--bone-70);
+  max-width: 440px;
 }
+
+.commission-success-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 
 
