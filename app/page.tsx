@@ -881,6 +881,24 @@ export default function Home() {
             <a className="masthead-link" href="https://github.com/pouya-wp" target="_blank" rel="noopener noreferrer" data-cursor="GITHUB">
               GITHUB
             </a>
+
+            {/* Architectural Sound Control */}
+            <button
+              id="sound-toggle"
+              className={`masthead-sound ${sound ? 'is-on' : ''}`}
+              onClick={toggleSound}
+              data-cursor={sound ? 'MUTE' : 'LISTEN'}
+              aria-pressed={sound}
+              aria-label={sound ? 'Mute the score' : 'Play the score'}
+            >
+              <span className="sound-visualizer" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map(i => (
+                  <i key={i} style={{ '--i': i } as React.CSSProperties} />
+                ))}
+              </span>
+              <span className="sound-label">{sound ? 'SOUND: ON' : 'SOUND: OFF'}</span>
+            </button>
+
             <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT">
               GET IN TOUCH &rarr;
             </button>
@@ -1004,24 +1022,6 @@ export default function Home() {
         {showPerf && <pre id="perf" ref={perfRef} aria-hidden="true" />}
         <div id="grain" aria-hidden="true" />
         <AssistantWidget />
-
-        {/* The sound control is a seam, not a button.
-
-            A pill with the word "Sound off" in it is a piece of software chrome sitting
-            on top of a film. This is nine hairlines in a row: flat and level while
-            there is nothing to hear - a drawn line, silence as a straight edge - and
-            alive when there is. Nothing is written on it. What it does is legible from
-            what it is doing, and the only text is the one a screen reader gets. */}
-        <button id="sound-toggle" className={`${chrome} ${sound ? 'is-on' : ''}`}
-          data-cursor={sound ? 'MUTE' : 'LISTEN'} aria-pressed={sound}
-          aria-label={sound ? 'Mute the score' : 'Play the score'}
-          onClick={toggleSound}>
-          <span className="seam" aria-hidden="true">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <i key={i} style={{ '--i': i } as React.CSSProperties} />
-            ))}
-          </span>
-        </button>
 
         {/* ============================================================ content */}
         <div id="site-content">
