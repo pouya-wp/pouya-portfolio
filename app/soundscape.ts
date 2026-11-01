@@ -40,18 +40,18 @@ const FILES: Record<Asset, string> = {
 };
 
 const LEVEL: Record<Effect, number> = {
-  fracture: .72,
-  impact: .82,
-  rise: .48,
-  portal: .42,
-  chime: .48,
-  cut: .38,
-  tick: .16,
-  click: .25,
-  vacuum: .46,
-  whoosh: .38,
-  assemble: .56,
-  place: .68,
+  fracture: .38,
+  impact: .40,
+  rise: .24,
+  portal: .22,
+  chime: .25,
+  cut: .20,
+  tick: .10,
+  click: .16,
+  vacuum: .24,
+  whoosh: .22,
+  assemble: .28,
+  place: .34,
 };
 
 const PAN: Partial<Record<Effect, number>> = {
@@ -104,7 +104,7 @@ export class Soundscape {
     this.duck = this.ctx.createGain();
     this.duck.gain.value = 1;
     this.fxGain = this.ctx.createGain();
-    this.fxGain.gain.value = .9;
+    this.fxGain.gain.value = .44;
     this.musicGain.connect(this.musicFilter);
     this.musicFilter.connect(this.duck);
     this.duck.connect(limiter);
@@ -234,7 +234,7 @@ export class Soundscape {
     const t = this.ctx.currentTime;
     this.musicGain.gain.setTargetAtTime(vacuum ? .18 : workbench ? .24 : finale ? .34 : .28, t, .75);
     this.musicFilter.frequency.setTargetAtTime(vacuum ? 720 : 18000, t, vacuum ? .08 : .8);
-    this.fxGain.gain.setTargetAtTime(vacuum ? 1 : workbench ? .82 : .9, t, .35);
+    this.fxGain.gain.setTargetAtTime(vacuum ? .48 : workbench ? .40 : .44, t, .35);
   }
 
   effect(kind: Effect): void {
@@ -266,40 +266,40 @@ export class Soundscape {
     if (kind === 'fracture') {
       // A recorded detonation carries the transient; a pitched-down duplicate and
       // real rock break provide the body instead of a game-like synthetic pop.
-      play('fracture', .82, 1, -.04);
-      play('fracture', .30, .57, .08, .018);
-      play('stoneBreak', .52, .80, -.18, .025);
-      play('vacuum', .42, .76, 0, .15);
+      play('fracture', .42, 1, -.04);
+      play('fracture', .18, .57, .08, .018);
+      play('stoneBreak', .28, .80, -.18, .025);
+      play('vacuum', .22, .76, 0, .15);
 
       const t = this.ctx.currentTime;
       this.duck.gain.cancelScheduledValues(t);
       this.duck.gain.setValueAtTime(this.duck.gain.value, t);
-      this.duck.gain.exponentialRampToValueAtTime(.075, t + .085);
-      this.duck.gain.setValueAtTime(.075, t + .46);
+      this.duck.gain.exponentialRampToValueAtTime(.12, t + .085);
+      this.duck.gain.setValueAtTime(.12, t + .46);
       this.duck.gain.exponentialRampToValueAtTime(1, t + 3.1);
       return;
     }
 
     if (kind === 'impact') {
       // Three independent stone recordings sell the mass of twenty-six fragments.
-      play('impact', .72, .76, -.28);
-      play('impactB', .57, .92, .22, .075);
-      play('impactC', .48, .84, -.05, .17);
+      play('impact', .38, .76, -.28);
+      play('impactB', .28, .92, .22, .075);
+      play('impactC', .24, .84, -.05, .17);
       return;
     }
 
     if (kind === 'assemble') {
       // Air draws inward first; stone follows it into the repaired silhouette.
-      play('assemble', .48, .72, .05);
-      play('stoneBreak', .24, .64, -.12, .16);
-      play('impactB', .18, .70, .18, .34);
+      play('assemble', .26, .72, .05);
+      play('stoneBreak', .14, .64, -.12, .16);
+      play('impactB', .10, .70, .18, .34);
       return;
     }
 
     if (kind === 'place') {
       // A restrained stone-on-board contact with enough low body to end the arc.
-      play('place', .68, .62, 0);
-      play('impactB', .24, .54, -.08, .035);
+      play('place', .34, .62, 0);
+      play('impactB', .14, .54, -.08, .035);
       return;
     }
 

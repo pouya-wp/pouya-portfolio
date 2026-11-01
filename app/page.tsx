@@ -364,12 +364,13 @@ export default function Home() {
     let wasLight = false, currentAct = -1;
     let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastLabel = '', lastPerf = 0;
     const cues: [number, Effect][] = [
-      [.148, 'fracture'],
-      [.232, 'whoosh'],
-      [.402, 'whoosh'],
-      [.528, 'assemble'],
-      [.786, 'rise'],
-      [.902, 'place'],
+      [.082, 'fracture'],
+      [.168, 'whoosh'],
+      [.198, 'impact'],
+      [.235, 'assemble'],
+      [.395, 'whoosh'],
+      [.812, 'rise'],
+      [.965, 'place'],
     ];
 
     const frame = (now: number) => {
@@ -848,7 +849,10 @@ export default function Home() {
             <button className="masthead-brand" onClick={() => go(0)} data-cursor="HOME" aria-label="Return to Beginning">
               <span className="masthead-mark">✦</span>
               <span className="masthead-title">
-                <span className="masthead-name">POUYA SADEGHPOUR</span>
+                <span className="masthead-name">
+                  <span className="brand-name-full">POUYA SADEGHPOUR</span>
+                  <span className="brand-name-short">POUYA S.</span>
+                </span>
                 <span className="masthead-sub">CREATIVE TECHNOLOGIST &amp; ARCHITECT</span>
               </span>
             </button>
@@ -866,13 +870,14 @@ export default function Home() {
           <nav className="masthead-nav" aria-label="Quick Navigation">
             <button className="masthead-link is-map-btn" onClick={() => setActsOpen(o => !o)} data-cursor="MAP" aria-label="Site Map">
               <span className="masthead-icon">☵</span>
-              <span>INDEX</span>
+              <span className="map-btn-text">INDEX</span>
             </button>
             <button className="masthead-link" onClick={() => go(ACT_LAYOUT[3].at + 0.02)} data-cursor="WORK">
               WORK
             </button>
-            <button className="masthead-link is-accent" onClick={() => setResumeOpen(true)} data-cursor="RESUME">
-              RESUME (PDF)
+            <button className="masthead-link is-accent" onClick={() => setResumeOpen(true)} data-cursor="RESUME" aria-label="Resume">
+              <span>CV</span>
+              <span className="resume-suffix"> (PDF)</span>
             </button>
             <a className="masthead-link" href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" data-cursor="LINKEDIN">
               LINKEDIN
@@ -898,8 +903,9 @@ export default function Home() {
               <span className="sound-label">{sound ? 'SOUND: ON' : 'SOUND: OFF'}</span>
             </button>
 
-            <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT">
-              GET IN TOUCH &rarr;
+            <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT" aria-label="Contact">
+              <span className="cta-full">GET IN TOUCH &rarr;</span>
+              <span className="cta-short">TALK &rarr;</span>
             </button>
           </nav>
         </header>

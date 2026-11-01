@@ -2120,6 +2120,26 @@ html.is-loading,html.is-loading body{overflow:hidden}
   box-shadow: 0 0 14px rgba(224, 162, 68, 0.25);
 }
 
+.brand-name-short {
+  display: none;
+}
+
+.brand-name-full {
+  display: inline;
+}
+
+.resume-suffix {
+  display: inline;
+}
+
+.cta-short {
+  display: none;
+}
+
+.cta-full {
+  display: inline;
+}
+
 @media (max-width: 960px) {
   .masthead-act-pill,
   .masthead-sub,
@@ -2129,26 +2149,145 @@ html.is-loading,html.is-loading body{overflow:hidden}
 }
 
 @media (max-width: 768px) {
+  #masthead {
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
+    gap: 8px;
+  }
+
+  .masthead-brand {
+    height: 30px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .masthead-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    height: 34px;
+    box-sizing: border-box;
+  }
+
+  .masthead-link,
+  #sound-toggle.masthead-sound,
+  .masthead-cta {
+    height: 28px;
+    line-height: 28px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    border-radius: 2px;
+    margin: 0;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .masthead-link {
+    padding: 0 8px;
+  }
+
+  .masthead-link.is-accent {
+    padding: 0 9px;
+    font-weight: 600;
+  }
+
+  .resume-suffix {
+    display: none;
+  }
+
+  #sound-toggle.masthead-sound {
+    width: 28px;
+    padding: 0;
+    flex-shrink: 0;
+    justify-content: center;
+  }
+
   .sound-label {
     display: none;
   }
+
+  .sound-visualizer {
+    justify-content: center;
+  }
+
+  .masthead-cta {
+    padding: 0 10px;
+    font-size: 8.5px;
+    font-weight: 600;
+  }
+
+  .cta-full {
+    display: none;
+  }
+
+  .cta-short {
+    display: inline;
+  }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 480px) {
+  #masthead {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(6px, env(safe-area-inset-left));
+    right: max(6px, env(safe-area-inset-right));
+    gap: 4px;
+  }
+
+  .brand-name-full {
+    display: none;
+  }
+
+  .brand-name-short {
+    display: inline;
+  }
+
   .masthead-brand {
-    padding: 6px 8px;
+    height: 28px;
+    padding: 0 8px;
+    gap: 6px;
   }
+
+  .masthead-brand .masthead-name {
+    font-size: 8px;
+    letter-spacing: 0.12em;
+  }
+
   .masthead-nav {
-    gap: 2px;
-    padding: 3px;
+    height: 32px;
+    padding: 2px;
+    gap: 3px;
   }
-  .masthead-link {
-    padding: 5px 6px;
-    font-size: 8px;
-  }
+
+  .masthead-link,
+  #sound-toggle.masthead-sound,
   .masthead-cta {
-    padding: 5px 8px;
+    height: 26px;
+    line-height: 26px;
     font-size: 8px;
+  }
+
+  .masthead-link {
+    padding: 0 6px;
+  }
+
+  .masthead-link.is-accent {
+    padding: 0 7px;
+  }
+
+  #sound-toggle.masthead-sound {
+    width: 26px;
+  }
+
+  .masthead-cta {
+    padding: 0 7px;
   }
 }
 
