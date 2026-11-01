@@ -47,32 +47,125 @@ function Flip({ children }: { children: string }) {
 }
 
 /** The live site beside a case study. Keyed by project, so moving to the next case
-    starts it fresh. It loads by itself only where there is room for it and nobody has
-    asked to save data; anywhere else it waits to be asked for. */
+    starts it fresh. If framed previews are restricted by CSP or network latency exceeds
+    threshold, smoothly presents a bespoke architectural telemetry dashboard. */
 function LivePreview({ project }: { project: typeof PROJECTS[number] }) {
-  const [preview, setPreview] = useState(() => {
+  const [shouldEmbed, setShouldEmbed] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
     return project.embeddable && !saveData && matchMedia('(min-width: 1024px)').matches;
   });
   const [loaded, setLoaded] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!shouldEmbed || loaded) return;
+
+    // 5.5s timeout: if live framing is stalled or blocked by origin policy, reveal architectural card
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 5500);
+
+    return () => clearTimeout(timer);
+  }, [shouldEmbed, loaded]);
+
+  const copyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(project.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch { /* ignored */ }
+  };
+
+  const showIframe = shouldEmbed && !timedOut;
+
   return (
-    <aside className="case-preview" aria-label={`${project.name}, live site`}>
-      {preview ? (
-        <>
-          <iframe className="case-frame" src={project.url} title={`${project.name} website, live`}
-            loading="lazy" onLoad={() => setLoaded(true)}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
-          {!loaded && <div className="case-loading" aria-hidden="true">{project.domain}<span>Loading the live site</span></div>}
-        </>
-      ) : (
-        <div className="case-empty">
-          <span className="t-label t-dim">{project.domain}</span>
-          {project.embeddable && (
-            <button className="pill is-ghost" onClick={() => setPreview(true)}>Load live preview</button>
+    <aside className="case-preview" aria-label={`${project.name}, live deployment preview`}>
+      {showIframe ? (
+        <div className="case-frame-container">
+          <div className="case-frame-header" aria-hidden="true">
+            <span className="case-frame-dot" />
+            <span className="case-frame-origin">{project.domain}</span>
+            <span className="case-frame-status">{loaded ? 'LIVE // SECURE' : 'INITIALIZING STREAM...'}</span>
+          </div>
+          <iframe
+            className={`case-frame ${loaded ? 'is-ready' : 'is-loading'}`}
+            src={project.url}
+            title={`${project.name} website, live`}
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            onError={() => setTimedOut(true)}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
+          {!loaded && (
+            <div className="case-loading" aria-hidden="true">
+              <span className="case-loading-spin" />
+              <span className="case-loading-domain">{project.domain}</span>
+              <span className="case-loading-sub">Connecting to production edge...</span>
+            </div>
           )}
-          <a className="pill is-dashed" href={project.url} target="_blank" rel="noopener noreferrer">
-            Open the site <span className="pill-arrow" aria-hidden="true">&#8599;</span>
-          </a>
+        </div>
+      ) : (
+        <div className="case-blueprint-card">
+          <div className="blueprint-top">
+            <span className="blueprint-status">
+              <i className="blueprint-pulse" /> VERIFIED PRODUCTION DEPLOYMENT
+            </span>
+            <span className="blueprint-edition">{project.year} &middot; PS-{project.number}</span>
+          </div>
+
+          <div className="blueprint-center">
+            <span className="blueprint-label">DIRECT PRODUCTION ARTIFACT</span>
+            <h3 className="blueprint-domain">{project.domain}</h3>
+            <p className="blueprint-desc">{project.tagline}</p>
+          </div>
+
+          <div className="blueprint-telemetry">
+            <div className="blueprint-telemetry-row">
+              <span className="t-micro t-dim">STATUS</span>
+              <span className="t-mono t-gold">ACTIVE // PRODUCTION</span>
+            </div>
+            <div className="blueprint-telemetry-row">
+              <span className="t-micro t-dim">TECH STACK</span>
+              <span className="t-mono">{project.stack.slice(0, 4).join(' · ')}</span>
+            </div>
+            {project.metric && (
+              <div className="blueprint-telemetry-row">
+                <span className="t-micro t-dim">BENCHMARK</span>
+                <span className="t-mono">{project.metric.split('·')[0].trim()}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="blueprint-actions">
+            <a
+              className="pill is-gold"
+              href={project.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor="LAUNCH"
+            >
+              <span className="pill-dot" />Launch {project.domain}{' '}
+              <span className="pill-arrow" aria-hidden="true">&#8599;</span>
+            </a>
+            <button
+              className="pill is-dashed"
+              onClick={copyUrl}
+              data-cursor="COPY"
+            >
+              {copied ? 'Copied Link ✓' : 'Copy Clean URL'}
+            </button>
+            {project.embeddable && (
+              <button
+                className="pill is-ghost"
+                onClick={() => { setTimedOut(false); setShouldEmbed(true); }}
+                data-cursor="EMBED"
+              >
+                Mount Live Frame ⟳
+              </button>
+            )}
+          </div>
         </div>
       )}
     </aside>
@@ -165,7 +258,7 @@ function CaseStudy({ project, index, total, onClose, onStep }: {
           </div>
         </article>
 
-        <LivePreview project={project} />
+        <LivePreview project={project} key={project.id} />
       </div>
     </dialog>
   );
@@ -285,6 +378,13 @@ export default function Home() {
   const go = useCallback((fraction: number) => {
     scrollToY(fraction * (document.documentElement.scrollHeight - innerHeight));
   }, []);
+
+  const actionsRef = useRef({
+    toggleSound: () => {},
+    go: (_fraction: number) => {},
+    toggleActs: () => {},
+    closeModals: () => {},
+  });
 
   /* ------------------------------------------------ the single animation loop */
   useEffect(() => {
@@ -560,15 +660,46 @@ export default function Home() {
        screen - so holding it here took page-down away from anyone not using a mouse. */
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setActsOpen(false);
-        setResumeOpen(false);
+        actionsRef.current.closeModals();
         return;
       }
-      if (e.code !== 'KeyZ' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      const down = e.type === 'keydown';
-      signals.zen = down ? 1 : 0;
+
+      // Hold Z for Zen wireframe
+      if (e.code === 'KeyZ' && !e.repeat && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        signals.zen = e.type === 'keydown' ? 1 : 0;
+        return;
+      }
+
+      if (e.type !== 'keydown' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Toggle Sound with M
+      if (e.code === 'KeyM') {
+        actionsRef.current.toggleSound();
+        return;
+      }
+
+      // Sitemap / Directory toggle with I or K
+      if (e.code === 'KeyI' || e.code === 'KeyK') {
+        actionsRef.current.toggleActs();
+        return;
+      }
+
+      // Quick teleport with keys 1 to 9 (Acts I to IX) and 0 (Act X)
+      if (e.key >= '1' && e.key <= '9') {
+        const actIndex = parseInt(e.key, 10) - 1;
+        if (ACT_LAYOUT[actIndex]) {
+          actionsRef.current.go(ACT_LAYOUT[actIndex].at + 0.005);
+        }
+        return;
+      }
+      if (e.key === '0') {
+        if (ACT_LAYOUT[9]) {
+          actionsRef.current.go(ACT_LAYOUT[9].at + 0.005);
+        }
+        return;
+      }
     };
     addEventListener('keydown', onKey);
     addEventListener('keyup', onKey);
@@ -789,6 +920,19 @@ export default function Home() {
     }
     catch { setSound(false); }
   }
+
+  useEffect(() => {
+    actionsRef.current = {
+      toggleSound: () => { void toggleSound(); },
+      go,
+      toggleActs: () => setActsOpen(o => !o),
+      closeModals: () => {
+        setActsOpen(false);
+        setResumeOpen(false);
+        setCommissionOpen(false);
+      },
+    };
+  });
   const openProject = useCallback((index: number) => {
     if (!PROJECTS[index]) return;
     analytics.trackCardView(`Drawing ${PROJECTS[index].number}: ${PROJECTS[index].name} (${PROJECTS[index].domain})`);
@@ -911,12 +1055,19 @@ export default function Home() {
         </header>
 
         {/* ---------------------------------------------------------- the two words
-
-            The entire vocabulary of the system. There is no third message, and in
-            particular there is nothing for getting it right: the silence is what
-            getting it right sounds like. */}
+            Discipline & Tempo feedback: A poetic, non-intrusive interactive dialogue. */}
         <div id="verdict" className={said ? 'is-on' : ''} aria-live="polite" aria-atomic="true">
-          {said === 'rushing' ? 'YOU’RE RUSHING' : said === 'dragging' ? 'YOU’RE DRAGGING' : ''}
+          {said && (
+            <div className="verdict-box">
+              <span className="verdict-discipline">✦ TEMPO // DISCIPLINE</span>
+              <span className="verdict-word">{said === 'rushing' ? 'YOU’RE RUSHING' : 'YOU’RE DRAGGING'}</span>
+              <span className="verdict-sub">
+                {said === 'rushing'
+                  ? 'Breathe. The sculpture unfolds at human reading pace.'
+                  : 'Move forward. Presence requires continuous momentum.'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Full Architectural Site Map Modal */}
@@ -1024,9 +1175,11 @@ export default function Home() {
               </div>
 
               <div className="sitemap-footer">
-                <span className="sitemap-hint"><kbd>Z</kbd> Hold wireframe mode</span>
-                <span className="sitemap-hint"><kbd>ESC</kbd> Close directory</span>
-                <span className="sitemap-hint"><kbd>SCROLL</kbd> Scrub spatial acts</span>
+                <span className="sitemap-hint"><kbd>Z</kbd> Hold wireframe</span>
+                <span className="sitemap-hint"><kbd>M</kbd> Toggle score</span>
+                <span className="sitemap-hint"><kbd>1-9</kbd> Teleport acts</span>
+                <span className="sitemap-hint"><kbd>I / K</kbd> Directory</span>
+                <span className="sitemap-hint"><kbd>ESC</kbd> Close</span>
               </div>
             </div>
           </dialog>

@@ -474,16 +474,32 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
    for getting it right. */
 
 #verdict{position:fixed;left:0;right:0;top:50%;z-index:58;
-  display:flex;justify-content:center;pointer-events:none;
-  font-family:var(--font-display);font-weight:600;
-  font-size:calc(30 * var(--unit));letter-spacing:.02em;color:var(--bone);
-  opacity:0;transform:translate3d(0,calc(-50% + 1.1em),0);
-  transition:opacity .5s var(--ease-out),transform .8s var(--ease-out),visibility 0s .8s;
+  display:flex;justify-content:center;align-items:center;pointer-events:none;
+  opacity:0;transform:translate3d(0,calc(-50% + 1.2rem),0);
+  transition:opacity .45s var(--ease-out),transform .6s var(--ease-out),visibility 0s .6s;
   visibility:hidden}
-/* blended only while it is actually showing: a full-width blend layer sitting at
-   opacity 0 is still composited against the canvas every frame */
-#verdict.is-on{opacity:1;transform:translate3d(0,-50%,0);visibility:visible;mix-blend-mode:difference;
-  transition:opacity .5s var(--ease-out),transform .8s var(--ease-out)}
+#verdict.is-on{opacity:1;transform:translate3d(0,-50%,0);visibility:visible;
+  transition:opacity .45s var(--ease-out),transform .6s var(--ease-out)}
+
+.verdict-box{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:.35rem;
+  padding:1.1rem 2.2rem;border-radius:1.2rem;
+  background:rgba(16,9,4,.84);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--gold-30);box-shadow:0 12px 36px rgba(0,0,0,.65),0 0 24px rgba(224,162,68,.12);
+  pointer-events:none;
+}
+.verdict-discipline{
+  font-family:var(--font-mono);font-size:var(--micro);font-weight:600;
+  letter-spacing:.22em;color:var(--gold-hot);text-transform:uppercase;
+}
+.verdict-word{
+  font-family:var(--font-display);font-size:clamp(1.5rem,4vw,2.5rem);font-weight:700;
+  letter-spacing:.04em;color:var(--bone);line-height:1.1;
+}
+.verdict-sub{
+  font-family:var(--font-mono);font-size:var(--micro);color:var(--bone-62);
+  letter-spacing:.04em;max-width:34ch;
+}
 
 /* --------------------------------------------------------- 13. cursor label */
 
@@ -785,11 +801,46 @@ html.is-loading,html.is-loading body{overflow:hidden}
 .case-actions{display:flex;flex-wrap:wrap;gap:.6em;margin-top:calc(var(--row) * 4)}
 .case-rise{animation:case-rise .9s var(--ease-out) both;animation-delay:calc(var(--d,0) * 60ms + 120ms)}
 @keyframes case-rise{from{opacity:0;transform:translate3d(0,1.4rem,0)}to{opacity:1;transform:none}}
-.case-preview{position:relative;min-height:0;display:flex;background:#0b0603}
-.case-frame{flex:1;width:100%;height:100%;border:0;background:#0b0603}
-.case-loading{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:.8em;
+.case-preview{position:relative;min-height:0;display:flex;flex-direction:column;background:#0b0603}
+.case-frame-container{display:flex;flex-direction:column;width:100%;height:100%;position:relative}
+.case-frame-header{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.65rem 1.2rem;background:#140c06;border-bottom:1px solid rgba(255,237,215,.1);
+  font-family:var(--font-mono);font-size:var(--micro);color:var(--bone-62);letter-spacing:.08em;
+}
+.case-frame-dot{width:6px;height:6px;border-radius:50%;background:#48bb78;box-shadow:0 0 8px #48bb78}
+.case-frame-origin{font-weight:600;color:var(--bone);text-transform:lowercase}
+.case-frame-status{color:var(--gold-hot);letter-spacing:.12em}
+.case-frame{flex:1;width:100%;height:100%;border:0;background:#0b0603;transition:opacity .4s ease}
+.case-frame.is-loading{opacity:0}
+.case-frame.is-ready{opacity:1}
+.case-loading{position:absolute;inset:2rem 0 0 0;display:grid;place-content:center;text-align:center;gap:.6em;
   font-family:var(--font-mono);color:var(--bone-62);font-size:var(--label);letter-spacing:.1em;text-transform:uppercase}
-.case-loading span{font-size:var(--micro);color:var(--bone-62)}
+.case-loading-spin{width:24px;height:24px;margin:0 auto;border:2px solid var(--bone-22);border-top-color:var(--gold-hot);border-radius:50%;animation:case-spin .8s linear infinite}
+@keyframes case-spin{to{transform:rotate(360deg)}}
+.case-loading-domain{font-weight:600;color:var(--bone)}
+.case-loading-sub{font-size:var(--micro);color:var(--bone-62)}
+
+/* Architectural Blueprint Card Fallback */
+.case-blueprint-card{
+  flex:1;display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(var(--pad-x) * 1.2);background:linear-gradient(180deg,#120b05,#0a0502);
+  border-left:1px solid var(--bone-22);
+}
+.blueprint-top{display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:var(--micro);letter-spacing:.12em}
+.blueprint-status{display:flex;align-items:center;gap:.5rem;color:var(--gold-hot)}
+.blueprint-pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold-hot);box-shadow:0 0 8px var(--gold-hot)}
+.blueprint-edition{color:var(--bone-62)}
+.blueprint-center{margin:auto 0;display:flex;flex-direction:column;gap:.6rem}
+.blueprint-label{font-family:var(--font-mono);font-size:var(--micro);color:var(--bone-62);letter-spacing:.18em}
+.blueprint-domain{font-family:var(--font-display);font-size:clamp(1.8rem,3.5vw,3rem);font-weight:700;color:var(--bone);letter-spacing:-.01em;line-height:1}
+.blueprint-desc{font-size:var(--sub2);color:var(--bone-70);line-height:1.45;max-width:44ch}
+.blueprint-telemetry{
+  display:grid;grid-template-columns:1fr;gap:.6rem;padding:1rem 1.2rem;
+  background:rgba(255,237,215,.03);border:1px solid var(--bone-22);border-radius:.4rem;margin:1.4rem 0;
+}
+.blueprint-telemetry-row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.blueprint-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem}
 .case-empty{flex:1;display:grid;place-content:center;justify-items:center;gap:1em;padding:var(--pad-x);text-align:center}
 @media (max-width:1023px){
   .case-body{grid-template-columns:1fr;grid-template-rows:auto;overflow-y:auto;-webkit-overflow-scrolling:touch}

@@ -4,8 +4,8 @@
   "description": "Senior Creative Technologist & Front-End Architect. WebGL, GLSL Shaders, and Spatial Interactive Systems.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0c0a09",
-  "theme_color": "#0c0a09",
+  "background_color": "#100904",
+  "theme_color": "#100904",
   "icons": [
     {
       "src": "/favicon.svg",

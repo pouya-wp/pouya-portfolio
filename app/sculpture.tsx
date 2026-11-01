@@ -2066,7 +2066,7 @@ ${shader.fragmentShader}`;
           fetch(SCULPTURE.url),
           fetch('/plaster-noise.bin').catch(() => null),
           fetch('/shards-baked.bin').catch(() => null),
-          loadBaked(),
+          loadBaked().catch(e => { console.warn('[physics] load caught', e); }),
           Promise.all(['600 88px Geist', '600 64px Geist', '400 30px Geist', '600 26px "Geist Mono"']
             .map(face => document.fonts?.load(face))).catch(() => { }),
         ]);

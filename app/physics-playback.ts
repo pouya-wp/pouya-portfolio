@@ -9,9 +9,16 @@ let baked: Baked | null = null;
 
 export async function loadBaked(url = '/physics-baked.json') {
   if (baked) return;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Physics bake request failed: ${response.status}`);
-  baked = await response.json() as Baked;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`[physics] Physics bake fetch returned ${response.status}`);
+      return;
+    }
+    baked = (await response.json()) as Baked;
+  } catch (err) {
+    console.warn('[physics] Failed to fetch or parse physics bake, running safe fallback', err);
+  }
 }
 
 type Pose = { position: THREE.Vector3; quaternion: THREE.Quaternion };
