@@ -11,16 +11,16 @@ import { signals } from './signals';
 import gsap from 'gsap';
 import { analytics } from './analytics';
 import { AssistantWidget } from './assistant';
+import { ResumeModal } from './resume';
 
 /* Fill these in and the matching capsules appear in the colophon. Nothing here is
    invented: an empty value simply renders nothing. */
 const CONTACT: { email: string; links: { label: string; handle: string; url: string }[] } = {
   email: 'pouyas.one@outlook.com',
   links: [
+    { label: 'LinkedIn', handle: 'in/onepouya', url: 'https://linkedin.com/in/onepouya' },
+    { label: 'GitHub', handle: '@pouya-wp', url: 'https://github.com/pouya-wp' },
     { label: 'Telegram', handle: '@pouya_dmg', url: 'https://t.me/pouya_dmg' },
-    /* WhatsApp has no public link format for a username, only for a phone number
-       (https://wa.me/<number>). Until one is added the handle is copied instead. */
-    { label: 'WhatsApp', handle: '@pouya_dmg', url: '' },
     { label: 'Instagram', handle: '@pouya.sadeghpour', url: 'https://www.instagram.com/pouya.sadeghpour/' },
   ],
 };
@@ -126,6 +126,16 @@ function CaseStudy({ project, index, total, onClose, onStep }: {
             <div><dt>Stack</dt><dd>{project.stack.join(', ')}</dd></div>
             <div><dt>Live</dt><dd><a href={project.url} target="_blank" rel="noopener noreferrer">{project.domain}<span className="sr-only"> (opens in a new tab)</span></a></dd></div>
           </dl>
+
+          {project.metric && (
+            <div className="case-metric-box case-rise" style={{ '--d': 3.5 } as React.CSSProperties}>
+              <div className="case-metric-header">
+                <span className="case-metric-spark">✦</span>
+                <span className="case-metric-label">MEASURABLE IMPACT &amp; BENCHMARK</span>
+              </div>
+              <p className="case-metric-val">{project.metric}</p>
+            </div>
+          )}
 
           <section className="case-part case-rise" style={{ '--d': 4 } as React.CSSProperties}>
             <h3>Overview</h3>
@@ -239,6 +249,7 @@ export default function Home() {
   const [sound, setSound] = useState(false);
   const [focus, setFocus] = useState(-1);
   const [portalOpen, setPortalOpen] = useState(false);
+  const [resumeOpen, setResumeOpen] = useState(false);
   const currentActRef = useRef(0);
   const [hoverCard, setHoverCard] = useState(-1);
   const [copied, setCopied] = useState('');
@@ -842,6 +853,34 @@ export default function Home() {
       />
 
       <div id="ui" className={light ? 'is-light' : ''}>
+        {/* Architectural Floating Masthead / Quick Navigation */}
+        <header id="masthead" className={chrome} aria-label="Main Navigation">
+          <button className="masthead-brand" onClick={() => go(0)} data-cursor="HOME" aria-label="Return to Beginning">
+            <span className="masthead-mark">✦</span>
+            <span className="masthead-title">
+              <span className="masthead-name">POUYA SADEGHPOUR</span>
+              <span className="masthead-sub">CREATIVE TECHNOLOGIST &amp; ARCHITECT</span>
+            </span>
+          </button>
+          <nav className="masthead-nav" aria-label="Quick Navigation">
+            <button className="masthead-link" onClick={() => go(ACT_LAYOUT[3].at + 0.02)} data-cursor="WORK">
+              WORK
+            </button>
+            <button className="masthead-link is-accent" onClick={() => setResumeOpen(true)} data-cursor="RESUME">
+              RESUME (PDF)
+            </button>
+            <a className="masthead-link" href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" data-cursor="LINKEDIN">
+              LINKEDIN
+            </a>
+            <a className="masthead-link" href="https://github.com/pouya-wp" target="_blank" rel="noopener noreferrer" data-cursor="GITHUB">
+              GITHUB
+            </a>
+            <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT">
+              <span className="pill-dot" />GET IN TOUCH
+            </button>
+          </nav>
+        </header>
+
         {/* ---------------------------------------------------------- the two words
 
             The entire vocabulary of the system. There is no third message, and in
@@ -940,6 +979,9 @@ export default function Home() {
                     <div className="hero-jump rise" style={{ '--delay': '720ms' } as React.CSSProperties}>
                       <button className="pill is-ghost" onClick={() => go(ACT_LAYOUT[3].at + .02)} data-cursor="WORK">
                         Selected work <span className="pill-arrow" aria-hidden="true">&darr;</span>
+                      </button>
+                      <button className="pill is-gold" onClick={() => setResumeOpen(true)} data-cursor="RESUME">
+                        <span className="pill-dot" />Executive CV (PDF)
                       </button>
                       <button className="pill is-dashed" onClick={() => go(1)} data-cursor="WRITE">
                         Contact
@@ -1231,6 +1273,10 @@ export default function Home() {
                           <span className="pill-dot" />Start a project
                         </a>
                       )}
+                      <button className="pill is-dashed" onClick={() => setResumeOpen(true)} data-cursor="RESUME"
+                        onPointerMove={magnetise} onPointerLeave={release}>
+                        <span className="pill-dot" />Executive CV (PDF)
+                      </button>
                       {CONTACT.email && (
                         <button className="pill is-ghost" onClick={() => copy(CONTACT.email, 'email')} data-cursor="COPY"
                           onPointerMove={magnetise} onPointerLeave={release}>
@@ -1238,6 +1284,9 @@ export default function Home() {
                         </button>
                       )}
                     </div>
+                    <p className="annot t-dim" style={{ marginTop: '14px', letterSpacing: '0.04em' }}>
+                      Inquiries &amp; Discovery: Direct via <a href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>LinkedIn</a>, <a href="https://t.me/pouya_dmg" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Telegram</a>, or <a href="mailto:pouyas.one@outlook.com" style={{ textDecoration: 'underline' }}>pouyas.one@outlook.com</a>
+                    </p>
                   </div>
 
                   <div id="ct-mid" className="o-dash blk" data-lit="0.1,1" />
@@ -1367,6 +1416,8 @@ export default function Home() {
             <span>ARCHITECTING POSSIBILITIES</span>
           </div>
         </output>
+
+        <ResumeModal isOpen={resumeOpen} onClose={() => setResumeOpen(false)} />
       </div>
     </>
   );

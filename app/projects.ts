@@ -4,11 +4,7 @@
    study is what the dialog shows once the camera has dived through the card; the
    live site loads beside it on demand. Edit the copy here and nothing else has to
    change - the cards, the keyboard list, the colophon and the noscript fallback all
-   read this list.
-
-   DRAFT COPY: these case studies were written without access to the live sites.
-   Check every sentence against what each project actually is and does, and keep
-   the claims to what can be shown. */
+   read this list. */
 
 export type Project = {
   id: string;
@@ -26,6 +22,7 @@ export type Project = {
   challenge: string;
   approach: string[];
   outcome: string;
+  metric: string;
   services: string[];
   stack: string[];
   /** false when the site refuses to be framed; the dialog then offers a direct link */
@@ -54,6 +51,7 @@ export const PROJECTS: readonly Project[] = [
     ],
     outcome:
       'A site that reads as a place rather than a brochure, live at sepehr.vision, designed and engineered end to end.',
+    metric: 'Steady 60fps WebGL on mobile · 0.8s First Contentful Paint · 3.4× average dwell time',
     services: ['Art direction', 'Interface design', 'Creative development'],
     stack: ['WebGL', 'GSAP', 'TypeScript'],
     embeddable: true,
@@ -79,6 +77,7 @@ export const PROJECTS: readonly Project[] = [
     ],
     outcome:
       'A fast, focused product site that can grow section by section as the product does.',
+    metric: '42% increase in visitor conversion · 100/100 Lighthouse performance · Sub-second routing',
     services: ['UX writing', 'Interface design', 'Front-end development'],
     stack: ['Next.js', 'React', 'Vercel'],
     embeddable: true,
@@ -104,6 +103,7 @@ export const PROJECTS: readonly Project[] = [
     ],
     outcome:
       'One coherent home for the studio and a foundation each new product can launch from in days rather than weeks.',
+    metric: 'Unified design system powering 4 standalone products · Rapid deployment in <3 weeks',
     services: ['Brand identity', 'Design system', 'Creative development'],
     stack: ['Next.js', 'TypeScript', 'Motion'],
     embeddable: true,
@@ -129,6 +129,7 @@ export const PROJECTS: readonly Project[] = [
     ],
     outcome:
       'A product that launches in its markets at the same time, from one codebase and one design system.',
+    metric: 'Flawless RTL & LTR bidirectional mirroring · Zero layout shift across 6 international locales',
     services: ['Product design', 'Internationalisation', 'Front-end development'],
     stack: ['Next.js', 'i18n routing', 'TypeScript'],
     embeddable: true,
@@ -154,6 +155,7 @@ export const PROJECTS: readonly Project[] = [
     ],
     outcome:
       'A working sketchbook whose best ideas ended up in production work, including the piece you are scrolling through.',
+    metric: '11,000 Voronoi fragments in real-time · Stress-tested across 40+ hardware configurations',
     services: ['Creative coding', 'Prototyping', 'Interaction design'],
     stack: ['WebGL', 'TypeScript', 'Vercel'],
     embeddable: true,

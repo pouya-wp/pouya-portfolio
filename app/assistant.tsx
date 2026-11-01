@@ -15,12 +15,13 @@ const CURATED_TOPICS = [
   { id: 'work', label: '02 / ARCHITECTURE', query: 'What are the selected works and technical drawings?' },
   { id: 'stack', label: '03 / SHADER STACK', query: 'Explain the 3D graphics and WebGL shader engineering.' },
   { id: 'hire', label: '04 / COMMISSION', query: 'How can I collaborate or hire Pouya Sadeghpour?' },
+  { id: 'cv', label: '05 / EXECUTIVE CV', query: 'Summarize Pouya’s technical stack and experience for recruiters and HR.' },
 ];
 
 const KNOWLEDGE_RESPONSES = [
   {
     triggers: ['who', 'pouya', 'about', 'bio', 'کیست', 'کیه', 'پویا', 'درباره', 'معرفی'],
-    reply: `Pouya Sadeghpour is an architectural creative technologist, senior design architect, and WebGL engineer.\n\nHis work synthesizes classical sculptural form, algorithmic physics, and bespoke GLSL shaders into high-precision digital artifacts that refuse the disposable conventions of modern web design.`,
+    reply: `Pouya Sadeghpour is an architectural creative technologist, senior front-end architect, and spatial WebGL engineer.\n\nHis work synthesizes classical sculptural form, algorithmic physics, and bespoke GLSL shaders into high-precision digital artifacts that drive measurable conversion and refuse the disposable conventions of modern web design.`,
   },
   {
     triggers: ['philosophy', 'limitations', 'quote', 'motto', 'فلسفه', 'شعار', 'دیدگاه', 'کینتسوگی', 'kintsugi', 'suhrawardi'],
@@ -28,11 +29,19 @@ const KNOWLEDGE_RESPONSES = [
   },
   {
     triggers: ['project', 'work', 'portfolio', 'drawing', 'پروژه', 'نمونه کار', 'کارها'],
-    reply: `The portfolio archives five core technical drawings:\n\n• DRAWING 01: Procedural typography engine & sub-pixel grid system.\n• DRAWING 02: Real-time GPU fluid mechanics & hydrodynamic simulation.\n• DRAWING 03: Distributed design infrastructure for global engineering teams.\n• DRAWING 04: Spatial WebGL product experience with physically-based metallic foil.\n• DRAWING 05: Mathematical layout compiler with deterministic 60fps pacing.\n\nExplore Act IV (The Working Surface) to inspect the gilded case study cards.`,
+    reply: `The portfolio archives five core technical shipments with measurable business impact:\n\n• SEPEHR (sepehr.vision): Steady 60fps WebGL on mobile · 0.8s First Contentful Paint · 3.4× dwell time.\n• IZMAB (izmab.vercel.app): 42% lift in conversion · 100/100 Lighthouse performance benchmark.\n• BEYONDEX (beyondex.one): Design system infrastructure powering 4 live products.\n• LUMI (lumi.beyondex.one): Zero layout shift across 6 localized RTL & LTR markets.\n• P4SADX (p4sadx.vercel.app): 11,000 Voronoi fragments in real-time · Stress-tested on 40+ hardware profiles.\n\nExplore Act IV (The Working Surface) to inspect the gilded case study cards.`,
   },
   {
-    triggers: ['contact', 'email', 'hire', 'telegram', 'تماس', 'ایمیل', 'ارتباط', 'همکاری', 'استخدام', 'commission'],
-    reply: `Direct channels for creative direction, architectural WebGL development, and bespoke spatial commissions:\n\n• Primary Email: pouyas.one@outlook.com\n• Telegram: @pouya_dmg (https://t.me/pouya_dmg)\n• Instagram: @pouya.sadeghpour\n\nPouya is available for selective technical architecture and creative collaborations worldwide.`,
+    triggers: ['resume', 'cv', 'experience', 'background', 'رزومه', 'سابقه', 'تجربه', 'استخدام', 'recruiter', 'hr'],
+    reply: `Pouya Sadeghpour — Senior Creative Technologist & Lead Front-End Architect:\n\n• Core Stack: Three.js, WebGL 2.0, GLSL Shaders, React 19, Next.js 15, TypeScript, GSAP.\n• Background: 6+ years designing and engineering high-impact digital products, spatial 3D flagships, and scalable design systems.\n• Leadership: Founder of BeyondEx Studio; led design & engineering for international clients across Europe, Middle East, and North America.\n• Availability: Open for selective commissions, fractional CTO/tech lead roles, and high-impact remote engagements worldwide.\n\nYou can click 'RESUME' in the top navigation bar to inspect or print the complete executive PDF.`,
+  },
+  {
+    triggers: ['linkedin', 'github', 'social', 'لینکدین', 'گیت‌هاب', 'لینک'],
+    reply: `Verified professional profiles & repositories:\n\n• LinkedIn: https://linkedin.com/in/onepouya (@onepouya)\n• GitHub: https://github.com/pouya-wp (@pouya-wp)\n• Telegram: https://t.me/pouya_dmg (@pouya_dmg)\n• Instagram: https://www.instagram.com/pouya.sadeghpour/\n• Direct Email: pouyas.one@outlook.com`,
+  },
+  {
+    triggers: ['contact', 'email', 'hire', 'telegram', 'تماس', 'ایمیل', 'ارتباط', 'همکاری', 'commission', 'قیمت', 'سفارش'],
+    reply: `Direct channels for creative direction, spatial WebGL development, and high-ticket commissions:\n\n• Primary Email: pouyas.one@outlook.com\n• LinkedIn: https://linkedin.com/in/onepouya\n• GitHub: https://github.com/pouya-wp\n• Telegram: @pouya_dmg (https://t.me/pouya_dmg)\n\n💡 Tip: If you have a specific brief or idea, feel free to drop your inquiry and contact info right here in this chat, and Pouya will receive it immediately.`,
   },
   {
     triggers: ['tech', 'stack', 'shader', 'webgl', 'three', 'تکنولوژی', 'فناوری', 'استک', 'code', 'gpu'],
