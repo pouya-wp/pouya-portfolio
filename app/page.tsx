@@ -345,6 +345,7 @@ export default function Home() {
   const [portalOpen, setPortalOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [commissionOpen, setCommissionOpen] = useState(false);
+  const [oracleOpen, setOracleOpen] = useState(false);
   const currentActRef = useRef(0);
   const [activeAct, setActiveAct] = useState(0);
   const [hoverCard, setHoverCard] = useState(-1);
@@ -680,6 +681,12 @@ export default function Home() {
         return;
       }
 
+      // Toggle Oracle with O
+      if (e.code === 'KeyO') {
+        setOracleOpen(o => !o);
+        return;
+      }
+
       // Sitemap / Directory toggle with I or K
       if (e.code === 'KeyI' || e.code === 'KeyK') {
         actionsRef.current.toggleActs();
@@ -930,6 +937,7 @@ export default function Home() {
         setActsOpen(false);
         setResumeOpen(false);
         setCommissionOpen(false);
+        setOracleOpen(false);
       },
     };
   });
@@ -1022,6 +1030,10 @@ export default function Home() {
             <button className="masthead-link is-accent" onClick={() => setResumeOpen(true)} data-cursor="RESUME" aria-label="Resume">
               <span>CV</span>
               <span className="resume-suffix"> (PDF)</span>
+            </button>
+            <button className="masthead-link is-oracle" onClick={() => setOracleOpen(true)} data-cursor="ORACLE" aria-label="Kintsugi Oracle">
+              <span className="oracle-dot">✦</span>
+              <span>ORACLE</span>
             </button>
             <a className="masthead-link" href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" data-cursor="LINKEDIN">
               LINKEDIN
@@ -1162,6 +1174,10 @@ export default function Home() {
                       <span>Executive CV (PDF)</span>
                       <span className="sitemap-arrow">&rarr;</span>
                     </button>
+                    <button className="sitemap-quick-btn" onClick={() => { setActsOpen(false); setOracleOpen(true); }} data-cursor="ORACLE">
+                      <span>Kintsugi Oracle (AI Guide)</span>
+                      <span className="sitemap-arrow">&rarr;</span>
+                    </button>
                     <button className="sitemap-quick-btn" onClick={() => { setActsOpen(false); setCommissionOpen(true); }} data-cursor="DISPATCH">
                       <span>Commission Inquiry</span>
                       <span className="sitemap-arrow">&rarr;</span>
@@ -1188,7 +1204,6 @@ export default function Home() {
         <div id="cursor-label" ref={labelRef} aria-hidden="true" />
         {showPerf && <pre id="perf" ref={perfRef} aria-hidden="true" />}
         <div id="grain" aria-hidden="true" />
-        <AssistantWidget />
 
         {/* ============================================================ content */}
         <div id="site-content">
@@ -1219,31 +1234,43 @@ export default function Home() {
                       worth looking at.
                     </p>
                     <div className="hero-jump rise" style={{ '--delay': '720ms' } as React.CSSProperties}>
-                      <button className="pill is-ghost" onClick={() => go(ACT_LAYOUT[3].at + .02)} data-cursor="WORK">
-                        Selected work <span className="pill-arrow" aria-hidden="true">&darr;</span>
+                      <button className="pill is-gold" onClick={() => go(ACT_LAYOUT[3].at + .02)} data-cursor="WORK">
+                        <span className="pill-dot" />Selected work <span className="pill-arrow" aria-hidden="true">&darr;</span>
                       </button>
-                      <button className="pill is-gold" onClick={() => setResumeOpen(true)} data-cursor="RESUME">
-                        <span className="pill-dot" />Executive CV (PDF)
-                      </button>
-                      <button className="pill is-dashed" onClick={() => go(1)} data-cursor="WRITE">
-                        Contact
+                      <button className="pill is-ghost" onClick={() => setResumeOpen(true)} data-cursor="RESUME">
+                        Executive CV (PDF)
                       </button>
                     </div>
-                    <div className="o-dash is-gold rise" style={{ '--delay': '760ms' } as React.CSSProperties} />
-                    <div className="rise" style={{ '--delay': '860ms' } as React.CSSProperties}>
-                      <Formula label="Profile" expr="r(s) = R (1 &minus; |s|&#8319;)<sup>1/n</sup>" note="R = 1.72   n = 4.2" />
+                    <div className="hero-divider rise" style={{ '--delay': '780ms' } as React.CSSProperties} />
+                    <div className="hero-blueprint-card rise" style={{ '--delay': '860ms' } as React.CSSProperties}>
+                      <div className="blueprint-formula-head">
+                        <span className="blueprint-formula-pip" />
+                        <span className="blueprint-formula-tag">FIG 01 // RADIAL PROFILE</span>
+                      </div>
+                      <div className="blueprint-formula-math">
+                        r(s) = R &middot; (1 &minus; |s|<sup>n</sup>)<sup>1/n</sup>
+                      </div>
+                      <div className="blueprint-formula-meta">
+                        <span>R = 1.72</span>
+                        <span className="formula-bullet">&middot;</span>
+                        <span>n = 4.2</span>
+                        <span className="formula-bullet">&middot;</span>
+                        <span>VORONOI PROFILE SEED</span>
+                      </div>
                     </div>
                   </div>
-                  <div id="hero-card" className="blk is-lit rise" data-lit="0,1" style={{ '--delay': '980ms' } as React.CSSProperties}>
-                    <div className="t-label">Object no. 001<br />Plaster cast, unbroken</div>
-                    <div className="t-micro">Gypsum &middot; 3.5 m &middot; one piece</div>
+                  <div id="hero-card" className="specimen-tag blk is-lit rise" data-lit="0,1" style={{ '--delay': '900ms' } as React.CSSProperties}>
+                    <div className="specimen-header">
+                      <span className="specimen-pip" />
+                      <span className="specimen-code">SPECIMEN NO. 001</span>
+                    </div>
+                    <div className="specimen-title">Plaster Cast, Unbroken</div>
+                    <div className="specimen-meta">Gypsum &middot; 3.5 m &middot; One Piece &middot; Studio Bench</div>
                   </div>
-                  <div id="hero-annot" className="annot blk is-lit" data-lit="0,1">
-                    <span className="tick" />Scroll to break it
-                  </div>
-                  <div id="hero-scroll-cue" className="hero-scroll-cue blk is-lit" data-lit="0,1">
-                    <span className="scroll-cue-arrow">&darr;</span>
-                    <span className="scroll-cue-text">SCRUB TIMELINE // SCROLL TO FRACTURE</span>
+                  <div id="hero-annot" className="hero-scroll-cue blk is-lit" data-lit="0,1">
+                    <span className="scroll-cue-pulse" />
+                    <span className="scroll-cue-text">SCROLL TO FRACTURE</span>
+                    <span className="scroll-cue-arrow" aria-hidden="true">&darr;</span>
                   </div>
                 </div>
               </div>
@@ -1673,6 +1700,7 @@ export default function Home() {
 
         <ResumeModal isOpen={resumeOpen} onClose={() => setResumeOpen(false)} />
         <CommissionModal isOpen={commissionOpen} onClose={() => setCommissionOpen(false)} />
+        <AssistantWidget isOpen={oracleOpen} onClose={() => setOracleOpen(false)} />
       </div>
     </>
   );

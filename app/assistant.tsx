@@ -10,6 +10,11 @@ interface Message {
   time: string;
 }
 
+interface AssistantWidgetProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
 const CURATED_TOPICS = [
   { id: 'phil', label: '01 / PHILOSOPHY', query: 'What is the philosophy of Kintsugi and limitations in this work?' },
   { id: 'work', label: '02 / ARCHITECTURE', query: 'What are the selected works and technical drawings?' },
@@ -72,8 +77,17 @@ function nextMsgId(prefix: string): string {
   return `${prefix}_${msgCounter}`;
 }
 
-export function AssistantWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+export function AssistantWidget({ isOpen: propIsOpen, onClose }: AssistantWidgetProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = propIsOpen !== undefined;
+  const isOpen = isControlled ? propIsOpen : internalOpen;
+  const handleClose = () => {
+    if (isControlled && onClose) {
+      onClose();
+    } else {
+      setInternalOpen(false);
+    }
+  };
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -141,63 +155,43 @@ export function AssistantWidget() {
 
   return (
     <>
-      {/* Architectural Formula-Styled Oracle Trigger */}
-      <button
-        id="ai-assistant-toggle"
-        className={`oracle-formula-box ${isOpen ? 'is-active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-label="Toggle Kintsugi Oracle"
-        data-cursor="ORACLE"
-      >
-        <div className="oracle-f-body">
-          <div className="oracle-f-label">
-            <span className="oracle-f-mark">✦</span>
-            <span>09 // KINTSUGI ORACLE</span>
-          </div>
-          <div className="oracle-f-expr">
-            <span>Query Architecture</span>
-            <span className="oracle-f-arrow">&rarr;</span>
-          </div>
-          <div className="oracle-f-note">
-            <span>GLSL ILLUMINATION &middot; ACTIVE</span>
-          </div>
-        </div>
-        <div className="oracle-f-spec">
-          <span className="oracle-spec-state">LIVE</span>
-          <span className="oracle-spec-pip" />
-        </div>
-      </button>
-
-      {/* Luxury Architectural Monolith Modal */}
+      {/* Luxury Architectural Monolith Modal & Backdrop */}
       {isOpen && (
-        <aside
-          className="oracle-monolith"
-          aria-label="Kintsugi Oracle Terminal"
-          data-native-scroll="true"
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
-        >
-          {/* Top Architectural Rail */}
-          <div className="oracle-rail">
-            <div className="oracle-meta">
-              <span className="oracle-spec-tag">SYSTEM // 09</span>
-              <div className="oracle-header-titles">
-                <h3 className="oracle-brand">THE KINTSUGI ORACLE</h3>
-                <span className="oracle-coords">
-                  <span className="oracle-live-pip" />
-                  LAT 35.6892° N &middot; GLSL ILLUMINATION
-                </span>
+        <>
+          <button
+            type="button"
+            className="oracle-backdrop"
+            onClick={handleClose}
+            aria-label="Close Oracle"
+          />
+          <aside
+            className="oracle-monolith"
+            aria-label="Kintsugi Oracle Terminal"
+            data-native-scroll="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Top Architectural Rail */}
+            <div className="oracle-rail">
+              <div className="oracle-meta">
+                <span className="oracle-spec-tag">SYSTEM // 09</span>
+                <div className="oracle-header-titles">
+                  <h3 className="oracle-brand">THE KINTSUGI ORACLE</h3>
+                  <span className="oracle-coords">
+                    <span className="oracle-live-pip" />
+                    LAT 35.6892° N &middot; GLSL ILLUMINATION
+                  </span>
+                </div>
               </div>
+              <button
+                className="oracle-close"
+                onClick={handleClose}
+                aria-label="Close Oracle"
+                data-cursor="CLOSE"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
             </div>
-            <button
-              className="oracle-close"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close Oracle"
-              data-cursor="CLOSE"
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
 
           {/* Curated Architectural Folios */}
           <div className="oracle-folios" role="toolbar" aria-label="Curated Prompts">
@@ -273,7 +267,8 @@ export function AssistantWidget() {
             </button>
           </div>
         </aside>
-      )}
-    </>
+      </>
+    )}
+  </>
   );
 }
