@@ -157,6 +157,28 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
 
               <div className="cv-project-item">
                 <div className="cv-proj-header">
+                  <strong>STREAK (github.com/pouya-wp/streak)</strong>
+                  <span className="cv-proj-meta">Systems Programmer &middot; Rust &amp; Direct3D 11</span>
+                </div>
+                <p>Engineered hardware-accelerated GPU cursor engine for Windows with Direct3D 11 shaders and transparent DirectComposition swapchains.</p>
+                <div className="cv-proj-impact">
+                  <em>Impact:</em> Sub-1ms input polling latency &middot; Silky-smooth kinetic particle bursts &middot; Zero idle CPU overhead.
+                </div>
+              </div>
+
+              <div className="cv-project-item">
+                <div className="cv-proj-header">
+                  <strong>KINETIX (github.com/pouya-wp/kinetix)</strong>
+                  <span className="cv-proj-meta">Motion Tool Architect &middot; After Effects CEP Extension</span>
+                </div>
+                <p>Architected 2D physics simulation and text morphing engine for Adobe After Effects with Matter.js and native keyframe baking.</p>
+                <div className="cv-proj-impact">
+                  <em>Impact:</em> Zero-lag interactive physics simulation &middot; 350+ embedded audio assets &middot; Newton-class animation toolkit.
+                </div>
+              </div>
+
+              <div className="cv-project-item">
+                <div className="cv-proj-header">
                   <strong>GERMANIO (github.com/pouya-wp/Germanio)</strong>
                   <span className="cv-proj-meta">Cognitive Architecture &middot; Local-First Systems Engineer</span>
                 </div>
