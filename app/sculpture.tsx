@@ -1697,23 +1697,28 @@ ${shader.fragmentShader}`;
       }
       cards.forEach((card, i) => {
         const want = i === hovered ? 1 : 0;
-        card.lift = THREE.MathUtils.damp(card.lift, want, 6.8, dt);
+        card.lift = THREE.MathUtils.damp(card.lift, want, 8, dt);
         const t = card.lift;
 
-        // Elegant elevation with subtle floating levitation when hovered
-        const floatY = t > 0.04 ? Math.sin(elapsed * 2.6 + i * 1.3) * 0.035 * t : 0;
-        card.holder.position.y = card.base.y + t * 0.95 + floatY;
-        card.holder.position.z = card.base.z + t * 0.22;
-        card.holder.scale.setScalar(card.scale * (1 + t * 0.075));
+        // Keep internal card geometry face-up and rock-solid
+        card.built.group.rotation.set(-Math.PI / 2, 0, 0);
 
-        // Mesmerizing top-to-bottom flip coupled with longitudinal corkscrew twist along card's axis
-        const flipAngle = t * Math.PI;
-        const twistAngle = t * Math.PI + Math.sin(t * Math.PI) * 0.38;
-        const bankAngle = Math.sin(t * Math.PI) * 0.24 * (i % 2 === 0 ? 1 : -1);
+        // 1. Dynamic architectural lift with subtle weightless float
+        const floatY = t > 0.04 ? Math.sin(elapsed * 2.4 + i * 1.1) * 0.02 * t : 0;
+        card.holder.position.y = card.base.y + t * 0.58 + floatY;
 
-        card.built.group.rotation.x = -Math.PI / 2 + flipAngle;
-        card.built.group.rotation.y = twistAngle;
-        card.built.group.rotation.z = bankAngle;
+        // 2. Inspection tilt: tilts card up toward viewer's eye line for crystal-clear legibility
+        const inspectPitch = -t * 0.32;
+
+        // 3. Gyroscopic 3D parallax: tilts smoothly following pointer coordinates
+        const pointerTiltX = i === hovered ? (ndc.y + 0.1) * 0.12 * t : 0;
+        const pointerTiltZ = i === hovered ? -(ndc.x - card.base.x * 0.18) * 0.14 * t : 0;
+
+        card.holder.rotation.x = inspectPitch + pointerTiltX;
+        card.holder.rotation.z = pointerTiltZ;
+
+        // 4. Elegant scale accent
+        card.holder.scale.setScalar(card.scale * (1 + t * 0.06));
       });
 
       if (board) {
