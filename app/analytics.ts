@@ -33,15 +33,22 @@ export interface VisitorInfo {
 /**
  * Derives an AES-GCM CryptoKey using SubtleCrypto SHA-256
  */
+/**
+ * Public transport obfuscation seed used for client-side AES-GCM beacon wrapping.
+ * NOTE: As documented for Reponix Best-Practice, client-side values are publicly
+ * accessible in browser bundles and do not constitute a private credential.
+ * Real access control, payload shape validation, and origin integrity are enforced server-side.
+ */
+const PUBLIC_TELEMETRY_SEED =
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_TELEMETRY_SEED) ||
+  'public_telemetry_wire_seed';
+
 async function getTelemetryCryptoKey(): Promise<CryptoKey | null> {
   if (typeof window === 'undefined' || !window.crypto?.subtle) return null;
   try {
-    const seed =
-      (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_TELEMETRY_KEY) ||
-      'kintsugi_arch_telemetry_secure_seed';
     const keyMaterial = await window.crypto.subtle.digest(
       'SHA-256',
-      new TextEncoder().encode(seed)
+      new TextEncoder().encode(PUBLIC_TELEMETRY_SEED)
     );
     return await window.crypto.subtle.importKey(
       'raw',

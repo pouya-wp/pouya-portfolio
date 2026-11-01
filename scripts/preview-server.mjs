@@ -1,7 +1,7 @@
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
-import telemetryHandler from '../api/v1/telemetry.js';
+import telemetryHandler from '../api/v1/telemetry.ts';
 
 const root = path.resolve('work/preview');
 const mime = {
