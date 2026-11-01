@@ -56,20 +56,35 @@ const interactive = 'a,button,input,iframe,[data-cursor],.pointer';
 
 export function attachPointer(): () => void {
   const move = (e: PointerEvent) => {
-    if (e.pointerType !== 'mouse') return;
-    pointer.active = true;
     pointer.tx = e.clientX / innerWidth;
     pointer.ty = 1 - e.clientY / innerHeight;
     pointer.presenceTarget = 1;
-    const hit = (e.target as Element | null)?.closest?.(interactive) as HTMLElement | null;
-    const label = hit ? (hit.dataset.cursor ?? '') : '';
-    pointer.hoverTarget = hit ? 1 : 0;
-    if (label !== pointer.label) { pointer.label = label; onLabel?.(label); }
+
+    if (e.pointerType === 'mouse') {
+      pointer.active = true;
+      const hit = (e.target as Element | null)?.closest?.(interactive) as HTMLElement | null;
+      const label = hit ? (hit.dataset.cursor ?? '') : '';
+      pointer.hoverTarget = hit ? 1 : 0;
+      if (label !== pointer.label) { pointer.label = label; onLabel?.(label); }
+    }
   };
-  const down = () => { pointer.pressTarget = 1; pointer.ripple = .0001; };
+
+  const down = (e: PointerEvent) => {
+    pointer.pressTarget = 1;
+    pointer.ripple = .0001;
+    pointer.tx = e.clientX / innerWidth;
+    pointer.ty = 1 - e.clientY / innerHeight;
+
+    if (e.pointerType === 'touch') {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(8); } catch { /* ignore */ }
+      }
+    }
+  };
+
   const up = () => { pointer.pressTarget = 0; };
   const out = () => { pointer.presenceTarget = 0; pointer.hoverTarget = 0; if (pointer.label) { pointer.label = ''; onLabel?.(''); } };
-  const enter = () => { if (pointer.active) pointer.presenceTarget = 1; };
+  const enter = () => { pointer.presenceTarget = 1; };
 
   window.addEventListener('pointermove', move, { passive: true });
   window.addEventListener('pointerdown', down, { passive: true });
