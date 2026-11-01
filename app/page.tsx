@@ -1261,107 +1261,109 @@ export default function Home() {
             <section id="contact" className="section" style={{ '--h': ACT_LAYOUT[10].height } as React.CSSProperties}>
               <div className="section__inner">
                 <div className="section__stage">
-                  <div id="ct-top" className="blk" data-lit="0.1,1">
-                    <div className="ct-intro">
-                      <h2 id="ct-statement" className="t-h3">
-                        <Reveal>If a constraint can build this,</Reveal><br />
-                        <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
-                      </h2>
-                      <p className="annot t-dim ct-direct-note">
-                        Inquiries &amp; Discovery: Direct via <a href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>LinkedIn</a>, <a href="https://t.me/pouya_dmg" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Telegram</a>, or <a href="mailto:pouyas.one@outlook.com" style={{ textDecoration: 'underline' }}>pouyas.one@outlook.com</a>
-                      </p>
-                    </div>
-                    <div className="ct-actions">
-                      {CONTACT.email && (
-                        <a className="pill is-gold" href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('A project')}`} data-cursor="WRITE"
-                          onPointerMove={magnetise} onPointerLeave={release}>
-                          <span className="pill-dot" />Start a project
-                        </a>
-                      )}
-                      <button className="pill is-dashed" onClick={() => setResumeOpen(true)} data-cursor="RESUME"
-                        onPointerMove={magnetise} onPointerLeave={release}>
-                        <span className="pill-dot" />Executive CV (PDF)
-                      </button>
-                      {CONTACT.email && (
-                        <button className="pill is-ghost" onClick={() => copy(CONTACT.email, 'email')} data-cursor="COPY"
-                          onPointerMove={magnetise} onPointerLeave={release}>
-                          {copied === 'email' ? 'Email copied' : CONTACT.email}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div id="ct-mid" className="o-dash blk" data-lit="0.1,1" />
-
-                  <div className="ct-body-grid">
-                    <div id="ct-links" className="blk" data-lit="0.1,1">
-                      <div>
-                        <h3 className="ct-h">Selected work</h3>
-                        {PROJECTS.map((p, i) => (
-                          <button key={p.id} className="flip-host ct-link" onClick={() => openProject(i)} data-cursor="READ">
-                            <Flip>{p.name.toUpperCase()}</Flip>
-                            <span className="ct-sub">{p.kind}</span>
-                          </button>
-                        ))}
+                  <div className="ct-wrap">
+                    <div id="ct-top" className="blk" data-lit="0.04,1">
+                      <div className="ct-intro">
+                        <h2 id="ct-statement" className="t-h3">
+                          <Reveal>If a constraint can build this,</Reveal><br />
+                          <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
+                        </h2>
+                        <p className="annot t-dim ct-direct-note">
+                          Inquiries &amp; Discovery: Direct via <a href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>LinkedIn</a>, <a href="https://t.me/pouya_dmg" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Telegram</a>, or <a href="mailto:pouyas.one@outlook.com" style={{ textDecoration: 'underline' }}>pouyas.one@outlook.com</a>
+                        </p>
                       </div>
-                      {CONTACT.links.length > 0 && (
+                      <div className="ct-actions">
+                        {CONTACT.email && (
+                          <a className="pill is-gold" href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('A project')}`} data-cursor="WRITE"
+                            onPointerMove={magnetise} onPointerLeave={release}>
+                            <span className="pill-dot" />Start a project
+                          </a>
+                        )}
+                        <button className="pill is-dashed" onClick={() => setResumeOpen(true)} data-cursor="RESUME"
+                          onPointerMove={magnetise} onPointerLeave={release}>
+                          <span className="pill-dot" />Executive CV (PDF)
+                        </button>
+                        {CONTACT.email && (
+                          <button className="pill is-ghost" onClick={() => copy(CONTACT.email, 'email')} data-cursor="COPY"
+                            onPointerMove={magnetise} onPointerLeave={release}>
+                            {copied === 'email' ? 'Email copied' : CONTACT.email}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div id="ct-mid" className="o-dash blk" data-lit="0.04,1" />
+
+                    <div className="ct-body-grid">
+                      <div id="ct-links" className="blk" data-lit="0.04,1">
                         <div>
-                          <h3 className="ct-h">Contact</h3>
-                          {CONTACT.links.map(l => l.url ? (
-                            <a key={l.label} className="flip-host ct-link" href={l.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
-                              <Flip>{l.label.toUpperCase()}</Flip>
-                              <span className="ct-sub">{l.handle}<span className="sr-only"> (opens in a new tab)</span></span>
-                            </a>
-                          ) : (
-                            <button key={l.label} className="flip-host ct-link" onClick={() => copy(l.handle, l.label)} data-cursor="COPY">
-                              <Flip>{l.label.toUpperCase()}</Flip>
-                              <span className="ct-sub">{copied === l.label ? 'Copied' : l.handle}</span>
+                          <h3 className="ct-h">Selected work</h3>
+                          {PROJECTS.map((p, i) => (
+                            <button key={p.id} className="flip-host ct-link" onClick={() => openProject(i)} data-cursor="READ">
+                              <Flip>{p.name.toUpperCase()}</Flip>
+                              <span className="ct-sub">{p.kind}</span>
                             </button>
                           ))}
                         </div>
-                      )}
-                      {/* Every portfolio ends with a small brag about its stack. This one
-                          also prints what died making it, flatly, with no adjective
-                          anywhere - it is the only place the cost is admitted. */}
-                      <div id="ct-killed">
-                        <h3 className="ct-h">Did not live</h3>
-                        <ul>
-                          {KILLED.map(k => (
-                            <li key={k.what}><span>{k.what}</span><i /><span className="t-dim">{k.lived}</span></li>
-                          ))}
-                        </ul>
+                        {CONTACT.links.length > 0 && (
+                          <div>
+                            <h3 className="ct-h">Contact</h3>
+                            {CONTACT.links.map(l => l.url ? (
+                              <a key={l.label} className="flip-host ct-link" href={l.url} target="_blank" rel="noopener noreferrer" data-cursor="OPEN">
+                                <Flip>{l.label.toUpperCase()}</Flip>
+                                <span className="ct-sub">{l.handle}<span className="sr-only"> (opens in a new tab)</span></span>
+                              </a>
+                            ) : (
+                              <button key={l.label} className="flip-host ct-link" onClick={() => copy(l.handle, l.label)} data-cursor="COPY">
+                                <Flip>{l.label.toUpperCase()}</Flip>
+                                <span className="ct-sub">{copied === l.label ? 'Copied' : l.handle}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* Every portfolio ends with a small brag about its stack. This one
+                            also prints what died making it, flatly, with no adjective
+                            anywhere - it is the only place the cost is admitted. */}
+                        <div id="ct-killed">
+                          <h3 className="ct-h">Did not live</h3>
+                          <ul>
+                            {KILLED.map(k => (
+                              <li key={k.what}><span>{k.what}</span><i /><span className="t-dim">{k.lived}</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div id="ct-made" className="blk" data-lit="0.04,1">
+                        <h3 className="ct-h">How it is made</h3>
+                        <p className="annot">
+                          A plaster cast, carved into {FRAGMENTS} Voronoi shell shards, dropped once in an
+                          offline solver and scrubbed by the scroll. Per-pixel motion blur, a cursor
+                          that cuts, and an adaptive, recorded cinematic score.
+                        </p>
+                        <p className="annot">
+                          Music: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018"
+                            target="_blank" rel="noopener noreferrer">Floating Cities &mdash; Kevin MacLeod</a>
+                          {' '}(CC BY 4.0). Impact: &ldquo;Long Deep Impact&rdquo; by ROHHSA (CC BY-SA 4.0).
+                          Interface sounds by Kenney (CC0).
+                        </p>
+                        {/* Nietzsche. The last thing the site does is put the road back in
+                            front of the reader and ask nothing else. */}
+                        <button id="ct-replay" className="pill is-dashed" data-cursor="AGAIN"
+                          onClick={() => go(0)} onPointerMove={magnetise} onPointerLeave={release}>
+                          Again? <span className="pill-arrow" aria-hidden="true">&#8635;</span>
+                        </button>
                       </div>
                     </div>
 
-                    <div id="ct-made" className="blk" data-lit="0.1,1">
-                      <h3 className="ct-h">How it is made</h3>
-                      <p className="annot">
-                        A plaster cast, carved into {FRAGMENTS} Voronoi shell shards, dropped once in an
-                        offline solver and scrubbed by the scroll. Per-pixel motion blur, a cursor
-                        that cuts, and an adaptive, recorded cinematic score.
-                      </p>
-                      <p className="annot">
-                        Music: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018"
-                          target="_blank" rel="noopener noreferrer">Floating Cities &mdash; Kevin MacLeod</a>
-                        {' '}(CC BY 4.0). Impact: &ldquo;Long Deep Impact&rdquo; by ROHHSA (CC BY-SA 4.0).
-                        Interface sounds by Kenney (CC0).
-                      </p>
-                      {/* Nietzsche. The last thing the site does is put the road back in
-                          front of the reader and ask nothing else. */}
-                      <button id="ct-replay" className="pill is-dashed" data-cursor="AGAIN"
-                        onClick={() => go(0)} onPointerMove={magnetise} onPointerLeave={release}>
-                        Again? <span className="pill-arrow" aria-hidden="true">&#8635;</span>
-                      </button>
+                    <div className="o-dash blk" data-lit="0.04,1" />
+
+                    {/* No name, no initials, no date. The only line about the maker is the
+                        one that says the maker was not what was on offer. */}
+                    <div id="ct-bottom" className="annot blk" data-lit="0.04,1">
+                      <span id="ct-line">Not the maker. The made.</span>
+                      <span><span ref={clockRef}>--:--</span> &middot; 2026 &copy; version 05</span>
                     </div>
-                  </div>
-
-                  <div className="o-dash" style={{ margin: 'calc(var(--row) * 2) 0' }} />
-
-                  {/* No name, no initials, no date. The only line about the maker is the
-                      one that says the maker was not what was on offer. */}
-                  <div id="ct-bottom" className="annot blk" data-lit="0.1,1">
-                    <span id="ct-line">Not the maker. The made.</span>
-                    <span><span ref={clockRef}>--:--</span> &middot; 2026 &copy; version 05</span>
                   </div>
                 </div>
               </div>

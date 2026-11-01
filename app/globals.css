@@ -820,43 +820,54 @@ html.is-loading,html.is-loading body{overflow:hidden}
    ========================================================================= */
 
 #contact .section__inner{overflow:visible}
-/* Let the board dissolve into the colophon instead of covering it with a panel.
-   The fade uses a full-range gradient so no hard edge is visible at any inset. */
-#contact .section__stage::before{content:'';position:absolute;
-  inset:-52vh -8vw -12vh;z-index:-2;pointer-events:none;
+/* The board dissolves into the colophon seamlessly across the entire viewport.
+   No boxed container or hard cutoff: full bleed gradient spanning the screen. */
+#contact .section__stage::before{
+  content:'';position:absolute;
+  inset:-60vh -12vw -12vh;z-index:-2;pointer-events:none;
   background:
-    radial-gradient(ellipse 72% 62% at 50% 28%,transparent 0%,
-      rgba(16,9,4,.12) 36%,rgba(16,9,4,.55) 62%,rgba(16,9,4,.88) 82%,var(--ink) 100%),
-    linear-gradient(180deg,transparent 0%,rgba(16,9,4,.06) 18%,
-      rgba(16,9,4,.42) 48%,rgba(16,9,4,.88) 76%,var(--ink) 100%);
-  opacity:calc(.78 + var(--active-ratio,0) * .22);
-  transform:translate3d(0,calc((1 - var(--active-ratio,0)) * 7vh),0);
+    radial-gradient(ellipse 75% 65% at 50% 30%,transparent 0%,
+      rgba(16,9,4,.25) 35%,rgba(16,9,4,.7) 65%,rgba(16,9,4,.95) 85%,var(--ink) 100%),
+    linear-gradient(180deg,transparent 0%,rgba(16,9,4,.12) 15%,
+      rgba(16,9,4,.5) 45%,rgba(16,9,4,.92) 75%,var(--ink) 100%);
+  opacity:calc(.85 + var(--active-ratio,0) * .15);
+  transform:translate3d(0,calc((1 - var(--active-ratio,0)) * 6vh),0);
   will-change:transform,opacity}
-/* A restrained amber bloom keeps the hand-off tied to the repaired seam. */
-#contact .section__stage::after{content:'';position:absolute;
-  left:8vw;right:8vw;top:-18vh;height:92vh;z-index:-1;pointer-events:none;
-  background:radial-gradient(ellipse 42% 28% at 50% 54%,
-    rgba(224,162,68,.1),rgba(224,162,68,.04) 42%,transparent 70%);
+/* Restrained amber bloom connecting the colophon with the kintsugi seam */
+#contact .section__stage::after{
+  content:'';position:absolute;
+  left:0;right:0;top:-20vh;height:100vh;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 48% 28% at 50% 55%,
+    rgba(224,162,68,.1),rgba(224,162,68,.03) 44%,transparent 72%);
   opacity:calc(.14 + var(--active-ratio,0) * .45);
   transform:scale(calc(.92 + var(--active-ratio,0) * .08));
-  transform-origin:50% 54%;will-change:transform,opacity}
-#contact{position:relative;width:100%;overflow-x:hidden}
+  transform-origin:50% 55%;will-change:transform,opacity}
+
+#contact{position:relative;width:100%}
 #contact .section__inner{overflow:visible;max-width:100%}
 #contact .section__stage{
-  display:flex;flex-direction:column;justify-content:center;
+  position:absolute;inset:0;width:100%;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
   isolation:isolate;z-index:0;
-  gap:clamp(24px,3.5vh,44px);
-  padding:clamp(36px,6vh,64px) var(--pad-x);
-  max-width:1200px;margin-inline:auto;width:100%;box-sizing:border-box}
-#ct-top{display:flex;justify-content:space-between;align-items:flex-start;
-  flex-wrap:wrap;gap:28px;width:100%}
-.ct-intro{display:flex;flex-direction:column;gap:12px;max-width:min(620px,100%)}
-#ct-statement{width:100%;text-transform:uppercase}
-.ct-direct-note{margin-top:2px;letter-spacing:.04em;line-height:1.5}
-.ct-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;max-width:440px}
-#ct-mid{margin:clamp(16px,calc(var(--row) * 1.6),40px) 0}
-.ct-body-grid{display:grid;grid-template-columns:1.55fr 1fr;
-  gap:clamp(28px,4vw,56px);align-items:start;width:100%}
+  padding:clamp(20px,3.8vh,48px) var(--pad-x);
+  box-sizing:border-box}
+
+.ct-wrap{
+  width:100%;max-width:1240px;margin-inline:auto;
+  display:flex;flex-direction:column;
+  gap:clamp(14px,2.2vh,28px);position:relative;z-index:1;
+  box-sizing:border-box}
+
+#ct-top{display:flex;justify-content:space-between;align-items:flex-end;
+  flex-wrap:wrap;gap:20px;width:100%}
+.ct-intro{display:flex;flex-direction:column;gap:8px;max-width:min(680px,100%)}
+#ct-statement{width:100%;text-transform:uppercase;font-size:clamp(1.15rem,2.1vw,1.8rem);line-height:1.24}
+.ct-direct-note{margin:0;letter-spacing:.03em;font-size:var(--sub2);line-height:1.45;color:var(--bone-62)}
+.ct-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:480px}
+
+#ct-mid{margin:0;width:100%}
+.ct-body-grid{display:grid;grid-template-columns:1.6fr 1fr;
+  gap:clamp(24px,3.5vw,48px);align-items:start;width:100%}
 #ct-links{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2vw,32px);
   margin-top:0}
 #ct-links h5{font-size:var(--micro);letter-spacing:.1em;text-transform:uppercase;
@@ -875,18 +886,18 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ct-made{margin-top:0;max-width:100%}
 /* running prose is set as prose, not as a caps label */
 #ct-made p.annot{font-family:var(--font-text);text-transform:none;letter-spacing:0;
-  font-size:max(.875rem,calc(14 * var(--unit)));line-height:1.6;margin-bottom:.6em}
+  font-size:max(.875rem,calc(14 * var(--unit)));line-height:1.55;margin-bottom:.55em}
 #ct-made p.annot a{text-decoration:underline;text-decoration-color:var(--gold-30);text-underline-offset:.2em}
 #ct-made h5{font-size:var(--micro);letter-spacing:.1em;text-transform:uppercase;
   color:var(--bone-62);margin:0 0 .8em}
-#ct-replay{margin-top:calc(var(--row) * 2)}
+#ct-replay{margin-top:clamp(12px,1.8vh,22px)}
 
 /* The only line about the maker, and it is the one that says the maker was not
    what was on offer. It gets the weight the name would have had. */
 #ct-line{font-size:var(--label);letter-spacing:.28em;color:var(--bone)}
 #ct-bottom{display:flex;justify-content:space-between;align-items:flex-end;
   flex-wrap:wrap;gap:var(--gap);
-  color:var(--bone-62);padding-bottom:clamp(16px,3vh,32px);width:100%}
+  color:var(--bone-62);padding-bottom:clamp(8px,1.5vh,16px);width:100%}
 
 /* ============================================================================
    RESPONSIVE
@@ -950,7 +961,12 @@ html.is-loading,html.is-loading body{overflow:hidden}
       rgba(16,9,4,.86) 0 34%,rgba(16,9,4,.6) 62%,transparent 80%)}
   #fin-bottom .t-serif,#fin-top .t-serif{
     text-shadow:0 calc(2 * var(--unit)) calc(18 * var(--unit)) rgba(16,9,4,.7)}
-  #ct-links{grid-template-columns:1fr}
+  #contact{height:auto !important;min-height:100vh}
+  #contact .section__inner{position:relative !important;height:auto !important;min-height:100vh;overflow:visible}
+  #contact .section__stage{position:relative !important;inset:auto !important;height:auto !important;
+    padding:clamp(40px,8vh,72px) var(--pad-x) clamp(32px,5vh,48px)}
+  #contact .section__stage::before{inset:-20vh -12vw -10vh}
+  #ct-links{grid-template-columns:1fr;gap:24px}
   #sound-toggle{font-size:.75rem;padding:.9em 1.2em;top:max(1rem,env(safe-area-inset-top))}
   #verdict{font-size:calc(22 * var(--unit))}
   .portal-bar{align-items:flex-start;flex-wrap:wrap;font-size:.75rem}
