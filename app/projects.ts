@@ -32,8 +32,36 @@ export type Project = {
 
 export const PROJECTS: readonly Project[] = [
   {
-    id: 'germanio',
+    id: 'atelier',
     number: '001',
+    name: 'Atelier',
+    domain: 'khaki-mocha.vercel.app',
+    url: 'https://khaki-mocha.vercel.app',
+    github: 'https://github.com/pouya-wp/atelier-intelligence',
+    year: '2026',
+    role: 'Lead Architect, 3D Graphics & AI Systems',
+    kind: 'Luxury Gold Atelier AI Management Suite',
+    tagline: 'Luxury Gold Atelier AI Management System & 3D Three.js Interactive Dashboard.',
+    overview:
+      'Atelier Intelligence is an enterprise AI management operating system and 3D interactive command center engineered for Aghigh Gold of Yazd (طلای عقیق یزد). Built with a regal Emerald & Champagne Gold design system, it orchestrates 13 specialized AI agents, interactive 3D bullion and coin inspection with studio HDRI reflection, role-based command views (Executive, Accounting, Vault, HR), and real-time fiat-to-gold weight conversion across inventory and payment deadlines.',
+    challenge:
+      'Traditional gold manufacturing and jewelry accounting systems are fragmented across disparate desktop databases, lacking real-time gold market valuation, 3D asset inspection, and automated inventory reconciliation for precious metals.',
+    approach: [
+      'Engineered real-time 3D Three.js gold bullion and coin rendering with studio HDRI environment maps and engraved hallmark stamping.',
+      'Crafted interactive tactile entrance featuring a press-and-hold wax seal simulation with bespoke audio design and golden curtain role transitions.',
+      'Architected real-time gold-indexed financial ledger: automatically converts cash receivables, supplier liabilities, and employee overtime into exact milligram gold equivalents.',
+      'Unified 13 specialized autonomous AI agents overseeing manufacturing line costs, vault balances, and executive operational reports.',
+    ],
+    outcome:
+      'An ultra-luxury, high-precision industrial management suite live at khaki-mocha.vercel.app and open-sourced on GitHub.',
+    metric: '13 integrated operational AI agents · 60 FPS studio 3D bullion rendering · Real-time milligram gold ledger conversion',
+    services: ['Creative Direction', '3D WebGL / Three.js', 'Enterprise UI/UX Architecture', 'AI Agent Orchestration'],
+    stack: ['Three.js', 'WebGL', 'JavaScript', 'Vite', 'Tailwind CSS', 'Vercel'],
+    embeddable: true,
+  },
+  {
+    id: 'germanio',
+    number: '002',
     name: 'Germanio',
     domain: 'github.com/pouya-wp/Germanio',
     url: 'https://github.com/pouya-wp/Germanio',
@@ -61,7 +89,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'nebula-plus',
-    number: '002',
+    number: '003',
     name: 'Nebula Plus',
     domain: 'github.com/pouya-wp/Nebula-Plus',
     url: 'https://github.com/pouya-wp/Nebula-Plus',
@@ -89,7 +117,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'lumi',
-    number: '003',
+    number: '004',
     name: 'Lumi',
     domain: 'lumi.beyondex.one',
     url: 'https://lumi.beyondex.one/en',
@@ -117,7 +145,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'directino',
-    number: '004',
+    number: '005',
     name: 'Directino',
     domain: 'github.com/pouya-wp/directino',
     url: 'https://github.com/pouya-wp/directino',
@@ -145,7 +173,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'beyondex',
-    number: '005',
+    number: '006',
     name: 'BeyondEx',
     domain: 'beyondex.one',
     url: 'https://beyondex.one',
@@ -171,7 +199,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'p26',
-    number: '006',
+    number: '007',
     name: 'P26',
     domain: 'p26.vercel.app',
     url: 'https://p26.vercel.app',
@@ -198,7 +226,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'sepehr',
-    number: '007',
+    number: '008',
     name: 'Sepehr',
     domain: 'sepehr.vision',
     url: 'https://sepehr.vision',
@@ -224,7 +252,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'izmab',
-    number: '008',
+    number: '009',
     name: 'Izmab',
     domain: 'izmab.vercel.app',
     url: 'https://izmab.vercel.app',
@@ -250,7 +278,7 @@ export const PROJECTS: readonly Project[] = [
   },
   {
     id: 'singclash',
-    number: '009',
+    number: '010',
     name: 'SingClash',
     domain: 'singclash.vercel.app',
     url: 'https://singclash.vercel.app',

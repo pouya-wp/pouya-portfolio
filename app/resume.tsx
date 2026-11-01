@@ -146,6 +146,17 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
             <div className="cv-projects-list">
               <div className="cv-project-item">
                 <div className="cv-proj-header">
+                  <strong>ATELIER (khaki-mocha.vercel.app &amp; github.com/pouya-wp/atelier-intelligence)</strong>
+                  <span className="cv-proj-meta">Lead Architect &middot; 3D Graphics &amp; AI Systems</span>
+                </div>
+                <p>Architected luxury gold atelier AI management system with interactive 3D Three.js bullion inspection and 13 autonomous operational agents.</p>
+                <div className="cv-proj-impact">
+                  <em>Impact:</em> 60 FPS studio PBR rendering &middot; Real-time milligram gold ledger conversion &middot; Multi-role operational command views.
+                </div>
+              </div>
+
+              <div className="cv-project-item">
+                <div className="cv-proj-header">
                   <strong>GERMANIO (github.com/pouya-wp/Germanio)</strong>
                   <span className="cv-proj-meta">Cognitive Architecture &middot; Local-First Systems Engineer</span>
                 </div>
