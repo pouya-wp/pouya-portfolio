@@ -466,13 +466,13 @@ ${shader.fragmentShader}`;
        Each spot carries its own scale, because a card at full size is 3.57 deep and
        five of them do not fit a 10.8 sheet without crowding the tools off it. */
     const LANDSCAPE_SPREAD = [
-      { x: -2.42, z: -1.42, a: .1, s: .74 }, { x: .02, z: -1.6, a: -.04, s: .74 }, { x: 2.44, z: -1.38, a: -.11, s: .74 },
-      { x: -1.24, z: 1.5, a: -.06, s: .74 }, { x: 1.28, z: 1.42, a: .08, s: .74 },
+      { x: -2.42, z: -1.42, a: .1, s: .72 }, { x: .02, z: -1.6, a: -.04, s: .72 }, { x: 2.44, z: -1.38, a: -.11, s: .72 },
+      { x: -2.42, z: 1.42, a: -.08, s: .72 }, { x: .02, z: 1.5, a: .03, s: .72 }, { x: 2.44, z: 1.42, a: .08, s: .72 },
     ];
     const PORTRAIT_SPREAD = [
-      { x: -.98, z: -2.82, a: .06, s: .68 }, { x: .98, z: -2.76, a: -.05, s: .68 },
-      { x: -.98, z: 0, a: -.04, s: .68 }, { x: .98, z: .04, a: .05, s: .68 },
-      { x: 0, z: 2.82, a: -.03, s: .68 },
+      { x: -.98, z: -2.82, a: .06, s: .66 }, { x: .98, z: -2.76, a: -.05, s: .66 },
+      { x: -.98, z: 0, a: -.04, s: .66 }, { x: .98, z: .04, a: .05, s: .66 },
+      { x: -.98, z: 2.82, a: -.03, s: .66 }, { x: .98, z: 2.86, a: .04, s: .66 },
     ];
     const cards = PROJECTS.map((project) => {
       const built = createProjectCard(project);

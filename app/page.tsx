@@ -928,7 +928,7 @@ export default function Home() {
                   <span className="sitemap-glyph">◈</span>
                   <div>
                     <h2 className="sitemap-title">SYSTEM SITEMAP // ARCHITECTURAL DIRECTORY</h2>
-                    <p className="sitemap-subtitle">11 NARRATIVE ACTS &middot; 5 TECHNICAL SHIPMENTS &middot; CHRONOLOGICAL TRAJECTORY</p>
+                    <p className="sitemap-subtitle">11 NARRATIVE ACTS &middot; 6 TECHNICAL SHIPMENTS &middot; CHRONOLOGICAL TRAJECTORY</p>
                   </div>
                 </div>
                 <button className="sitemap-close" onClick={() => setActsOpen(false)} aria-label="Close Site Map" data-cursor="CLOSE">

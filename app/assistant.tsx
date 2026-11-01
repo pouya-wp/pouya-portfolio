@@ -29,7 +29,7 @@ const KNOWLEDGE_RESPONSES = [
   },
   {
     triggers: ['project', 'work', 'portfolio', 'drawing', 'پروژه', 'نمونه کار', 'کارها'],
-    reply: `The portfolio archives five core technical shipments with measurable business impact:\n\n• SEPEHR (sepehr.vision): Steady 60fps WebGL on mobile · 0.8s First Contentful Paint · 3.4× dwell time.\n• IZMAB (izmab.vercel.app): 42% lift in conversion · 100/100 Lighthouse performance benchmark.\n• BEYONDEX (beyondex.one): Design system infrastructure powering 4 live products.\n• LUMI (lumi.beyondex.one): Zero layout shift across 6 localized RTL & LTR markets.\n• P4SADX (p4sadx.vercel.app): 11,000 Voronoi fragments in real-time · Stress-tested on 40+ hardware profiles.\n\nExplore Act IV (The Working Surface) to inspect the gilded case study cards.`,
+    reply: `The portfolio archives six core technical shipments with verified real-world impact:\n\n• SEPEHR (sepehr.vision): Cinematic director & videographer portfolio · 0.7s FCP · Steady 60fps animations.\n• IZMAB (izmab.vercel.app): Film & photography studio with 3-2-1 leader countdown and interactive cursor optics.\n• BEYONDEX (beyondex.one): Autonomous AI agent platform & control workspaces.\n• LUMI (lumi.beyondex.one): Team task management & collaboration workspace with full RTL & LTR support.\n• SINGCLASH (singclash.vercel.app): Open-source sing-box to Clash.Meta proxy middleware & dashboard.\n• P4SADX (p4sadx.vercel.app): 11,000 Voronoi fragments in real-time WebGL · Custom GLSL pipeline.\n\nExplore Act IV (The Working Surface) or open the System Sitemap to inspect any case study.`,
   },
   {
     triggers: ['resume', 'cv', 'experience', 'background', 'رزومه', 'سابقه', 'تجربه', 'استخدام', 'recruiter', 'hr'],
