@@ -1000,49 +1000,34 @@ export default function Home() {
           <div className="masthead-left">
             <button className="masthead-brand" onClick={() => go(0)} data-cursor="HOME" aria-label="Return to Beginning">
               <span className="masthead-mark">✦</span>
-              <span className="masthead-title">
-                <span className="masthead-name">
-                  <span className="brand-name-full">POUYA SADEGHPOUR</span>
-                  <span className="brand-name-short">POUYA S.</span>
-                </span>
-                <span className="masthead-sub">CREATIVE TECHNOLOGIST &amp; ARCHITECT</span>
-              </span>
+              <span className="masthead-name">POUYA SADEGHPOUR</span>
             </button>
 
             {/* Live Act Telemetry Pill */}
-            <button className="masthead-act-pill" onClick={() => setActsOpen(true)} data-cursor="MAP" aria-label="Current Act / Open Sitemap">
+            <button className="masthead-act-pill" onClick={() => setActsOpen(true)} data-cursor="INDEX" aria-label="Current Act / Open Index">
               <span className="masthead-pulse" />
               <span className="masthead-act-code" ref={mastheadActRef}>ACT I</span>
-              <span className="masthead-act-sep">/</span>
+              <span className="masthead-act-sep">&middot;</span>
               <span className="masthead-act-name" ref={mastheadActNameRef}>THE UNBROKEN</span>
-              <span className="masthead-map-kbd">MAP ◈</span>
             </button>
           </div>
 
           <nav className="masthead-nav" aria-label="Quick Navigation">
-            <button className="masthead-link is-map-btn" onClick={() => setActsOpen(o => !o)} data-cursor="MAP" aria-label="Site Map">
-              <span className="masthead-icon">☵</span>
-              <span className="map-btn-text">INDEX</span>
-            </button>
             <button className="masthead-link" onClick={() => go(ACT_LAYOUT[3].at + 0.02)} data-cursor="WORK">
               WORK
             </button>
-            <button className="masthead-link is-accent" onClick={() => setResumeOpen(true)} data-cursor="RESUME" aria-label="Resume">
-              <span>CV</span>
-              <span className="resume-suffix"> (PDF)</span>
+            <button className="masthead-link" onClick={() => setResumeOpen(true)} data-cursor="CV" aria-label="Resume">
+              CV
             </button>
             <button className="masthead-link is-oracle" onClick={() => setOracleOpen(true)} data-cursor="ORACLE" aria-label="Kintsugi Oracle">
               <span className="oracle-dot">✦</span>
               <span>ORACLE</span>
             </button>
-            <a className="masthead-link" href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" data-cursor="LINKEDIN">
-              LINKEDIN
-            </a>
-            <a className="masthead-link" href="https://github.com/pouya-wp" target="_blank" rel="noopener noreferrer" data-cursor="GITHUB">
-              GITHUB
-            </a>
+            <button className="masthead-link" onClick={() => setActsOpen(o => !o)} data-cursor="INDEX" aria-label="Site Index">
+              INDEX
+            </button>
 
-            {/* Architectural Sound Control */}
+            {/* Compact Architectural Sound Control */}
             <button
               id="sound-toggle"
               className={`masthead-sound ${sound ? 'is-on' : ''}`}
@@ -1052,16 +1037,14 @@ export default function Home() {
               aria-label={sound ? 'Mute the score' : 'Play the score'}
             >
               <span className="sound-visualizer" aria-hidden="true">
-                {[0, 1, 2, 3, 4].map(i => (
+                {[0, 1, 2, 3].map(i => (
                   <i key={i} style={{ '--i': i } as React.CSSProperties} />
                 ))}
               </span>
-              <span className="sound-label">{sound ? 'SOUND: ON' : 'SOUND: OFF'}</span>
             </button>
 
             <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT" aria-label="Contact">
-              <span className="cta-full">GET IN TOUCH &rarr;</span>
-              <span className="cta-short">TALK &rarr;</span>
+              <span>TALK &rarr;</span>
             </button>
           </nav>
         </header>

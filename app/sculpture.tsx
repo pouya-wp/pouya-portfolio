@@ -384,10 +384,10 @@ ${shader.fragmentShader}`;
        the cast rather than metal poured into it. Cold gold does not glow: the
        emissive now only carries the ignition, driven by seamHeat. */
     const seamMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xf3bd6b, metalness: 1, roughness: .28,
-      emissive: 0xffab52, emissiveIntensity: 0,
-      envMapIntensity: 2.4,
-      clearcoat: .25, clearcoatRoughness: .2, side: THREE.DoubleSide,
+      color: 0xf6c356, metalness: .85, roughness: .30,
+      emissive: 0x986616, emissiveIntensity: .16,
+      envMapIntensity: 2.2,
+      clearcoat: .35, clearcoatRoughness: .20, side: THREE.DoubleSide,
     });
     seamMaterial.onBeforeCompile = shader => {
       shader.uniforms.uDrain = drainUniform;
@@ -398,7 +398,7 @@ varying vec3 vBead;
 varying float vDrainY;
 ${shader.vertexShader}`.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vAcross = aAcross;
-        vBead = normalize(objectNormal + aSide * aAcross * .8);
+        vBead = normalize(objectNormal + aSide * aAcross * .28);
         vDrainY = (modelMatrix * vec4(position, 1.)).y;
         objectNormal = vBead;`);
       shader.fragmentShader = `varying float vAcross;
@@ -407,19 +407,16 @@ uniform float uDrain;
 ${shader.fragmentShader}`;
       shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
         float shoulder = 1. - abs(vAcross);
-        /* A poured fillet is bright across most of its width and only turns down in
-           the last of it. The old ramp started at .34 and put its highlight in a
-           pow(5) spike, so each seam read as a thin hot filament with dead edges -
-           a wire, not an inlay. Round the shoulder instead and keep the bead full. */
-        diffuseColor.rgb *= .72 + smoothstep(0., .62, shoulder) * .5;
-        diffuseColor.rgb += vec3(.42, .3, .16) * pow(shoulder, 2.2) * .3;`);
+        /* Authentic Kintsugi: urushi lacquer dusted with real 24k gold powder.
+           Rich, luminous gold that maintains warmth from all angles instead of turning black. */
+        diffuseColor.rgb = mix(vec3(.96, .77, .34), vec3(1.0, .88, .54), shoulder * .45);
+        diffuseColor.rgb += vec3(.12, .08, .02) * shoulder;`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        // polished along the crown, microscopically rougher where it meets the plaster
-        roughnessFactor = mix(.44, .13, smoothstep(0., .75, 1. - abs(vAcross)));`);
+        roughnessFactor = mix(.38, .18, smoothstep(0., .8, 1. - abs(vAcross)));`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        // uDrain sweeps a line down the object: everything above it has already run off
         float held = uDrain < 0. ? 1. : smoothstep(uDrain + .55, uDrain - .55, vDrainY);
-        totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);`);
+        totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);
+        totalEmissiveRadiance += vec3(.92, .68, .20) * .16 * (.8 + .2 * (1. - abs(vAcross)));`);
     };
     const seams = new THREE.Mesh(seamGeometry, seamMaterial);
     spinner.add(seams);

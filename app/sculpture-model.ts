@@ -386,13 +386,13 @@ export function fractureShell(mesh: SourceMesh, seeds: THREE.Vector3[], thicknes
    with a mitred join, a width that swells in the middle and thins at the ends, and
    a little irregularity so no two millimetres of it are identical. It sits in the
    crack rather than on top of it. */
-export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.BufferGeometry {
+export function seamRibbons(shards: Shard[], width = .026, lift = .0032): THREE.BufferGeometry {
   type Node = { p: THREE.Vector3; n: THREE.Vector3; links: number[] };
   const nodes: Node[] = [];
   const lookup = new Map<string, number>();
 
-  // Spatial clustering grid to weld duplicate and micro-edge vertices
-  const CELL_RES = 160; // ~6.2mm bucket resolution
+  // High-precision spatial clustering grid to weld coincident vertices without tearing cracks
+  const CELL_RES = 350; // ~2.8mm resolution
   const nodeKey = (p: THREE.Vector3) =>
     `${Math.round(p.x * CELL_RES)},${Math.round(p.y * CELL_RES)},${Math.round(p.z * CELL_RES)}`;
 
@@ -404,7 +404,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       lookup.set(k, index);
       nodes.push({ p: p.clone(), n: n.clone(), links: [] });
     } else {
-      nodes[index].p.lerp(p, 0.5);
+      nodes[index].p.add(p).multiplyScalar(0.5);
       nodes[index].n.add(n);
     }
     return index;
@@ -413,8 +413,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
   const edges = new Set<string>();
   for (const shard of shards) {
     for (const edge of shard.seam) {
-      // Filter out tiny micro-edges and slivers that cause sharp needle artifacts
-      if (edge.a.distanceTo(edge.b) < 0.012) continue;
+      if (edge.a.distanceToSquared(edge.b) < 1e-8) continue;
       const a = nodeFor(edge.a, edge.n);
       const b = nodeFor(edge.b, edge.n);
       if (a === b) continue;
@@ -427,7 +426,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
   }
   nodes.forEach(node => node.n.normalize());
 
-  /* Chain edges into continuous runs */
+  /* Chain edges into continuous uninterrupted runs */
   const used = new Set<string>();
   const runs: number[][] = [];
   const edgeKey = (a: number, b: number) => (a < b ? `${a}_${b}` : `${b}_${a}`);
@@ -448,7 +447,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
     return run;
   };
 
-  // Start at junctions (degree >= 3) and termination ends (degree === 1)
+  // Start at junctions (degree !== 2)
   for (let i = 0; i < nodes.length; i++) {
     if (nodes[i].links.length === 2) continue;
     for (const link of nodes[i].links) {
@@ -456,7 +455,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       runs.push(walk(i, link));
     }
   }
-  // Any remaining cycles (closed loops)
+  // Any closed cycles
   for (let i = 0; i < nodes.length; i++) {
     for (const link of nodes[i].links) {
       if (used.has(edgeKey(i, link))) continue;
@@ -474,13 +473,12 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
   const before = new THREE.Vector3();
   const after = new THREE.Vector3();
 
-  // Master Kintsugi: uniform, elegant width with gentle micro-organic breath (max +-3%)
-  const wobble = (i: number) => 0.98 + 0.03 * Math.sin(i * 3.7 + 0.8);
-  const beadHeight = width * 0.18; // Sleek, refined crown highlight
+  const beadHeight = width * 0.20; // Sleek, refined crown highlight
 
   for (const rawRun of runs) {
     if (rawRun.length < 2) continue;
-    const open = rawRun[0] !== rawRun[rawRun.length - 1];
+    const isStartJunction = nodes[rawRun[0]].links.length >= 2;
+    const isEndJunction = nodes[rawRun[rawRun.length - 1]].links.length >= 2;
 
     // Smooth path along run: Laplacian relaxation on internal nodes
     const runPts: THREE.Vector3[] = rawRun.map(idx => nodes[idx].p.clone());
@@ -498,10 +496,17 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       }
     }
 
-    // Generate 3 longitudinal strips across the width:
-    // row 0: left boundary (u = -1)
-    // row 1: center crown  (u = 0, raised by beadHeight)
-    // row 2: right boundary (u = 1)
+    // Extend endpoints slightly into junctions to eliminate V-gaps and holes
+    if (isStartJunction && runPts.length >= 2) {
+      const dir = new THREE.Vector3().subVectors(runPts[0], runPts[1]).normalize();
+      runPts[0].addScaledVector(dir, width * 0.35);
+    }
+    if (isEndJunction && runPts.length >= 2) {
+      const last = runPts.length - 1;
+      const dir = new THREE.Vector3().subVectors(runPts[last], runPts[last - 1]).normalize();
+      runPts[last].addScaledVector(dir, width * 0.35);
+    }
+
     const ptsL: THREE.Vector3[] = [];
     const ptsM: THREE.Vector3[] = [];
     const ptsR: THREE.Vector3[] = [];
@@ -528,22 +533,17 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       unitSide.push(sideways.clone());
 
       const t = rawRun.length > 1 ? i / (rawRun.length - 1) : 0.5;
-      const isStartJunction = nodes[rawRun[0]].links.length >= 3;
-      const isEndJunction = nodes[rawRun[rawRun.length - 1]].links.length >= 3;
 
       // Uniform width across the entire run: NO sinusoidal bulging or pinches
       let taper = 1.0;
-      if (open) {
-        // Only taper gracefully at true dead-end terminations (where a crack ends into unbroken stone)
-        if (!isStartJunction && t < 0.12) {
-          taper = Math.min(taper, 0.45 + 0.55 * (t / 0.12));
-        }
-        if (!isEndJunction && t > 0.88) {
-          taper = Math.min(taper, 0.45 + 0.55 * ((1 - t) / 0.12));
-        }
+      if (!isStartJunction && t < 0.15) {
+        taper = Math.min(taper, 0.4 + 0.6 * (t / 0.15));
       }
-      const half = width * 0.5 * taper * wobble(rawRun[i]);
+      if (!isEndJunction && t > 0.85) {
+        taper = Math.min(taper, 0.4 + 0.6 * ((1 - t) / 0.15));
+      }
 
+      const half = width * 0.5 * taper;
       const baseCenter = p.clone().addScaledVector(n, lift);
       const crownCenter = baseCenter.clone().addScaledVector(n, beadHeight * taper);
 
@@ -551,9 +551,9 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       ptsM.push(crownCenter);
       ptsR.push(baseCenter.clone().addScaledVector(sideways, half));
 
-      normL.push(new THREE.Vector3().copy(n).multiplyScalar(0.85).addScaledVector(sideways, -0.35).normalize());
+      normL.push(new THREE.Vector3().copy(n).multiplyScalar(0.92).addScaledVector(sideways, -0.25).normalize());
       normM.push(n.clone());
-      normR.push(new THREE.Vector3().copy(n).multiplyScalar(0.85).addScaledVector(sideways, 0.35).normalize());
+      normR.push(new THREE.Vector3().copy(n).multiplyScalar(0.92).addScaledVector(sideways, 0.25).normalize());
     }
 
     // Build two quad ribbons per segment (Left to Mid, Mid to Right)
@@ -593,7 +593,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
   // JUNCTION WELD DISKS / PUDDLES
   // For every node where 3 or more cracks meet, create a smooth circular weld cap
   // -------------------------------------------------------------------------
-  const RADIAL_SEGS = 12;
+  const RADIAL_SEGS = 16;
   const perpX = new THREE.Vector3();
   const perpY = new THREE.Vector3();
 
@@ -602,8 +602,8 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
     if (node.links.length < 3) continue;
 
     // Flush fillet cap matching ribbon half-width and height precisely
-    const center = node.p.clone().addScaledVector(node.n, lift + beadHeight * 0.5);
-    const weldRadius = width * 0.50;
+    const center = node.p.clone().addScaledVector(node.n, lift + beadHeight * 0.9);
+    const weldRadius = width * 0.65;
 
     if (Math.abs(node.n.x) < 0.8) {
       perpX.set(1, 0, 0).cross(node.n).normalize();
@@ -625,14 +625,14 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       const p1 = center.clone()
         .addScaledVector(perpX, cos0 * weldRadius)
         .addScaledVector(perpY, sin0 * weldRadius)
-        .addScaledVector(node.n, -beadHeight * 0.45);
+        .addScaledVector(node.n, -beadHeight * 0.75);
       const p2 = center.clone()
         .addScaledVector(perpX, cos1 * weldRadius)
         .addScaledVector(perpY, sin1 * weldRadius)
-        .addScaledVector(node.n, -beadHeight * 0.45);
+        .addScaledVector(node.n, -beadHeight * 0.75);
 
-      const radNorm0 = new THREE.Vector3().copy(node.n).multiplyScalar(0.85).addScaledVector(perpX, cos0 * 0.35).addScaledVector(perpY, sin0 * 0.35).normalize();
-      const radNorm1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.85).addScaledVector(perpX, cos1 * 0.35).addScaledVector(perpY, sin1 * 0.35).normalize();
+      const radNorm0 = new THREE.Vector3().copy(node.n).multiplyScalar(0.92).addScaledVector(perpX, cos0 * 0.25).addScaledVector(perpY, sin0 * 0.25).normalize();
+      const radNorm1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.92).addScaledVector(perpX, cos1 * 0.25).addScaledVector(perpY, sin1 * 0.25).normalize();
 
       const radSide0 = new THREE.Vector3().copy(perpX).multiplyScalar(cos0).addScaledVector(perpY, sin0);
       const radSide1 = new THREE.Vector3().copy(perpX).multiplyScalar(cos1).addScaledVector(perpY, sin1);
@@ -644,12 +644,12 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
 
       position.push(p1.x, p1.y, p1.z);
       normal.push(radNorm0.x, radNorm0.y, radNorm0.z);
-      across.push(1);
+      across.push(0.5);
       side.push(radSide0.x, radSide0.y, radSide0.z);
 
       position.push(p2.x, p2.y, p2.z);
       normal.push(radNorm1.x, radNorm1.y, radNorm1.z);
-      across.push(1);
+      across.push(0.5);
       side.push(radSide1.x, radSide1.y, radSide1.z);
     }
   }
@@ -675,7 +675,7 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
       const capRadius = width * 0.50 * 0.45;
       const center = node.p.clone().addScaledVector(node.n, lift);
 
-      const CAP_SEGS = 6;
+      const CAP_SEGS = 8;
       for (let s = 0; s < CAP_SEGS; s++) {
         const a0 = -Math.PI / 2 + (s / CAP_SEGS) * Math.PI;
         const a1 = -Math.PI / 2 + ((s + 1) / CAP_SEGS) * Math.PI;
@@ -689,12 +689,12 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
           .addScaledVector(dirOut, Math.cos(a1) * capRadius);
 
         const n0 = node.n;
-        const n1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.5)
-          .addScaledVector(capSide, Math.sin(a0) * 0.6)
-          .addScaledVector(dirOut, Math.cos(a0) * 0.6).normalize();
-        const n2 = new THREE.Vector3().copy(node.n).multiplyScalar(0.5)
-          .addScaledVector(capSide, Math.sin(a1) * 0.6)
-          .addScaledVector(dirOut, Math.cos(a1) * 0.6).normalize();
+        const n1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.92)
+          .addScaledVector(capSide, Math.sin(a0) * 0.25)
+          .addScaledVector(dirOut, Math.cos(a0) * 0.25).normalize();
+        const n2 = new THREE.Vector3().copy(node.n).multiplyScalar(0.92)
+          .addScaledVector(capSide, Math.sin(a1) * 0.25)
+          .addScaledVector(dirOut, Math.cos(a1) * 0.25).normalize();
 
         position.push(p0.x, p0.y, p0.z);
         normal.push(n0.x, n0.y, n0.z);
@@ -703,12 +703,12 @@ export function seamRibbons(shards: Shard[], width = .038, lift = .0035): THREE.
 
         position.push(p1.x, p1.y, p1.z);
         normal.push(n1.x, n1.y, n1.z);
-        across.push(1);
+        across.push(0.5);
         side.push(capSide.x, capSide.y, capSide.z);
 
         position.push(p2.x, p2.y, p2.z);
         normal.push(n2.x, n2.y, n2.z);
-        across.push(1);
+        across.push(0.5);
         side.push(capSide.x, capSide.y, capSide.z);
       }
     }

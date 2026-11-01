@@ -1070,22 +1070,24 @@ html.is-loading,html.is-loading body{overflow:hidden}
 .ct-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;max-width:480px}
 
 #ct-mid{margin:0;width:100%}
-.ct-body-grid{display:grid;grid-template-columns:1.6fr 1fr;
+.ct-body-grid{display:grid;grid-template-columns:2.2fr 1fr;
   gap:clamp(24px,3.5vw,48px);align-items:start;width:100%}
-#ct-links{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,2vw,32px);
+#ct-links{display:grid;grid-template-columns:0.95fr 1.05fr 1.9fr;gap:clamp(16px,2vw,32px);
   margin-top:0}
 #ct-links h5{font-size:var(--micro);letter-spacing:.1em;text-transform:uppercase;
   color:var(--bone-62);font-weight:400;margin-bottom:.9em}
 #ct-links a{display:block;font-size:var(--sub2);letter-spacing:.02em;margin-bottom:.35em}
 /* The wreckage, printed as flatly as a parts list. A leader rule does the work a
    table would otherwise need, and there is not one adjective in the column. */
+#ct-killed{min-width:0}
 #ct-killed ul{list-style:none;margin:.2em 0 0;padding:0}
-#ct-killed li{display:flex;align-items:baseline;gap:.7em;padding:.34em 0;
-  font-size:var(--sub2);color:var(--bone-70)}
-#ct-killed li i{flex:1;height:1px;
+#ct-killed li{display:flex;align-items:baseline;justify-content:space-between;gap:.8em;padding:.36em 0;
+  font-size:var(--sub2);color:var(--bone-70);line-height:1.4}
+#ct-killed li span:first-child{flex-shrink:1}
+#ct-killed li i{flex:1;min-width:14px;height:1px;
   background:repeating-linear-gradient(90deg,var(--bone-22) 0 2px,transparent 0 5px)}
 #ct-killed li span:last-child{font-size:var(--micro);letter-spacing:.16em;
-  text-transform:uppercase;white-space:nowrap}
+  text-transform:uppercase;white-space:nowrap;flex-shrink:0}
 
 #ct-made{margin-top:0;max-width:100%}
 /* running prose is set as prose, not as a caps label */
