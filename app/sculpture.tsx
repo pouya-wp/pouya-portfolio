@@ -391,8 +391,8 @@ ${shader.fragmentShader}`;
     /* Gold is a pure metal, so metalness is 1.0. With low roughness and clearcoat lacquer,
        it shines with blazing 24-karat specular reflections along the crown. */
     const seamMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xffc84a, metalness: 1.0, roughness: .14,
-      emissive: 0xffab52, emissiveIntensity: 0,
+      color: 0xffb824, metalness: 1.0, roughness: .14,
+      emissive: 0xff8818, emissiveIntensity: 0,
       envMapIntensity: 3.6,
       clearcoat: 1.0, clearcoatRoughness: .08, side: THREE.DoubleSide,
     });
@@ -414,8 +414,10 @@ uniform float uDrain;
 ${shader.fragmentShader}`;
       shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
         float shoulder = 1. - abs(vAcross);
-        /* 24K Japanese Kintsugi Gold: pure burnished metallic specular sheen */
-        diffuseColor.rgb = mix(vec3(1.0, 0.74, 0.26), vec3(1.0, 0.94, 0.60), pow(shoulder, 1.8) * .7);`);
+        /* Rich 24K Japanese Kintsugi Gold: intense molten metallic saturation */
+        vec3 kFlank = vec3(1.0, 0.68, 0.14);
+        vec3 kCrown = vec3(1.0, 0.86, 0.32);
+        diffuseColor.rgb = mix(kFlank, kCrown, pow(shoulder, 1.6) * .75);`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         // High-gloss polished mirror along the crown, subtle micro-tooth at the plaster edge
         roughnessFactor = mix(.26, .09, smoothstep(0., .75, 1. - abs(vAcross)));`);
@@ -427,20 +429,19 @@ ${shader.fragmentShader}`;
         float viewDot = clamp(dot(normal, normalize(-vViewPosition)), 0.0, 1.0);
         float rimFresnel = pow(1.0 - viewDot, 3.0);
 
-        // Pure 24K Imperial Gold tones: glowing burnished gold crown, rich amber flanks
-        vec3 goldCrown = vec3(1.0, 0.82, 0.38);
-        vec3 goldFlank = vec3(0.85, 0.58, 0.16);
-        vec3 goldBase = mix(goldFlank, goldCrown, pow(shoulder, 1.5));
+        // Dense, radiant 24K Imperial Gold tones: deep warm amber flanks, brilliant burnished crown
+        vec3 goldCrown = vec3(1.0, 0.82, 0.22);
+        vec3 goldFlank = vec3(0.92, 0.58, 0.10);
+        vec3 goldBase = mix(goldFlank, goldCrown, pow(shoulder, 1.4));
 
         // Metallic specular boost
         outgoingLight *= 1.30;
 
-        // Essential Kintsugi golden floor: in shadow, gold retains its rich luminous golden identity
-        // instead of disappearing into pitch black darkness!
-        outgoingLight = max(outgoingLight, goldBase * (0.35 + 0.35 * shoulder));
+        // Rich golden baseline floor: ensures deep, glowing molten gold presence even in soft shadow
+        outgoingLight = max(outgoingLight, goldBase * (0.42 + 0.38 * shoulder));
 
-        // Glancing clearcoat lacquer sheen
-        outgoingLight += vec3(1.0, 0.90, 0.60) * rimFresnel * 0.35;
+        // Warm lacquer fresnel sheen along glancing silhouettes
+        outgoingLight += vec3(1.0, 0.84, 0.35) * rimFresnel * 0.40;
 
         #include <opaque_fragment>
       `);
@@ -1185,7 +1186,7 @@ ${shader.fragmentShader}`;
       seamHeatUniform.value = seamHeat;
       // cold metal is lit, not lit up; only the ignition puts light into it
       seamMaterial.emissiveIntensity = seamHeat * 7;
-      seamMaterial.color.setHex(0xffc84a).lerp(SEAM_HOT, seamHeat);
+      seamMaterial.color.setHex(0xffb824).lerp(SEAM_HOT, seamHeat);
       /* The reader's path, recorded. Act five resamples it to thirty points and the
          cloud converges on those, so the shape that resolves at the end of the piece
          is the one the person watching has been drawing all along. Nothing here
