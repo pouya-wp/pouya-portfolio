@@ -386,11 +386,15 @@ export function fractureShell(mesh: SourceMesh, seeds: THREE.Vector3[], thicknes
    with a mitred join, a width that swells in the middle and thins at the ends, and
    a little irregularity so no two millimetres of it are identical. It sits in the
    crack rather than on top of it. */
-export function seamRibbons(shards: Shard[], width = .058, lift = .004): THREE.BufferGeometry {
+export function seamRibbons(shards: Shard[], width = .060, lift = .004): THREE.BufferGeometry {
   type Node = { p: THREE.Vector3; n: THREE.Vector3; links: number[] };
   const nodes: Node[] = [];
   const lookup = new Map<string, number>();
-  const nodeKey = (p: THREE.Vector3) => `${Math.round(p.x * 2e3)},${Math.round(p.y * 2e3)},${Math.round(p.z * 2e3)}`;
+
+  // Spatial clustering grid to weld duplicate and micro-edge vertices
+  const CELL_RES = 160; // ~6.2mm bucket resolution
+  const nodeKey = (p: THREE.Vector3) =>
+    `${Math.round(p.x * CELL_RES)},${Math.round(p.y * CELL_RES)},${Math.round(p.z * CELL_RES)}`;
 
   const nodeFor = (p: THREE.Vector3, n: THREE.Vector3) => {
     const k = nodeKey(p);
@@ -399,14 +403,20 @@ export function seamRibbons(shards: Shard[], width = .058, lift = .004): THREE.B
       index = nodes.length;
       lookup.set(k, index);
       nodes.push({ p: p.clone(), n: n.clone(), links: [] });
-    } else nodes[index].n.add(n);
+    } else {
+      nodes[index].p.lerp(p, 0.5);
+      nodes[index].n.add(n);
+    }
     return index;
   };
 
   const edges = new Set<string>();
   for (const shard of shards) {
     for (const edge of shard.seam) {
-      const a = nodeFor(edge.a, edge.n), b = nodeFor(edge.b, edge.n);
+      // Filter out tiny micro-edges and slivers that cause sharp needle artifacts
+      if (edge.a.distanceTo(edge.b) < 0.012) continue;
+      const a = nodeFor(edge.a, edge.n);
+      const b = nodeFor(edge.b, edge.n);
       if (a === b) continue;
       const k = a < b ? `${a}_${b}` : `${b}_${a}`;
       if (edges.has(k)) continue;
@@ -417,7 +427,7 @@ export function seamRibbons(shards: Shard[], width = .058, lift = .004): THREE.B
   }
   nodes.forEach(node => node.n.normalize());
 
-  /* chain the edges into runs, breaking wherever three or more cracks meet */
+  /* Chain edges into continuous runs */
   const used = new Set<string>();
   const runs: number[][] = [];
   const edgeKey = (a: number, b: number) => (a < b ? `${a}_${b}` : `${b}_${a}`);
@@ -425,26 +435,28 @@ export function seamRibbons(shards: Shard[], width = .058, lift = .004): THREE.B
   const walk = (start: number, first: number) => {
     const run = [start, first];
     used.add(edgeKey(start, first));
-    let previous = start, current = first;
-    // follow while the crack keeps going straight through, i.e. degree two
+    let previous = start;
+    let current = first;
     while (nodes[current].links.length === 2) {
       const next = nodes[current].links.find(n => n !== previous);
       if (next === undefined || used.has(edgeKey(current, next))) break;
       used.add(edgeKey(current, next));
       run.push(next);
-      previous = current; current = next;
+      previous = current;
+      current = next;
     }
     return run;
   };
 
+  // Start at junctions (degree >= 3) and termination ends (degree === 1)
   for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].links.length === 2) continue;             // start at junctions and ends
+    if (nodes[i].links.length === 2) continue;
     for (const link of nodes[i].links) {
       if (used.has(edgeKey(i, link))) continue;
       runs.push(walk(i, link));
     }
   }
-  // whatever is left is a closed loop
+  // Any remaining cycles (closed loops)
   for (let i = 0; i < nodes.length; i++) {
     for (const link of nodes[i].links) {
       if (used.has(edgeKey(i, link))) continue;
@@ -452,55 +464,248 @@ export function seamRibbons(shards: Shard[], width = .058, lift = .004): THREE.B
     }
   }
 
-  const position: number[] = [], normal: number[] = [], across: number[] = [], side: number[] = [];
-  const tangent = new THREE.Vector3(), sideways = new THREE.Vector3();
-  const before = new THREE.Vector3(), after = new THREE.Vector3();
-  const left: THREE.Vector3[] = [], right: THREE.Vector3[] = [], unit: THREE.Vector3[] = [];
+  const position: number[] = [];
+  const normal: number[] = [];
+  const across: number[] = [];
+  const side: number[] = [];
 
-  const wobble = (i: number) => .78 + .22 * Math.sin(i * 12.9898) * Math.sin(i * 4.1414 + 1.7);
+  const tangent = new THREE.Vector3();
+  const sideways = new THREE.Vector3();
+  const before = new THREE.Vector3();
+  const after = new THREE.Vector3();
 
-  for (const run of runs) {
-    if (run.length < 2) continue;
-    const open = run[0] !== run[run.length - 1];
-    left.length = right.length = unit.length = 0;
+  const wobble = (i: number) => 0.88 + 0.14 * Math.sin(i * 7.13 + 1.2);
+  const beadHeight = width * 0.32; // Real 3D convex crown elevation
 
-    for (let i = 0; i < run.length; i++) {
-      const node = nodes[run[i]];
-      // the mitre: average the direction coming in and the direction going out
+  for (const rawRun of runs) {
+    if (rawRun.length < 2) continue;
+    const open = rawRun[0] !== rawRun[rawRun.length - 1];
+
+    // Smooth path along run: Laplacian relaxation on internal nodes
+    const runPts: THREE.Vector3[] = rawRun.map(idx => nodes[idx].p.clone());
+    const runNorms: THREE.Vector3[] = rawRun.map(idx => nodes[idx].n.clone());
+
+    if (runPts.length >= 3) {
+      for (let iter = 0; iter < 2; iter++) {
+        for (let i = 1; i < runPts.length - 1; i++) {
+          runPts[i].set(
+            0.25 * runPts[i - 1].x + 0.5 * runPts[i].x + 0.25 * runPts[i + 1].x,
+            0.25 * runPts[i - 1].y + 0.5 * runPts[i].y + 0.25 * runPts[i + 1].y,
+            0.25 * runPts[i - 1].z + 0.5 * runPts[i].z + 0.25 * runPts[i + 1].z,
+          );
+        }
+      }
+    }
+
+    // Generate 3 longitudinal strips across the width:
+    // row 0: left boundary (u = -1)
+    // row 1: center crown  (u = 0, raised by beadHeight)
+    // row 2: right boundary (u = 1)
+    const ptsL: THREE.Vector3[] = [];
+    const ptsM: THREE.Vector3[] = [];
+    const ptsR: THREE.Vector3[] = [];
+
+    const normL: THREE.Vector3[] = [];
+    const normM: THREE.Vector3[] = [];
+    const normR: THREE.Vector3[] = [];
+
+    const unitSide: THREE.Vector3[] = [];
+
+    for (let i = 0; i < rawRun.length; i++) {
+      const p = runPts[i];
+      const n = runNorms[i];
+
       tangent.set(0, 0, 0);
-      if (i > 0) tangent.add(before.subVectors(node.p, nodes[run[i - 1]].p).normalize());
-      if (i < run.length - 1) tangent.add(after.subVectors(nodes[run[i + 1]].p, node.p).normalize());
-      if (tangent.lengthSq() < 1e-10) tangent.set(1, 0, 0);
+      if (i > 0) tangent.add(before.subVectors(p, runPts[i - 1]).normalize());
+      if (i < rawRun.length - 1) tangent.add(after.subVectors(runPts[i + 1], p).normalize());
+      if (tangent.lengthSq() < 1e-8) tangent.set(1, 0, 0);
       tangent.normalize();
 
-      sideways.crossVectors(node.n, tangent);
-      if (sideways.lengthSq() < 1e-10) sideways.set(0, 1, 0);
+      sideways.crossVectors(n, tangent);
+      if (sideways.lengthSq() < 1e-8) sideways.set(0, 1, 0);
       sideways.normalize();
-      unit.push(sideways.clone());
+      unitSide.push(sideways.clone());
 
-      // a run of metal swells where it was poured and thins where it ran out
-      const t = run.length > 1 ? i / (run.length - 1) : .5;
-      const taper = open ? .45 + .55 * Math.pow(Math.sin(Math.PI * t), .45) : 1;
-      const half = width * .5 * taper * wobble(run[i]);
-      const centre = node.p.clone().addScaledVector(node.n, lift);
-      left.push(centre.clone().addScaledVector(sideways, half));
-      right.push(centre.clone().addScaledVector(sideways, -half));
+      const t = rawRun.length > 1 ? i / (rawRun.length - 1) : 0.5;
+      const isStartJunction = nodes[rawRun[0]].links.length >= 3;
+      const isEndJunction = nodes[rawRun[rawRun.length - 1]].links.length >= 3;
+      let taper = 1.0;
+      if (open) {
+        const startTaper = isStartJunction ? 1.0 : (0.55 + 0.45 * Math.sin(t * Math.PI));
+        const endTaper = isEndJunction ? 1.0 : (0.55 + 0.45 * Math.sin(t * Math.PI));
+        taper = Math.min(startTaper, endTaper);
+      }
+      const half = width * 0.5 * taper * wobble(rawRun[i]);
+
+      const baseCenter = p.clone().addScaledVector(n, lift);
+      const crownCenter = baseCenter.clone().addScaledVector(n, beadHeight * taper);
+
+      ptsL.push(baseCenter.clone().addScaledVector(sideways, -half));
+      ptsM.push(crownCenter);
+      ptsR.push(baseCenter.clone().addScaledVector(sideways, half));
+
+      normL.push(new THREE.Vector3().copy(n).multiplyScalar(0.4).addScaledVector(sideways, -0.85).normalize());
+      normM.push(n.clone());
+      normR.push(new THREE.Vector3().copy(n).multiplyScalar(0.4).addScaledVector(sideways, 0.85).normalize());
     }
 
-    for (let i = 0; i < run.length - 1; i++) {
-      const n0 = nodes[run[i]].n, n1 = nodes[run[i + 1]].n;
-      const quad = [left[i], right[i], right[i + 1], left[i + 1]];
-      const norms = [n0, n0, n1, n1];
-      const sides = [unit[i], unit[i], unit[i + 1], unit[i + 1]];
-      const t = [1, -1, -1, 1];
-      for (const [x, y, z] of [[0, 1, 2], [0, 2, 3]] as const) {
-        for (const index of [x, y, z]) {
-          const p = quad[index], n = norms[index], u = sides[index];
-          position.push(p.x, p.y, p.z);
-          normal.push(n.x, n.y, n.z);
-          across.push(t[index]);
-          side.push(u.x, u.y, u.z);
-        }
+    // Build two quad ribbons per segment (Left to Mid, Mid to Right)
+    for (let i = 0; i < rawRun.length - 1; i++) {
+      const u0 = unitSide[i];
+      const u1 = unitSide[i + 1];
+
+      // Left half: ptsL[i], ptsM[i], ptsM[i+1], ptsL[i+1]
+      const quadLM = [ptsL[i], ptsM[i], ptsM[i + 1], ptsL[i + 1]];
+      const normLM = [normL[i], normM[i], normM[i + 1], normL[i + 1]];
+      const sideLM = [u0, u0, u1, u1];
+      const acrossLM = [-1, 0, 0, -1];
+
+      for (const idx of [0, 1, 2, 0, 2, 3]) {
+        position.push(quadLM[idx].x, quadLM[idx].y, quadLM[idx].z);
+        normal.push(normLM[idx].x, normLM[idx].y, normLM[idx].z);
+        across.push(acrossLM[idx]);
+        side.push(sideLM[idx].x, sideLM[idx].y, sideLM[idx].z);
+      }
+
+      // Right half: ptsM[i], ptsR[i], ptsR[i+1], ptsM[i+1]
+      const quadMR = [ptsM[i], ptsR[i], ptsR[i + 1], ptsM[i + 1]];
+      const normMR = [normM[i], normR[i], normR[i + 1], normM[i + 1]];
+      const sideMR = [u0, u0, u1, u1];
+      const acrossMR = [0, 1, 1, 0];
+
+      for (const idx of [0, 1, 2, 0, 2, 3]) {
+        position.push(quadMR[idx].x, quadMR[idx].y, quadMR[idx].z);
+        normal.push(normMR[idx].x, normMR[idx].y, normMR[idx].z);
+        across.push(acrossMR[idx]);
+        side.push(sideMR[idx].x, sideMR[idx].y, sideMR[idx].z);
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // JUNCTION WELD DISKS / PUDDLES
+  // For every node where 3 or more cracks meet, create a smooth circular weld cap
+  // -------------------------------------------------------------------------
+  const RADIAL_SEGS = 12;
+  const perpX = new THREE.Vector3();
+  const perpY = new THREE.Vector3();
+
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.links.length < 3) continue;
+
+    const center = node.p.clone().addScaledVector(node.n, lift + beadHeight * 0.95);
+    const weldRadius = width * 0.62;
+
+    if (Math.abs(node.n.x) < 0.8) {
+      perpX.set(1, 0, 0).cross(node.n).normalize();
+    } else {
+      perpX.set(0, 1, 0).cross(node.n).normalize();
+    }
+    perpY.crossVectors(node.n, perpX).normalize();
+
+    for (let s = 0; s < RADIAL_SEGS; s++) {
+      const a0 = (s / RADIAL_SEGS) * Math.PI * 2;
+      const a1 = ((s + 1) / RADIAL_SEGS) * Math.PI * 2;
+
+      const cos0 = Math.cos(a0);
+      const sin0 = Math.sin(a0);
+      const cos1 = Math.cos(a1);
+      const sin1 = Math.sin(a1);
+
+      const p0 = center;
+      const p1 = center.clone()
+        .addScaledVector(perpX, cos0 * weldRadius)
+        .addScaledVector(perpY, sin0 * weldRadius)
+        .addScaledVector(node.n, -beadHeight * 0.7);
+      const p2 = center.clone()
+        .addScaledVector(perpX, cos1 * weldRadius)
+        .addScaledVector(perpY, sin1 * weldRadius)
+        .addScaledVector(node.n, -beadHeight * 0.7);
+
+      const radNorm0 = new THREE.Vector3().copy(node.n).multiplyScalar(0.4)
+        .addScaledVector(perpX, cos0 * 0.8)
+        .addScaledVector(perpY, sin0 * 0.8).normalize();
+      const radNorm1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.4)
+        .addScaledVector(perpX, cos1 * 0.8)
+        .addScaledVector(perpY, sin1 * 0.8).normalize();
+
+      const radSide0 = new THREE.Vector3().copy(perpX).multiplyScalar(cos0).addScaledVector(perpY, sin0);
+      const radSide1 = new THREE.Vector3().copy(perpX).multiplyScalar(cos1).addScaledVector(perpY, sin1);
+
+      position.push(p0.x, p0.y, p0.z);
+      normal.push(node.n.x, node.n.y, node.n.z);
+      across.push(0);
+      side.push(radSide0.x, radSide0.y, radSide0.z);
+
+      position.push(p1.x, p1.y, p1.z);
+      normal.push(radNorm0.x, radNorm0.y, radNorm0.z);
+      across.push(1);
+      side.push(radSide0.x, radSide0.y, radSide0.z);
+
+      position.push(p2.x, p2.y, p2.z);
+      normal.push(radNorm1.x, radNorm1.y, radNorm1.z);
+      across.push(1);
+      side.push(radSide1.x, radSide1.y, radSide1.z);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // ROUNDED TERMINATION END-CAPS (Degree 1 nodes)
+  // Replaces harsh severed square ends with smooth molten droplets
+  // -------------------------------------------------------------------------
+  for (const rawRun of runs) {
+    if (rawRun.length < 2) continue;
+    if (rawRun[0] === rawRun[rawRun.length - 1]) continue;
+
+    for (const [nodeIdx, isStart] of [[rawRun[0], true], [rawRun[rawRun.length - 1], false]] as const) {
+      const node = nodes[nodeIdx];
+      if (node.links.length !== 1) continue;
+
+      const neighborIdx = isStart ? rawRun[1] : rawRun[rawRun.length - 2];
+      const dirOut = isStart
+        ? new THREE.Vector3().subVectors(node.p, nodes[neighborIdx].p).normalize()
+        : new THREE.Vector3().subVectors(node.p, nodes[neighborIdx].p).normalize();
+
+      const capSide = new THREE.Vector3().crossVectors(node.n, dirOut).normalize();
+      const capRadius = width * 0.46;
+      const center = node.p.clone().addScaledVector(node.n, lift);
+
+      const CAP_SEGS = 6;
+      for (let s = 0; s < CAP_SEGS; s++) {
+        const a0 = -Math.PI / 2 + (s / CAP_SEGS) * Math.PI;
+        const a1 = -Math.PI / 2 + ((s + 1) / CAP_SEGS) * Math.PI;
+
+        const p0 = center;
+        const p1 = center.clone()
+          .addScaledVector(capSide, Math.sin(a0) * capRadius)
+          .addScaledVector(dirOut, Math.cos(a0) * capRadius);
+        const p2 = center.clone()
+          .addScaledVector(capSide, Math.sin(a1) * capRadius)
+          .addScaledVector(dirOut, Math.cos(a1) * capRadius);
+
+        const n0 = node.n;
+        const n1 = new THREE.Vector3().copy(node.n).multiplyScalar(0.5)
+          .addScaledVector(capSide, Math.sin(a0) * 0.6)
+          .addScaledVector(dirOut, Math.cos(a0) * 0.6).normalize();
+        const n2 = new THREE.Vector3().copy(node.n).multiplyScalar(0.5)
+          .addScaledVector(capSide, Math.sin(a1) * 0.6)
+          .addScaledVector(dirOut, Math.cos(a1) * 0.6).normalize();
+
+        position.push(p0.x, p0.y, p0.z);
+        normal.push(n0.x, n0.y, n0.z);
+        across.push(0);
+        side.push(capSide.x, capSide.y, capSide.z);
+
+        position.push(p1.x, p1.y, p1.z);
+        normal.push(n1.x, n1.y, n1.z);
+        across.push(1);
+        side.push(capSide.x, capSide.y, capSide.z);
+
+        position.push(p2.x, p2.y, p2.z);
+        normal.push(n2.x, n2.y, n2.z);
+        across.push(1);
+        side.push(capSide.x, capSide.y, capSide.z);
       }
     }
   }
