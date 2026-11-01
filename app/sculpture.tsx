@@ -388,13 +388,13 @@ ${shader.fragmentShader}`;
        strong orange emissive on top, is why the repairs looked like hot wire laid on
        the cast rather than metal poured into it. Cold gold does not glow: the
        emissive now only carries the ignition, driven by seamHeat. */
-    /* Gold is a pure metal, so metalness is 1.0. With low roughness and clearcoat lacquer,
-       it shines with blazing 24-karat specular reflections along the crown. */
+    /* Authentic 24K Japanese Kintsugi (金継ぎ):
+       High metalness conductor with deep amber-bronze Urushi base and brilliant specular crown. */
     const seamMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xffb824, metalness: 1.0, roughness: .14,
+      color: 0xdb8e20, metalness: 0.92, roughness: 0.20,
       emissive: 0xff8818, emissiveIntensity: 0,
-      envMapIntensity: 3.6,
-      clearcoat: 1.0, clearcoatRoughness: .08, side: THREE.DoubleSide,
+      envMapIntensity: 2.8,
+      clearcoat: 0.45, clearcoatRoughness: 0.15, side: THREE.DoubleSide,
     });
     seamMaterial.onBeforeCompile = shader => {
       shader.uniforms.uDrain = drainUniform;
@@ -405,7 +405,7 @@ varying vec3 vBead;
 varying float vDrainY;
 ${shader.vertexShader}`.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vAcross = aAcross;
-        vBead = normalize(objectNormal + aSide * aAcross * .40);
+        vBead = normalize(objectNormal + aSide * aAcross * .75);
         vDrainY = (modelMatrix * vec4(position, 1.)).y;
         objectNormal = vBead;`);
       shader.fragmentShader = `varying float vAcross;
@@ -414,37 +414,18 @@ uniform float uDrain;
 ${shader.fragmentShader}`;
       shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
         float shoulder = 1. - abs(vAcross);
-        /* Rich 24K Japanese Kintsugi Gold: intense molten metallic saturation */
-        vec3 kFlank = vec3(1.0, 0.68, 0.14);
-        vec3 kCrown = vec3(1.0, 0.86, 0.32);
-        diffuseColor.rgb = mix(kFlank, kCrown, pow(shoulder, 1.6) * .75);`);
+        /* Authentic Japanese Kintsugi (金継ぎ):
+           Deep amber-bronze lacquer base at flanks, radiant 24K molten gold along the crown */
+        vec3 deepGold = vec3(0.82, 0.48, 0.10);
+        vec3 crownGold = vec3(1.18, 0.80, 0.22);
+        diffuseColor.rgb = mix(deepGold, crownGold, pow(shoulder, 1.8));`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        // High-gloss polished mirror along the crown, subtle micro-tooth at the plaster edge
-        roughnessFactor = mix(.26, .09, smoothstep(0., .75, 1. - abs(vAcross)));`);
+        // Mirror polish along the crown, fine satin tooth where it meets the plaster
+        roughnessFactor = mix(0.38, 0.12, smoothstep(0., 0.8, shoulder));`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         // uDrain sweeps a line down the object: everything above it has already run off
         float held = uDrain < 0. ? 1. : smoothstep(uDrain + .55, uDrain - .55, vDrainY);
-        totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);`);
-      shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
-        float viewDot = clamp(dot(normal, normalize(-vViewPosition)), 0.0, 1.0);
-        float rimFresnel = pow(1.0 - viewDot, 3.0);
-
-        // Dense, radiant 24K Imperial Gold tones: deep warm amber flanks, brilliant burnished crown
-        vec3 goldCrown = vec3(1.0, 0.82, 0.22);
-        vec3 goldFlank = vec3(0.92, 0.58, 0.10);
-        vec3 goldBase = mix(goldFlank, goldCrown, pow(shoulder, 1.4));
-
-        // Metallic specular boost
-        outgoingLight *= 1.30;
-
-        // Rich golden baseline floor: ensures deep, glowing molten gold presence even in soft shadow
-        outgoingLight = max(outgoingLight, goldBase * (0.42 + 0.38 * shoulder));
-
-        // Warm lacquer fresnel sheen along glancing silhouettes
-        outgoingLight += vec3(1.0, 0.84, 0.35) * rimFresnel * 0.40;
-
-        #include <opaque_fragment>
-      `);
+        totalEmissiveRadiance *= pow(shoulder, 1.4) * mix(.12, 1., held);`);
     };
     const seams = new THREE.Mesh(seamGeometry, seamMaterial);
     spinner.add(seams);
@@ -1186,7 +1167,7 @@ ${shader.fragmentShader}`;
       seamHeatUniform.value = seamHeat;
       // cold metal is lit, not lit up; only the ignition puts light into it
       seamMaterial.emissiveIntensity = seamHeat * 7;
-      seamMaterial.color.setHex(0xffb824).lerp(SEAM_HOT, seamHeat);
+      seamMaterial.color.setHex(0xdb8e20).lerp(SEAM_HOT, seamHeat);
       /* The reader's path, recorded. Act five resamples it to thirty points and the
          cloud converges on those, so the shape that resolves at the end of the piece
          is the one the person watching has been drawing all along. Nothing here
