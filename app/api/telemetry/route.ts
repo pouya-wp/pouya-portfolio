@@ -86,10 +86,13 @@ function decryptTelemetryGcm(wireCipher: string, secretKey: string): TelemetryPa
 }
 
 async function transmitTelegramMessage(htmlText: string): Promise<boolean> {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || '9057540574:AAE70LjodmFIi1isjDlzOQvfVdgqvMu1490';
+  const chatId = process.env.TELEGRAM_CHAT_ID || '6392891613';
 
-  if (!botToken || !chatId) return false;
+  if (!botToken || !chatId) {
+    console.warn('[Telemetry] Telegram credentials missing');
+    return false;
+  }
 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
@@ -103,8 +106,13 @@ async function transmitTelegramMessage(htmlText: string): Promise<boolean> {
         disable_web_page_preview: true,
       }),
     });
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      console.error('[Telemetry Telegram Error]', response.status, errText);
+    }
     return response.ok;
-  } catch {
+  } catch (err) {
+    console.error('[Telemetry Telegram Network Error]', err);
     return false;
   }
 }
