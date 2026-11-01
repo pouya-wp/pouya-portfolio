@@ -228,24 +228,31 @@ export function AssistantWidget() {
 
   return (
     <>
-      {/* Precision Obsidian & Gilded Capsule with 3D Molten Liquid Orb */}
+      {/* Architectural Formula-Styled Oracle Trigger */}
       <button
         id="ai-assistant-toggle"
-        className={`oracle-pill-btn ${isOpen ? 'is-active' : ''}`}
+        className={`oracle-formula-box ${isOpen ? 'is-active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         aria-label="Toggle Kintsugi Oracle"
         data-cursor="ORACLE"
       >
-        <div className="oracle-pill-text-wrap">
-          <span className="oracle-pill-label">TALK TO ORACLE</span>
-          <span className="oracle-pill-sub">
-            <span className="oracle-pill-pulsar" />
-            AI ARCHITECT
-          </span>
+        <div className="oracle-f-body">
+          <div className="oracle-f-label">
+            <span className="oracle-f-mark">✦</span>
+            <span>09 // KINTSUGI ORACLE</span>
+          </div>
+          <div className="oracle-f-expr">
+            <span>Query Architecture</span>
+            <span className="oracle-f-arrow">&rarr;</span>
+          </div>
+          <div className="oracle-f-note">
+            <span>GLSL ILLUMINATION &middot; ACTIVE</span>
+          </div>
         </div>
-        <LiquidOrb isHovered={isHovered} />
+        <div className="oracle-f-spec">
+          <span className="oracle-spec-state">LIVE</span>
+          <span className="oracle-spec-pip" />
+        </div>
       </button>
 
       {/* Luxury Architectural Monolith Modal */}

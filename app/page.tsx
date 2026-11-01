@@ -876,7 +876,7 @@ export default function Home() {
               GITHUB
             </a>
             <button className="masthead-cta" onClick={() => go(1)} data-cursor="CONTACT">
-              <span className="pill-dot" />GET IN TOUCH
+              GET IN TOUCH &rarr;
             </button>
           </nav>
         </header>
@@ -1262,10 +1262,15 @@ export default function Home() {
               <div className="section__inner">
                 <div className="section__stage">
                   <div id="ct-top" className="blk" data-lit="0.1,1">
-                    <h2 id="ct-statement" className="t-h3">
-                      <Reveal>If a constraint can build this,</Reveal><br />
-                      <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
-                    </h2>
+                    <div className="ct-intro">
+                      <h2 id="ct-statement" className="t-h3">
+                        <Reveal>If a constraint can build this,</Reveal><br />
+                        <em><Reveal delay={220}>imagine what it can build for you.</Reveal></em>
+                      </h2>
+                      <p className="annot t-dim ct-direct-note">
+                        Inquiries &amp; Discovery: Direct via <a href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>LinkedIn</a>, <a href="https://t.me/pouya_dmg" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Telegram</a>, or <a href="mailto:pouyas.one@outlook.com" style={{ textDecoration: 'underline' }}>pouyas.one@outlook.com</a>
+                      </p>
+                    </div>
                     <div className="ct-actions">
                       {CONTACT.email && (
                         <a className="pill is-gold" href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('A project')}`} data-cursor="WRITE"
@@ -1284,14 +1289,11 @@ export default function Home() {
                         </button>
                       )}
                     </div>
-                    <p className="annot t-dim" style={{ marginTop: '14px', letterSpacing: '0.04em' }}>
-                      Inquiries &amp; Discovery: Direct via <a href="https://linkedin.com/in/onepouya" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>LinkedIn</a>, <a href="https://t.me/pouya_dmg" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>Telegram</a>, or <a href="mailto:pouyas.one@outlook.com" style={{ textDecoration: 'underline' }}>pouyas.one@outlook.com</a>
-                    </p>
                   </div>
 
                   <div id="ct-mid" className="o-dash blk" data-lit="0.1,1" />
 
-                  <div>
+                  <div className="ct-body-grid">
                     <div id="ct-links" className="blk" data-lit="0.1,1">
                       <div>
                         <h3 className="ct-h">Selected work</h3>
