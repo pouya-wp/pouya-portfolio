@@ -277,6 +277,8 @@ export default function Home() {
   const alignRef = useRef<HTMLSpanElement>(null);
   const compassRef = useRef<HTMLElement>(null);
   const actProgressRef = useRef<HTMLSpanElement>(null);
+  const mastheadActRef = useRef<HTMLSpanElement>(null);
+  const mastheadActNameRef = useRef<HTMLSpanElement>(null);
   const alignBarRef = useRef<HTMLElement>(null);
   /* Focus goes back to whatever opened the case study. Declared up here with the
      rest rather than beside the handlers, because the compiler will not accept a ref
@@ -479,6 +481,12 @@ export default function Home() {
         if (actProgressRef.current) {
           actProgressRef.current.textContent = `${index + 1} / ${ACT_LAYOUT.length}`;
         }
+        if (mastheadActRef.current) {
+          mastheadActRef.current.textContent = ACT_LAYOUT[index]?.roman || 'ACT I';
+        }
+        if (mastheadActNameRef.current) {
+          mastheadActNameRef.current.textContent = ACT_LAYOUT[index]?.name || '';
+        }
         if (compassRef.current) {
           const btns = compassRef.current.querySelectorAll('.compass-items button');
           btns.forEach((btn, i) => {
@@ -573,6 +581,11 @@ export default function Home() {
     /* It used to be the space bar, which is also how a keyboard scrolls a page by a
        screen - so holding it here took page-down away from anyone not using a mouse. */
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActsOpen(false);
+        setResumeOpen(false);
+        return;
+      }
       if (e.code !== 'KeyZ' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -855,14 +868,30 @@ export default function Home() {
       <div id="ui" className={light ? 'is-light' : ''}>
         {/* Architectural Floating Masthead / Quick Navigation */}
         <header id="masthead" className={chrome} aria-label="Main Navigation">
-          <button className="masthead-brand" onClick={() => go(0)} data-cursor="HOME" aria-label="Return to Beginning">
-            <span className="masthead-mark">✦</span>
-            <span className="masthead-title">
-              <span className="masthead-name">POUYA SADEGHPOUR</span>
-              <span className="masthead-sub">CREATIVE TECHNOLOGIST &amp; ARCHITECT</span>
-            </span>
-          </button>
+          <div className="masthead-left">
+            <button className="masthead-brand" onClick={() => go(0)} data-cursor="HOME" aria-label="Return to Beginning">
+              <span className="masthead-mark">✦</span>
+              <span className="masthead-title">
+                <span className="masthead-name">POUYA SADEGHPOUR</span>
+                <span className="masthead-sub">CREATIVE TECHNOLOGIST &amp; ARCHITECT</span>
+              </span>
+            </button>
+
+            {/* Live Act Telemetry Pill */}
+            <button className="masthead-act-pill" onClick={() => setActsOpen(true)} data-cursor="MAP" aria-label="Current Act / Open Sitemap">
+              <span className="masthead-pulse" />
+              <span className="masthead-act-code" ref={mastheadActRef}>ACT I</span>
+              <span className="masthead-act-sep">/</span>
+              <span className="masthead-act-name" ref={mastheadActNameRef}>THE UNBROKEN</span>
+              <span className="masthead-map-kbd">MAP ◈</span>
+            </button>
+          </div>
+
           <nav className="masthead-nav" aria-label="Quick Navigation">
+            <button className="masthead-link is-map-btn" onClick={() => setActsOpen(o => !o)} data-cursor="MAP" aria-label="Site Map">
+              <span className="masthead-icon">☵</span>
+              <span>INDEX</span>
+            </button>
             <button className="masthead-link" onClick={() => go(ACT_LAYOUT[3].at + 0.02)} data-cursor="WORK">
               WORK
             </button>
@@ -890,24 +919,14 @@ export default function Home() {
           {said === 'rushing' ? 'YOU’RE RUSHING' : said === 'dragging' ? 'YOU’RE DRAGGING' : ''}
         </div>
 
-        {/* The compass.
-
-            Every other piece of orientation was taken out of this page on purpose, and
-            this one goes back in for a reason that is not aesthetic: somebody assessing
-            the work has fifteen minutes and eleven acts, and a piece that can only be
-            reached by scrolling through all of it in order will simply not be reached.
-
-            It is built so it cannot become a progress bar. There are no numbers, no
-            percentage, no highlight tracking the reader's position - only eleven marks
-            and a name that appears when you reach for one. At rest it is almost not
-            there. */}
+        {/* The compass right rail scrubber */}
         <button id="compass-toggle" className={`pill is-ghost ${chrome}`} aria-expanded={actsOpen}
           aria-controls="compass" onClick={() => setActsOpen(o => !o)}>
           {actsOpen ? 'Close' : 'Acts'}
         </button>
-        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''} ${actsOpen ? 'is-open' : ''}`} aria-label="Acts">
-          <div className="compass-header" aria-hidden="true">
-            <span className="compass-title">ACTS</span>
+        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''}`} aria-label="Acts">
+          <div className="compass-header" onClick={() => setActsOpen(true)} role="button" tabIndex={0} data-cursor="MAP" aria-label="Open Full Sitemap">
+            <span className="compass-title">ACTS ◈</span>
             <span className="compass-progress" ref={actProgressRef}>1 / {ACT_LAYOUT.length}</span>
           </div>
           <div className="compass-items">
@@ -924,6 +943,110 @@ export default function Home() {
             ))}
           </div>
         </nav>
+
+        {/* Full Architectural Site Map Modal */}
+        {actsOpen && (
+          <div className="sitemap-modal" role="dialog" aria-modal="true" aria-label="System Sitemap & Acts">
+            <div className="sitemap-backdrop" onClick={() => setActsOpen(false)} />
+            <div className="sitemap-container">
+              <div className="sitemap-header">
+                <div className="sitemap-header-left">
+                  <span className="sitemap-glyph">◈</span>
+                  <div>
+                    <h2 className="sitemap-title">SYSTEM SITEMAP // ARCHITECTURAL DIRECTORY</h2>
+                    <p className="sitemap-subtitle">11 NARRATIVE ACTS &middot; 5 TECHNICAL SHIPMENTS &middot; CHRONOLOGICAL TRAJECTORY</p>
+                  </div>
+                </div>
+                <button className="sitemap-close" onClick={() => setActsOpen(false)} aria-label="Close Site Map" data-cursor="CLOSE">
+                  <span>CLOSE</span>
+                  <span className="sitemap-esc">ESC</span>
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+
+              <div className="sitemap-body">
+                {/* 11 Acts Timeline Grid */}
+                <div className="sitemap-main-col">
+                  <div className="sitemap-sec-head">
+                    <span className="sitemap-sec-title">THE ELEVEN ACTS (SPATIAL CHRONOLOGY)</span>
+                    <span className="sitemap-sec-meta">DIRECT TELEPORT</span>
+                  </div>
+                  <div className="sitemap-acts-grid">
+                    {ACT_LAYOUT.map((a, i) => {
+                      const isCurrent = currentActRef.current === i;
+                      return (
+                        <button
+                          key={a.id}
+                          className={`sitemap-act-card ${isCurrent ? 'is-active' : ''}`}
+                          onClick={() => { setActsOpen(false); go(a.at + 0.004); }}
+                          data-cursor="JUMP"
+                        >
+                          <div className="sitemap-act-top">
+                            <span className="sitemap-act-roman">{a.roman}</span>
+                            <span className="sitemap-act-edge">{a.edge}</span>
+                          </div>
+                          <div className="sitemap-act-name">{a.name}</div>
+                          <div className="sitemap-act-footer">
+                            <span className="sitemap-act-pct">{Math.round(a.at * 100)}%</span>
+                            {isCurrent ? (
+                              <span className="sitemap-act-badge">● CURRENT</span>
+                            ) : (
+                              <span className="sitemap-act-jump">JUMP &rarr;</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Technical Shipments & Direct Navigation */}
+                <div className="sitemap-side-col">
+                  <div className="sitemap-sec-head">
+                    <span className="sitemap-sec-title">FLAGSHIP SHIPMENTS</span>
+                    <span className="sitemap-sec-meta">CASE STUDIES</span>
+                  </div>
+                  <div className="sitemap-proj-list">
+                    {PROJECTS.map((p, i) => (
+                      <button
+                        key={p.id}
+                        className="sitemap-proj-item"
+                        onClick={() => { setActsOpen(false); openProject(i); }}
+                        data-cursor="CASE"
+                      >
+                        <div className="sitemap-proj-top">
+                          <span className="sitemap-proj-idx">0{i + 1}</span>
+                          <span className="sitemap-proj-name">{p.name}</span>
+                        </div>
+                        <span className="sitemap-proj-kind">{p.kind}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="sitemap-sec-head" style={{ marginTop: '20px' }}>
+                    <span className="sitemap-sec-title">SYSTEM PORTALS</span>
+                  </div>
+                  <div className="sitemap-quick-links">
+                    <button className="sitemap-quick-btn" onClick={() => { setActsOpen(false); setResumeOpen(true); }} data-cursor="RESUME">
+                      <span>Executive CV (PDF)</span>
+                      <span className="sitemap-arrow">&rarr;</span>
+                    </button>
+                    <button className="sitemap-quick-btn" onClick={() => { setActsOpen(false); go(1); }} data-cursor="CONTACT">
+                      <span>Contact &amp; Colophon</span>
+                      <span className="sitemap-arrow">&rarr;</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sitemap-footer">
+                <span className="sitemap-hint"><kbd>Z</kbd> Hold wireframe mode</span>
+                <span className="sitemap-hint"><kbd>ESC</kbd> Close directory</span>
+                <span className="sitemap-hint"><kbd>SCROLL</kbd> Scrub spatial acts</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div id="cursor-label" ref={labelRef} aria-hidden="true" />
         {showPerf && <pre id="perf" ref={perfRef} aria-hidden="true" />}
