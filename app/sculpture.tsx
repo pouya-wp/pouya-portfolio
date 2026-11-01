@@ -42,10 +42,10 @@ function studioEnvironment(): THREE.Texture {
   const ctx = canvas.getContext('2d')!;
 
   const sky = ctx.createLinearGradient(0, 0, 0, 512);
-  sky.addColorStop(0, '#4a4238');
-  sky.addColorStop(.42, '#241608');
-  sky.addColorStop(.52, '#150d06');
-  sky.addColorStop(1, '#080502');
+  sky.addColorStop(0, '#584e40');
+  sky.addColorStop(.38, '#322618');
+  sky.addColorStop(.52, '#241a10');
+  sky.addColorStop(1, '#120c06');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 1024, 512);
 
@@ -61,29 +61,33 @@ function studioEnvironment(): THREE.Texture {
     ctx.restore();
   };
 
-  blob(210, 120, 260, 180, '#ffeccd', .95);    // the key
-  blob(760, 200, 320, 190, '#8ea6b8', .6);     // cool bounce opposite it
-  blob(520, 470, 470, 150, '#dc5000', .14);    // a restrained orange kick off the floor
-  blob(950, 150, 160, 120, '#ffb469', .3);
+  // 360-degree studio lighting: key, rear rim, side kick, and floor bounce
+  blob(210, 120, 260, 180, '#fff0d6', .98);    // the front key
+  blob(660, 130, 280, 180, '#fff6e4', .95);    // back-right golden rim
+  blob(880, 150, 240, 160, '#ffebc4', .90);    // back-left warm bounce
+  blob(440, 180, 220, 140, '#ffdfa4', .70);    // side fill
+  blob(520, 470, 470, 150, '#e07820', .25);    // warm floor bounce
 
-  // a tall softbox: this is the streak that reads as polish on the stone
+  // Studio softboxes: crisp rectangular streaks that give gold and stone sharp specular definition
   const box = ctx.createLinearGradient(120, 40, 120, 250);
   box.addColorStop(0, 'rgba(255,255,255,0)');
-  box.addColorStop(.22, 'rgba(255,248,232,.95)');
-  box.addColorStop(.78, 'rgba(255,240,214,.95)');
+  box.addColorStop(.22, 'rgba(255,250,238,1)');
+  box.addColorStop(.78, 'rgba(255,242,216,1)');
   box.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.save();
-  ctx.filter = 'blur(9px)';
+  ctx.filter = 'blur(8px)';
   ctx.fillStyle = box;
   ctx.fillRect(86, 40, 74, 210);
-  ctx.fillStyle = 'rgba(190,214,232,.5)';
-  ctx.fillRect(690, 70, 44, 150);
+  // Rear quadrant softbox so back of sculpture has brilliant gold specular glints
+  ctx.fillRect(640, 40, 74, 210);
+  ctx.fillStyle = 'rgba(255,238,206,.75)';
+  ctx.fillRect(820, 60, 54, 180);
   ctx.restore();
 
   // horizon strip
   const horizon = ctx.createLinearGradient(0, 246, 0, 268);
   horizon.addColorStop(0, 'rgba(255,237,215,0)');
-  horizon.addColorStop(.5, 'rgba(255,214,158,.30)');
+  horizon.addColorStop(.5, 'rgba(255,224,170,.45)');
   horizon.addColorStop(1, 'rgba(255,237,215,0)');
   ctx.fillStyle = horizon;
   ctx.fillRect(0, 246, 1024, 22);
@@ -162,11 +166,14 @@ export default function Sculpture({ driver, onReady, paused = false, focus = -1,
     scene.environmentIntensity = 1.35;
     equirect.dispose(); pmrem.dispose();
 
-    const ambient = new THREE.HemisphereLight(0xf0e6d4, 0x120b05, .5); scene.add(ambient);
+    const ambient = new THREE.HemisphereLight(0xf0e6d4, 0x120b05, .55); scene.add(ambient);
     const key = new THREE.DirectionalLight(0xfff2dd, 3.6); key.position.set(-4.2, 5.4, 4.6); scene.add(key);
-    const rim = new THREE.DirectionalLight(0x9fb6c4, 2.6); rim.position.set(4.6, 1.6, -4.2); scene.add(rim);
+    const rim = new THREE.DirectionalLight(0xffeed6, 3.2); rim.position.set(4.6, 1.6, -4.2); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xbfd0dc, 1.15); fill.position.set(5.2, -1.4, 3.4); scene.add(fill);
     const edge = new THREE.DirectionalLight(0xffc98a, 2.9); edge.position.set(-1.4, -2.6, -5.4); scene.add(edge);
+    const goldBackKicker = new THREE.DirectionalLight(0xffdfa4, 2.8);
+    goldBackKicker.position.set(-2.0, 3.6, -5.2);
+    scene.add(goldBackKicker);
     /* A warm kick from off frame right. It used to sit 1.5 units above the mat at
        full vermilion, which put a hard orange hotspot on the surface, and it tracked
        the cursor one for one - so the brightest thing in the shot slid about with the
@@ -383,11 +390,13 @@ ${shader.fragmentShader}`;
        strong orange emissive on top, is why the repairs looked like hot wire laid on
        the cast rather than metal poured into it. Cold gold does not glow: the
        emissive now only carries the ignition, driven by seamHeat. */
+    /* Gold is a pure metal, so metalness is 1.0. With low roughness and clearcoat lacquer,
+       it shines with blazing 24-karat specular reflections along the crown. */
     const seamMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0xf6c356, metalness: .85, roughness: .30,
-      emissive: 0x986616, emissiveIntensity: .16,
-      envMapIntensity: 2.2,
-      clearcoat: .35, clearcoatRoughness: .20, side: THREE.DoubleSide,
+      color: 0xffc84a, metalness: 1.0, roughness: .14,
+      emissive: 0xffab52, emissiveIntensity: 0,
+      envMapIntensity: 3.6,
+      clearcoat: 1.0, clearcoatRoughness: .08, side: THREE.DoubleSide,
     });
     seamMaterial.onBeforeCompile = shader => {
       shader.uniforms.uDrain = drainUniform;
@@ -398,7 +407,7 @@ varying vec3 vBead;
 varying float vDrainY;
 ${shader.vertexShader}`.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vAcross = aAcross;
-        vBead = normalize(objectNormal + aSide * aAcross * .28);
+        vBead = normalize(objectNormal + aSide * aAcross * .40);
         vDrainY = (modelMatrix * vec4(position, 1.)).y;
         objectNormal = vBead;`);
       shader.fragmentShader = `varying float vAcross;
@@ -407,16 +416,15 @@ uniform float uDrain;
 ${shader.fragmentShader}`;
       shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
         float shoulder = 1. - abs(vAcross);
-        /* Authentic Kintsugi: urushi lacquer dusted with real 24k gold powder.
-           Rich, luminous gold that maintains warmth from all angles instead of turning black. */
-        diffuseColor.rgb = mix(vec3(.96, .77, .34), vec3(1.0, .88, .54), shoulder * .45);
-        diffuseColor.rgb += vec3(.12, .08, .02) * shoulder;`);
+        /* 24K Japanese Kintsugi Gold: pure burnished metallic specular sheen */
+        diffuseColor.rgb = mix(vec3(1.0, 0.74, 0.26), vec3(1.0, 0.94, 0.60), pow(shoulder, 1.8) * .7);`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(.38, .18, smoothstep(0., .8, 1. - abs(vAcross)));`);
+        // High-gloss polished mirror along the crown, subtle micro-tooth at the plaster edge
+        roughnessFactor = mix(.26, .09, smoothstep(0., .75, 1. - abs(vAcross)));`);
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        // uDrain sweeps a line down the object: everything above it has already run off
         float held = uDrain < 0. ? 1. : smoothstep(uDrain + .55, uDrain - .55, vDrainY);
-        totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);
-        totalEmissiveRadiance += vec3(.92, .68, .20) * .16 * (.8 + .2 * (1. - abs(vAcross)));`);
+        totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);`);
     };
     const seams = new THREE.Mesh(seamGeometry, seamMaterial);
     spinner.add(seams);
@@ -1158,7 +1166,7 @@ ${shader.fragmentShader}`;
       seamHeatUniform.value = seamHeat;
       // cold metal is lit, not lit up; only the ignition puts light into it
       seamMaterial.emissiveIntensity = seamHeat * 7;
-      seamMaterial.color.setHex(0xf7c46e).lerp(SEAM_HOT, seamHeat);
+      seamMaterial.color.setHex(0xffc84a).lerp(SEAM_HOT, seamHeat);
       /* The reader's path, recorded. Act five resamples it to thirty points and the
          cloud converges on those, so the shape that resolves at the end of the piece
          is the one the person watching has been drawing all along. Nothing here
