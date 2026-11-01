@@ -19,7 +19,7 @@ type Asset = Effect | 'stoneBreak' | 'impactB' | 'impactC';
 
 /* The score streams through a media element: decoded whole, three minutes of stereo
    float PCM is about seventy megabytes held for the life of the tab. */
-const MUSIC = '/audio/floating-cities.mp3';
+const MUSIC = '/audio/feeling-blue.mp3';
 
 const FILES: Record<Asset, string> = {
   fracture: '/audio/cinematic-explosion.mp3',

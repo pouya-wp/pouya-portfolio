@@ -1602,9 +1602,9 @@ export default function Home() {
                           that cuts, and an adaptive, recorded cinematic score.
                         </p>
                         <p className="annot">
-                          Music: <a href="https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018"
-                            target="_blank" rel="noopener noreferrer">Floating Cities &mdash; Kevin MacLeod</a>
-                          {' '}(CC BY 4.0). Impact: &ldquo;Long Deep Impact&rdquo; by ROHHSA (CC BY-SA 4.0).
+                          Music: <a href="https://www.youtube.com/watch?v=OJj9nv78fOc"
+                            target="_blank" rel="noopener noreferrer">Feeling Blue &mdash; Caleb Arredondo</a>.
+                          {' '}Impact: &ldquo;Long Deep Impact&rdquo; by ROHHSA (CC BY-SA 4.0).
                           Interface sounds by Kenney (CC0).
                         </p>
                         {/* Nietzsche. The last thing the site does is put the road back in

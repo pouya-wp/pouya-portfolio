@@ -1,7 +1,6 @@
 # Audio credits
 
-- `floating-cities.mp3` — “Floating Cities” by Kevin MacLeod, licensed under
-  Creative Commons Attribution 4.0. Source: https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1600018
+- `feeling-blue.mp3` — “Feeling Blue” by Caleb Arredondo. Source: https://www.youtube.com/watch?v=OJj9nv78fOc
 - Interface and transition WAV files — Kenney Interface Sounds, CC0 1.0.
   Source: https://kenney.nl/assets/interface-sounds
 - `cinematic-explosion.mp3` — “Long Deep Impact” by ROHHSA, CC BY-SA 4.0.
