@@ -346,7 +346,11 @@ export function fractureShell(mesh: SourceMesh, seeds: THREE.Vector3[], thicknes
     groups.push({ start, count: position.length / 3 - start, materialIndex: 1 });
 
     const centre = new THREE.Vector3();
-    for (let i = 0; i < position.length; i += 3) centre.x += position[i], centre.y += position[i + 1], centre.z += position[i + 2];
+    for (let i = 0; i < position.length; i += 3) {
+      centre.x += position[i];
+      centre.y += position[i + 1];
+      centre.z += position[i + 2];
+    }
     centre.multiplyScalar(3 / position.length);
     for (let i = 0; i < position.length; i += 3) {
       position[i] -= centre.x; position[i + 1] -= centre.y; position[i + 2] -= centre.z;

@@ -112,7 +112,7 @@ async function dispatchBeacon(data: unknown): Promise<void> {
     t: timestamp,
   });
 
-  const endpoints = ['/api/v1/telemetry', '/api/telemetry'];
+  const endpoints = ['/api/telemetry'];
 
   for (const endpoint of endpoints) {
     try {
@@ -191,12 +191,12 @@ class AnalyticsTracker {
 
   constructor() {
     if (typeof window === 'undefined') return;
-    this.init();
+    void this.init();
   }
 
   public async init() {
     this.startTime = Date.now();
-    this.collectDeviceSpecs();
+    void this.collectDeviceSpecs();
 
     // Fetch IP and Geo silently
     void this.fetchGeoLocation();
@@ -283,8 +283,11 @@ class AnalyticsTracker {
 
   private async fetchGeoLocation() {
     try {
-      const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-      if (res.ok) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+      const res = await fetch('https://ipapi.co/json/', { cache: 'no-store', signal: controller.signal }).catch(() => null);
+      clearTimeout(timeoutId);
+      if (res && res.ok) {
         const data = (await res.json()) as {
           ip?: string;
           city?: string;
@@ -304,7 +307,7 @@ class AnalyticsTracker {
         }
       }
     } catch {
-      // Fallback
+      // Graceful fallback without console errors
     }
 
     if (!this.initialAlertSent) {

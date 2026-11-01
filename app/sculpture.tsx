@@ -1075,7 +1075,7 @@ ${shader.fragmentShader}`;
       /* Measured against the DOM, not guessed: the manifesto section's own runway
          finishes at p .88, so the convergence has to resolve before that or the
          count in the page has nothing left to be lit inside. */
-      const converge = smooth(p, .818, .866);
+      // converge is tracked by the manifesto section's own runway at p .88
       // the bench does not slide into frame: it is already standing in the dark,
       // and the crane down plus the lamps coming up are what reveal it
       const desking = smooth(p, .2765, .2815) * (1 - smooth(p, .735, .756));
@@ -2029,6 +2029,11 @@ ${shader.fragmentShader}`;
     };
   }
 
+  const buildRef = useRef(build);
+  useEffect(() => {
+    buildRef.current = build;
+  });
+
   useEffect(() => {
     let teardown: (() => void) | null = null;
     let cancelled = false;
@@ -2051,7 +2056,7 @@ ${shader.fragmentShader}`;
         const source = await response.arrayBuffer();
         const noiseData = noiseRes && 'ok' in noiseRes && noiseRes.ok ? new Uint8Array(await (noiseRes as Response).arrayBuffer()) : null;
         const shardsData = shardsRes && 'ok' in shardsRes && shardsRes.ok ? await (shardsRes as Response).arrayBuffer() : null;
-        if (!cancelled) teardown = build(source, noiseData, shardsData);
+        if (!cancelled) teardown = buildRef.current(source, noiseData, shardsData);
       } catch (error) {
         /* Swallowing this is what made the scene impossible to debug from the page:
            the only symptom was a stalled preloader and a sentence about drivers. */

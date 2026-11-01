@@ -4,7 +4,6 @@ import * as THREE from 'three';
    handful of tools that always end up on one. Every texture is drawn to a canvas at
    load; nothing is fetched. */
 
-const BONE = '#ffedd7';
 const ORANGE = '#dc5000';
 
 const canvasOf = (size: number) => {

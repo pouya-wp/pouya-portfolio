@@ -27,7 +27,7 @@
    comes back together. That is the act, and nothing anywhere says so. */
 
 import * as THREE from 'three';
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
 /* ------------------------------------------------------------------ the sky
 
@@ -550,7 +550,7 @@ export function loadRealSky(
   onReady: (equirect: THREE.Texture, environment: THREE.Texture) => void,
 ) {
   let cancelled = false;
-  new RGBELoader().load(url, texture => {
+  new HDRLoader().load(url, texture => {
     if (cancelled) { texture.dispose(); return; }
     texture.mapping = THREE.EquirectangularReflectionMapping;
 

@@ -23,7 +23,7 @@ function vnoise(x, y, z) {
 
   return lerp(
     lerp(lerp(c000, c100, fx), lerp(c010, c110, fx), fy),
-    lerp(lerp(c001, c101, fx), lerp(c010, c110, fx), fy),
+    lerp(lerp(c001, c101, fx), lerp(c011, c111, fx), fy),
     fz);
 }
 

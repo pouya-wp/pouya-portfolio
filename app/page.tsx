@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Sculpture from './sculpture';
-import { ACT_LAYOUT, FRAGMENTS, KILLED, PROJECTS, SURVIVORS, clamp, windowOpacity } from './story';
+import { ACT_LAYOUT, FRAGMENTS, KILLED, PROJECTS, clamp, windowOpacity } from './story';
 import { Soundscape, type Effect } from './soundscape';
 import { attachPointer, onCursorLabel, pointer, stepPointer } from './pointer';
 import { attachSmoothScroll, scrollToY, stepSmoothScroll } from './smooth-scroll';
@@ -240,6 +240,125 @@ const orbitPath = (r: number) =>
 
 
 
+function InquiryForm() {
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (!message.trim() || !contact.trim()) return;
+    setStatus('sending');
+
+    try {
+      const res = await fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'commission_inquiry',
+          name: name.trim() || 'Collector / Studio',
+          contact: contact.trim(),
+          message: message.trim(),
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        setStatus('sent');
+        setName('');
+        setContact('');
+        setMessage('');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="inquiry-chamber blk" data-lit="0.04,1">
+      <div className="inquiry-header">
+        <div className="inquiry-badge">
+          <span className="inquiry-dot" />
+          <span>DIRECT COMMISSION DISPATCH</span>
+        </div>
+        <p className="inquiry-sub">
+          Direct link to Pouya Sadeghpour. Available for selective creative development, WebGL architecture, and bespoke commissions.
+        </p>
+      </div>
+
+      {status === 'sent' ? (
+        <div className="inquiry-receipt">
+          <span className="inquiry-receipt-icon">✦</span>
+          <div className="inquiry-receipt-text">
+            <strong>TRANSMISSION LOGGED &amp; SECURED</strong>
+            <p>Your dispatch has been registered. You will receive a direct reply shortly.</p>
+          </div>
+          <button type="button" className="pill is-gold" onClick={() => setStatus('idle')} data-cursor="RESET">
+            New Dispatch &rarr;
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="inquiry-form">
+          <div className="inquiry-inputs">
+            <div className="inquiry-field">
+              <label htmlFor="inq-name" className="inquiry-lbl">NAME / STUDIO</label>
+              <input
+                id="inq-name"
+                type="text"
+                className="inquiry-input"
+                placeholder="e.g. Studio Mono / John Doe"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+            <div className="inquiry-field">
+              <label htmlFor="inq-contact" className="inquiry-lbl">CONTACT (EMAIL / HANDLE) *</label>
+              <input
+                id="inq-contact"
+                type="text"
+                required
+                className="inquiry-input"
+                placeholder="e.g. pouya@studio.com or @telegram"
+                value={contact}
+                onChange={e => setContact(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="inquiry-field">
+            <label htmlFor="inq-msg" className="inquiry-lbl">BRIEF / TRANSMISSION *</label>
+            <textarea
+              id="inq-msg"
+              required
+              rows={2}
+              className="inquiry-textarea"
+              placeholder="Outline project parameters, scope, or timeline..."
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+            />
+          </div>
+          <div className="inquiry-bottom">
+            <button
+              type="submit"
+              className="pill is-gold inquiry-submit"
+              disabled={status === 'sending'}
+              data-cursor="DISPATCH"
+            >
+              <span className="pill-dot" />
+              {status === 'sending' ? 'TRANSMITTING...' : 'DISPATCH TRANSMISSION →'}
+            </button>
+            {status === 'error' && (
+              <span className="inquiry-err">Network failure. Please use direct email.</span>
+            )}
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 /* ========================================================================== */
 
 export default function Home() {
@@ -251,16 +370,13 @@ export default function Home() {
   const [portalOpen, setPortalOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const currentActRef = useRef(0);
+  const [activeAct, setActiveAct] = useState(0);
   const [hoverCard, setHoverCard] = useState(-1);
   const [copied, setCopied] = useState('');
   /* The only two things this site ever says. Held in state because they are the one
      piece of chrome that has to interrupt; everything else is written straight to
      the DOM from inside the loop. */
   const [said, setSaid] = useState<Verdict>(null);
-  /* Held while the reader is holding space. It is the one piece of state the page and
-     the scene both need, so it goes through signals as well - this copy exists only so
-     the compass can dim itself out of the way. */
-  const [zen, setZen] = useState(false);
   const [actsOpen, setActsOpen] = useState(false);
 
   const audio = useRef<Soundscape | null>(null);
@@ -363,7 +479,7 @@ export default function Home() {
 
     let lastY = 0, lastNow = performance.now(), raf = 0;
     let wasLight = false, currentAct = -1;
-    let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastReach = -1, lastLabel = '', lastPerf = 0;
+    let lastGold = '', lastImpact = '', lastTilt = '', lastAlign = '', lastLabel = '', lastPerf = 0;
     const cues: [number, Effect][] = [
       [.148, 'fracture'],
       [.232, 'whoosh'],
@@ -466,6 +582,7 @@ export default function Home() {
       if (index !== currentAct) {
         currentAct = index;
         currentActRef.current = index;
+        setActiveAct(index);
         if (mastheadActRef.current) {
           mastheadActRef.current.textContent = ACT_LAYOUT[index]?.roman || 'ACT I';
         }
@@ -568,12 +685,11 @@ export default function Home() {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       const down = e.type === 'keydown';
       signals.zen = down ? 1 : 0;
-      setZen(down);
     };
     addEventListener('keydown', onKey);
     addEventListener('keyup', onKey);
     // a key held while the tab is left would stay held forever
-    const dropZen = () => { signals.zen = 0; setZen(false); };
+    const dropZen = () => { signals.zen = 0; };
     addEventListener('blur', dropZen);
 
     addEventListener('cutter-hover', cut);
@@ -916,8 +1032,13 @@ export default function Home() {
 
         {/* Full Architectural Site Map Modal */}
         {actsOpen && (
-          <div className="sitemap-modal" role="dialog" aria-modal="true" aria-label="System Sitemap & Acts">
-            <div className="sitemap-backdrop" onClick={() => setActsOpen(false)} />
+          <dialog className="sitemap-modal" open aria-label="System Sitemap & Acts">
+            <button
+              type="button"
+              className="sitemap-backdrop"
+              aria-label="Close directory"
+              onClick={() => setActsOpen(false)}
+            />
             <div className="sitemap-container">
               <div className="sitemap-header">
                 <div className="sitemap-header-left">
@@ -943,7 +1064,7 @@ export default function Home() {
                   </div>
                   <div className="sitemap-acts-grid">
                     {ACT_LAYOUT.map((a, i) => {
-                      const isCurrent = currentActRef.current === i;
+                      const isCurrent = activeAct === i;
                       return (
                         <button
                           key={a.id}
@@ -1015,7 +1136,7 @@ export default function Home() {
                 <span className="sitemap-hint"><kbd>SCROLL</kbd> Scrub spatial acts</span>
               </div>
             </div>
-          </div>
+          </dialog>
         )}
 
         <div id="cursor-label" ref={labelRef} aria-hidden="true" />
@@ -1073,6 +1194,10 @@ export default function Home() {
                   </div>
                   <div id="hero-annot" className="annot blk is-lit" data-lit="0,1">
                     <span className="tick" />Scroll to break it
+                  </div>
+                  <div id="hero-scroll-cue" className="hero-scroll-cue blk is-lit" data-lit="0,1">
+                    <span className="scroll-cue-arrow">&darr;</span>
+                    <span className="scroll-cue-text">SCRUB TIMELINE // SCROLL TO FRACTURE</span>
                   </div>
                 </div>
               </div>
@@ -1366,6 +1491,8 @@ export default function Home() {
                         )}
                       </div>
                     </div>
+
+                    <InquiryForm />
 
                     <div id="ct-mid" className="o-dash blk" data-lit="0.04,1" />
 

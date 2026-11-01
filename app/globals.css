@@ -2864,3 +2864,197 @@ html.is-loading,html.is-loading body{overflow:hidden}
   }
 }
 
+/* ============================================================================
+   HERO SCROLL CUE & INQUIRY CHAMBER
+   ========================================================================= */
+
+.hero-scroll-cue {
+  position: absolute;
+  left: var(--pad-x);
+  bottom: calc(var(--pad-y) + 12px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: calc(11 * var(--unit));
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gold-hot);
+  opacity: .75;
+  transition: opacity .3s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hero-scroll-cue .scroll-cue-arrow {
+  display: inline-block;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+@media (max-width: 768px) {
+  .hero-scroll-cue { display: none; }
+}
+
+.inquiry-chamber {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(18, 16, 14, 0.62);
+  border: 1px solid rgba(212, 160, 23, 0.22);
+  border-radius: 2px;
+  padding: clamp(16px, 2.4vw, 24px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color .3s ease;
+  margin-top: 4px;
+}
+
+.inquiry-chamber:focus-within {
+  border-color: rgba(212, 160, 23, 0.55);
+}
+
+.inquiry-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inquiry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: calc(11 * var(--unit));
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gold-hot);
+}
+
+.inquiry-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold-hot);
+  box-shadow: 0 0 8px var(--gold-hot);
+}
+
+.inquiry-sub {
+  margin: 0;
+  font-size: var(--sub2);
+  color: var(--bone-62);
+  line-height: 1.45;
+}
+
+.inquiry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inquiry-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .inquiry-inputs { grid-template-columns: 1fr; }
+}
+
+.inquiry-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.inquiry-lbl {
+  font-family: var(--font-mono);
+  font-size: calc(10 * var(--unit));
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--bone-62);
+}
+
+.inquiry-input, .inquiry-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: calc(13 * var(--unit));
+  color: var(--bone);
+  outline: none;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.inquiry-input:focus, .inquiry-textarea:focus {
+  border-color: var(--gold-hot);
+  background: rgba(212, 160, 23, 0.05);
+}
+
+.inquiry-textarea {
+  resize: vertical;
+  min-height: 54px;
+}
+
+.inquiry-bottom {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.inquiry-submit {
+  cursor: pointer;
+  font-size: calc(12 * var(--unit));
+  letter-spacing: .1em;
+}
+
+.inquiry-err {
+  font-family: var(--font-mono);
+  font-size: calc(11 * var(--unit));
+  color: #ff6b6b;
+}
+
+.inquiry-receipt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: rgba(212, 160, 23, 0.08);
+  border: 1px dashed var(--gold-hot);
+  border-radius: 2px;
+}
+
+.inquiry-receipt-icon {
+  color: var(--gold-hot);
+  font-size: 1.4rem;
+}
+
+.inquiry-receipt-text strong {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: calc(12 * var(--unit));
+  letter-spacing: .12em;
+  color: var(--gold-hot);
+  margin-bottom: 3px;
+}
+
+.inquiry-receipt-text p {
+  margin: 0;
+  font-size: var(--sub2);
+  color: var(--bone-70);
+}
+
+
