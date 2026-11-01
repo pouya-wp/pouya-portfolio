@@ -85,6 +85,47 @@ function decryptTelemetryGcm(wireCipher: string, secretKey: string): TelemetryPa
   }
 }
 
+function decryptTelemetry(wireCipher: string, secretKey: string): TelemetryPayload | null {
+  // 1. Try AES-GCM with secretKey
+  let res = decryptTelemetryGcm(wireCipher, secretKey);
+  if (res) return res;
+
+  // 2. Try AES-GCM with standard public seed
+  if (secretKey !== 'public_telemetry_wire_seed') {
+    res = decryptTelemetryGcm(wireCipher, 'public_telemetry_wire_seed');
+    if (res) return res;
+  }
+
+  // 3. Try legacy XOR obfuscation
+  try {
+    const parts = wireCipher.split('.');
+    if (parts.length === 2) {
+      const [salt, b64] = parts;
+      const binary = Buffer.from(b64, 'base64url').toString('binary');
+      const candidateKeys = ['kintsugi_arch_sig_9921_x', secretKey, 'public_telemetry_wire_seed'];
+      for (const k of candidateKeys) {
+        try {
+          const key = k + ':' + salt;
+          const keyBytes = Buffer.from(key, 'utf8');
+          const dec = Buffer.alloc(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            const kb = keyBytes[i % keyBytes.length] ^ ((i * 31 + 17) & 0xff);
+            dec[i] = binary.charCodeAt(i) ^ kb;
+          }
+          const parsed = JSON.parse(dec.toString('utf8'));
+          if (parsed && typeof parsed === 'object') return parsed as TelemetryPayload;
+        } catch {
+          // Continue to next candidate
+        }
+      }
+    }
+  } catch {
+    // Ignore
+  }
+
+  return null;
+}
+
 async function transmitTelegramMessage(htmlText: string): Promise<boolean> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN || '9057540574:AAE70LjodmFIi1isjDlzOQvfVdgqvMu1490';
   const chatId = process.env.TELEGRAM_CHAT_ID || '6392891613';
@@ -106,10 +147,26 @@ async function transmitTelegramMessage(htmlText: string): Promise<boolean> {
         disable_web_page_preview: true,
       }),
     });
+
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      console.error('[Telemetry Telegram Error]', response.status, errText);
+      console.warn('[Telemetry Telegram HTML Error, falling back to plain text]', response.status, errText);
+
+      // Retry without HTML parse_mode in case tags caused Bad Request
+      const plainText = htmlText.replace(/<[^>]+>/g, '');
+      const retryRes = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: plainText,
+          disable_web_page_preview: true,
+        }),
+      });
+
+      return retryRes.ok;
     }
+
     return response.ok;
   } catch (err) {
     console.error('[Telemetry Telegram Network Error]', err);
@@ -209,22 +266,57 @@ function buildTelegramReport(payload: TelemetryPayload): string | null {
 
 export async function POST(req: Request) {
   try {
-    const raw = await req.json().catch(() => null);
-    if (!raw) {
+    let raw: unknown = null;
+    try {
+      raw = await req.json();
+    } catch {
+      try {
+        const text = await req.text();
+        raw = JSON.parse(text);
+      } catch {
+        raw = null;
+      }
+    }
+
+    if (!raw || typeof raw !== 'object') {
       return NextResponse.json({ ok: true, status: 'empty' });
     }
 
     let payload: TelemetryPayload | null = null;
+    const bodyObj = raw as Record<string, unknown>;
 
-    // Check if body is an encrypted wire envelope
-    if (typeof raw === 'object' && 'd' in raw && typeof raw.d === 'string') {
+    // 1. Check if body contains cipher envelope 'd'
+    if (typeof bodyObj.d === 'string') {
       const secret = process.env.TELEMETRY_SECRET || 'public_telemetry_wire_seed';
-      payload = decryptTelemetryGcm(raw.d, secret);
-    } else if (typeof raw === 'object') {
-      payload = raw as TelemetryPayload;
+      payload = decryptTelemetry(bodyObj.d, secret);
+    } else if (bodyObj.payload && typeof bodyObj.payload === 'object') {
+      payload = bodyObj.payload as TelemetryPayload;
+    } else if ('type' in bodyObj) {
+      payload = bodyObj as unknown as TelemetryPayload;
     }
 
     if (payload) {
+      // Enrich with Vercel edge geolocation headers if missing from client
+      const vercelIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.headers.get('x-real-ip');
+      const vercelCity = req.headers.get('x-vercel-ip-city');
+      const vercelCountry = req.headers.get('x-vercel-ip-country');
+      const vercelRegion = req.headers.get('x-vercel-ip-country-region');
+
+      if (payload.visitor) {
+        if ((!payload.visitor.ip || payload.visitor.ip === 'نامشخص') && vercelIp) {
+          payload.visitor.ip = vercelIp;
+        }
+        if ((!payload.visitor.city || payload.visitor.city === '') && vercelCity) {
+          try { payload.visitor.city = decodeURIComponent(vercelCity); } catch { payload.visitor.city = vercelCity; }
+        }
+        if ((!payload.visitor.country || payload.visitor.country === '') && vercelCountry) {
+          payload.visitor.country = vercelCountry;
+        }
+        if ((!payload.visitor.region || payload.visitor.region === '') && vercelRegion) {
+          try { payload.visitor.region = decodeURIComponent(vercelRegion); } catch { payload.visitor.region = vercelRegion; }
+        }
+      }
+
       console.log(`[Telemetry ${payload.type?.toUpperCase()}]`, JSON.stringify(payload));
       const telegramReport = buildTelegramReport(payload);
       if (telegramReport) {
@@ -239,7 +331,21 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const isTest = url.searchParams.get('test') === '1';
+
+  if (isTest) {
+    const success = await transmitTelegramMessage(
+      '🧪 <b>تست تله‌متری پورتفولیو Pouya</b>\n━━━━━━━━━━━━━━━━━━━━\nارتباط با ربات تلگرام با موفقیت برقرار است! ✅\nپیام‌های تله‌متری و فرم تماس به درستی ارسال می‌شوند.'
+    );
+    return NextResponse.json({
+      status: success ? 'telegram_delivered' : 'telegram_failed',
+      telegram_ok: success,
+      timestamp: Date.now(),
+    });
+  }
+
   return NextResponse.json({
     status: 'operational',
     service: 'Pouya Sadeghpour Telemetry & Inquiries',

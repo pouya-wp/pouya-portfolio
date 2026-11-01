@@ -101,41 +101,71 @@ async function encryptTelemetryPayload(data: unknown): Promise<string> {
   }
 }
 
+function obfuscateXor(data: unknown): string {
+  try {
+    const text = JSON.stringify(data);
+    const salt = Math.random().toString(36).substring(2, 10);
+    const key = 'kintsugi_arch_sig_9921_x:' + salt;
+    const keyBytes = new TextEncoder().encode(key);
+    const bytes = new TextEncoder().encode(text);
+    const encrypted = new Uint8Array(bytes.length);
+
+    for (let i = 0; i < bytes.length; i++) {
+      const k = keyBytes[i % keyBytes.length] ^ ((i * 31 + 17) & 0xff);
+      encrypted[i] = bytes[i] ^ k;
+    }
+
+    let binary = '';
+    for (let i = 0; i < encrypted.length; i++) {
+      binary += String.fromCharCode(encrypted[i]);
+    }
+    const b64 = btoa(binary)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    return salt + '.' + b64;
+  } catch {
+    return '';
+  }
+}
+
 /** Dispatches encrypted telemetry beacon to covert serverless endpoint */
 async function dispatchBeacon(data: unknown): Promise<void> {
-  const cipher = await encryptTelemetryPayload(data);
-  if (!cipher) return;
+  let cipher = await encryptTelemetryPayload(data);
+  if (!cipher) {
+    cipher = obfuscateXor(data);
+  }
 
   const timestamp = Date.now();
-  const payload = JSON.stringify({
-    d: cipher,
-    t: timestamp,
-  });
+  const payload = JSON.stringify(
+    cipher ? { d: cipher, t: timestamp } : { payload: data, t: timestamp }
+  );
 
-  const endpoints = ['/api/telemetry'];
+  const endpoint = '/api/telemetry';
 
-  for (const endpoint of endpoints) {
-    try {
-      if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        const blob = new Blob([payload], { type: 'application/json' });
-        const sent = navigator.sendBeacon(endpoint, blob);
-        if (sent) return;
-      }
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Engine-Signature': '0x' + Math.floor(timestamp / 1000).toString(16),
+      },
+      body: payload,
+      keepalive: true,
+    });
+    if (res.ok) return;
+  } catch {
+    // If fetch failed, fallback to sendBeacon
+  }
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Engine-Signature': '0x' + Math.floor(timestamp / 1000).toString(16),
-        },
-        body: payload,
-        keepalive: true,
-      });
-
-      if (res.ok) return;
-    } catch {
-      // Fail completely silent
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const blob = new Blob([payload], { type: 'application/json' });
+      navigator.sendBeacon(endpoint, blob);
     }
+  } catch {
+    // Fail silently
   }
 }
 
@@ -191,14 +221,65 @@ class AnalyticsTracker {
 
   constructor() {
     if (typeof window === 'undefined') return;
+    this.visitorInfo = this.buildSyncSpecs();
     void this.init();
+  }
+
+  private buildSyncSpecs(): VisitorInfo {
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isMobile = /Mobi|Android|iPhone/i.test(ua);
+    const isTablet = /Tablet|iPad/i.test(ua);
+    const deviceType: 'Mobile' | 'Tablet' | 'Desktop' = isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop';
+
+    const nav = typeof navigator !== 'undefined' ? (navigator as Navigator & {
+      deviceMemory?: number;
+      connection?: { effectiveType?: string; downlink?: number; rtt?: number };
+    }) : undefined;
+
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 'N/A' : 'N/A';
+    const ram = nav?.deviceMemory ? `${nav.deviceMemory} GB+` : 'N/A';
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+
+    let networkStr = 'Online';
+    if (nav?.connection) {
+      const conn = nav.connection;
+      networkStr = `${conn.effectiveType || ''} (${conn.downlink || 0}Mbps, RTT: ${conn.rtt || 0}ms)`;
+    }
+
+    const localTime = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' : 'UTC';
+
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const utmCampaign = urlParams.get('utm_campaign') || urlParams.get('utm_source') || 'None';
+
+    return {
+      deviceType,
+      os: getOS(),
+      browser: getBrowser(),
+      screenWidth: typeof window !== 'undefined' ? window.screen.width : 0,
+      screenHeight: typeof window !== 'undefined' ? window.screen.height : 0,
+      dpr,
+      cores,
+      ram,
+      gpu: getGpuRenderer(),
+      battery: 'N/A',
+      network: networkStr,
+      language: typeof navigator !== 'undefined' ? navigator.language || 'en' : 'en',
+      timezone,
+      localTime,
+      referrer: typeof document !== 'undefined' && document.referrer ? document.referrer : 'مستقیم (Direct)',
+      landingUrl: typeof window !== 'undefined' ? window.location.href : '',
+      utm: utmCampaign,
+    };
   }
 
   public async init() {
     this.startTime = Date.now();
-    void this.collectDeviceSpecs();
+    if (!this.visitorInfo) {
+      this.visitorInfo = this.buildSyncSpecs();
+    }
 
-    // Fetch IP and Geo silently
+    void this.collectDeviceSpecs();
     void this.fetchGeoLocation();
 
     // Safety fallback: dispatch arrival after 1.8s even if geo request is still resolving
@@ -224,67 +305,26 @@ class AnalyticsTracker {
   }
 
   private async collectDeviceSpecs() {
-    const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-    const isTablet = /Tablet|iPad/i.test(navigator.userAgent);
-    const deviceType: 'Mobile' | 'Tablet' | 'Desktop' = isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop';
-
     const nav = navigator as Navigator & {
-      deviceMemory?: number;
-      connection?: { effectiveType?: string; downlink?: number; rtt?: number };
       getBattery?: () => Promise<{ level: number; charging: boolean }>;
     };
 
-    const cores = navigator.hardwareConcurrency || 'N/A';
-    const ram = nav.deviceMemory ? `${nav.deviceMemory} GB+` : 'N/A';
-    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
-
-    let batteryStr = 'N/A';
     if (typeof nav.getBattery === 'function') {
       try {
         const b = await nav.getBattery();
-        batteryStr = `${Math.round(b.level * 100)}% (${b.charging ? 'شارژینگ ⚡' : 'دشارژ'})`;
+        if (this.visitorInfo) {
+          this.visitorInfo.battery = `${Math.round(b.level * 100)}% (${b.charging ? 'شارژینگ ⚡' : 'دشارژ'})`;
+        }
       } catch {
         // Battery status denied
       }
     }
-
-    let networkStr = 'Online';
-    if (nav.connection) {
-      const conn = nav.connection;
-      networkStr = `${conn.effectiveType || ''} (${conn.downlink || 0}Mbps, RTT: ${conn.rtt || 0}ms)`;
-    }
-
-    const localTime = new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const utmCampaign = urlParams.get('utm_campaign') || urlParams.get('utm_source') || 'None';
-
-    this.visitorInfo = {
-      deviceType,
-      os: getOS(),
-      browser: getBrowser(),
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
-      dpr,
-      cores,
-      ram,
-      gpu: getGpuRenderer(),
-      battery: batteryStr,
-      network: networkStr,
-      language: navigator.language || 'en',
-      timezone,
-      localTime,
-      referrer: document.referrer || 'مستقیم (Direct)',
-      landingUrl: window.location.href,
-      utm: utmCampaign,
-    };
   }
 
   private async fetchGeoLocation() {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const res = await fetch('https://ipapi.co/json/', { cache: 'no-store', signal: controller.signal }).catch(() => null);
       clearTimeout(timeoutId);
       if (res && res.ok) {
@@ -307,7 +347,7 @@ class AnalyticsTracker {
         }
       }
     } catch {
-      // Graceful fallback without console errors
+      // Graceful fallback
     }
 
     if (!this.initialAlertSent) {
@@ -323,10 +363,11 @@ class AnalyticsTracker {
   }
 
   private sendArrivalAlert() {
-    if (!this.visitorInfo) return;
+    const info = this.visitorInfo || this.buildSyncSpecs();
+    this.visitorInfo = info;
     void dispatchBeacon({
       type: 'arrival',
-      visitor: this.visitorInfo,
+      visitor: info,
     });
   }
 
