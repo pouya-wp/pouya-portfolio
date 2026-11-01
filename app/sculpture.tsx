@@ -425,6 +425,28 @@ ${shader.fragmentShader}`;
         // uDrain sweeps a line down the object: everything above it has already run off
         float held = uDrain < 0. ? 1. : smoothstep(uDrain + .55, uDrain - .55, vDrainY);
         totalEmissiveRadiance *= pow(1. - abs(vAcross), 1.4) * mix(.12, 1., held);`);
+      shader.fragmentShader = shader.fragmentShader.replace('#include <opaque_fragment>', `
+        float shoulder = 1.0 - abs(vAcross);
+        float viewDot = clamp(dot(normal, normalize(-vViewPosition)), 0.0, 1.0);
+        float rimFresnel = pow(1.0 - viewDot, 3.0);
+
+        // Pure 24K Imperial Gold tones: glowing burnished gold crown, rich amber flanks
+        vec3 goldCrown = vec3(1.0, 0.82, 0.38);
+        vec3 goldFlank = vec3(0.85, 0.58, 0.16);
+        vec3 goldBase = mix(goldFlank, goldCrown, pow(shoulder, 1.5));
+
+        // Metallic specular boost
+        outgoingLight *= 1.30;
+
+        // Essential Kintsugi golden floor: in shadow, gold retains its rich luminous golden identity
+        // instead of disappearing into pitch black darkness!
+        outgoingLight = max(outgoingLight, goldBase * (0.35 + 0.35 * shoulder));
+
+        // Glancing clearcoat lacquer sheen
+        outgoingLight += vec3(1.0, 0.90, 0.60) * rimFresnel * 0.35;
+
+        #include <opaque_fragment>
+      `);
     };
     const seams = new THREE.Mesh(seamGeometry, seamMaterial);
     spinner.add(seams);
