@@ -275,8 +275,6 @@ export default function Home() {
   const impactRef = useRef<HTMLSpanElement>(null);
   const tiltRef = useRef<HTMLSpanElement>(null);
   const alignRef = useRef<HTMLSpanElement>(null);
-  const compassRef = useRef<HTMLElement>(null);
-  const actProgressRef = useRef<HTMLSpanElement>(null);
   const mastheadActRef = useRef<HTMLSpanElement>(null);
   const mastheadActNameRef = useRef<HTMLSpanElement>(null);
   const alignBarRef = useRef<HTMLElement>(null);
@@ -447,16 +445,6 @@ export default function Home() {
 
       /* No travel indicator of any kind. The two variables that remain are read by
          the type and the grain, and neither of them says how far there is to go. */
-      /* The compass only exists while the hand is in the right margin. Written here
-         rather than from a mouseenter, because the strip is pointer-inert until it is
-         reached for - it cannot receive the event that would reveal it. */
-      const reach = pointer.x > .82 ? 1 : 0;
-      if (reach !== lastReach) {
-        lastReach = reach;
-        document.documentElement.style.setProperty('--reach', String(reach));
-        compassRef.current?.setAttribute('data-reach', String(reach));
-      }
-
       /* --grip and --scroll-velocity were written to the root here every frame and no
          stylesheet read either of them - two full-document style invalidations a
          frame for nothing. */
@@ -478,22 +466,11 @@ export default function Home() {
       if (index !== currentAct) {
         currentAct = index;
         currentActRef.current = index;
-        if (actProgressRef.current) {
-          actProgressRef.current.textContent = `${index + 1} / ${ACT_LAYOUT.length}`;
-        }
         if (mastheadActRef.current) {
           mastheadActRef.current.textContent = ACT_LAYOUT[index]?.roman || 'ACT I';
         }
         if (mastheadActNameRef.current) {
           mastheadActNameRef.current.textContent = ACT_LAYOUT[index]?.name || '';
-        }
-        if (compassRef.current) {
-          const btns = compassRef.current.querySelectorAll('.compass-items button');
-          btns.forEach((btn, i) => {
-            btn.classList.toggle('is-here', i === index);
-            if (i === index) btn.setAttribute('aria-current', 'step');
-            else btn.removeAttribute('aria-current');
-          });
         }
         const bpNav = document.querySelector('.bp-keyboard');
         if (bpNav) bpNav.classList.toggle('is-active', index === 3);
@@ -918,31 +895,6 @@ export default function Home() {
         <div id="verdict" className={said ? 'is-on' : ''} aria-live="polite" aria-atomic="true">
           {said === 'rushing' ? 'YOU’RE RUSHING' : said === 'dragging' ? 'YOU’RE DRAGGING' : ''}
         </div>
-
-        {/* The compass right rail scrubber */}
-        <button id="compass-toggle" className={`pill is-ghost ${chrome}`} aria-expanded={actsOpen}
-          aria-controls="compass" onClick={() => setActsOpen(o => !o)}>
-          {actsOpen ? 'Close' : 'Acts'}
-        </button>
-        <nav id="compass" ref={compassRef} className={`${chrome} ${zen ? 'is-dim' : ''}`} aria-label="Acts">
-          <div className="compass-header" onClick={() => setActsOpen(true)} role="button" tabIndex={0} data-cursor="MAP" aria-label="Open Full Sitemap">
-            <span className="compass-title">ACTS ◈</span>
-            <span className="compass-progress" ref={actProgressRef}>1 / {ACT_LAYOUT.length}</span>
-          </div>
-          <div className="compass-items">
-            {ACT_LAYOUT.map((a, i) => (
-              <button key={a.id} onClick={() => { setActsOpen(false); go(a.at + .004); }} data-cursor=""
-                className={i === 0 ? 'is-here' : ''}
-                aria-current={i === 0 ? 'step' : undefined}>
-                <i aria-hidden="true" />
-                <span className="compass-meta">
-                  <span className="compass-roman">{a.roman}</span>
-                  <span className="compass-name">{a.name}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </nav>
 
         {/* Full Architectural Site Map Modal */}
         {actsOpen && (
