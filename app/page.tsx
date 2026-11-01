@@ -219,6 +219,9 @@ function CaseStudy({ project, index, total, onClose, onStep }: {
             <div><dt>Services</dt><dd>{project.services.join(', ')}</dd></div>
             <div><dt>Stack</dt><dd>{project.stack.join(', ')}</dd></div>
             <div><dt>Live</dt><dd><a href={project.url} target="_blank" rel="noopener noreferrer">{project.domain}<span className="sr-only"> (opens in a new tab)</span></a></dd></div>
+            {project.github && (
+              <div><dt>Source</dt><dd><a href={project.github} target="_blank" rel="noopener noreferrer">{project.github.replace('https://github.com/', 'github.com/')}<span className="sr-only"> (opens in a new tab)</span></a></dd></div>
+            )}
           </dl>
 
           {project.metric && (
@@ -252,6 +255,11 @@ function CaseStudy({ project, index, total, onClose, onStep }: {
             <a className="pill is-gold" href={project.url} target="_blank" rel="noopener noreferrer" data-cursor="VISIT">
               <span className="pill-dot" />Visit {project.domain}<span className="sr-only"> (opens in a new tab)</span>
             </a>
+            {project.github && (
+              <a className="pill is-dashed" href={project.github} target="_blank" rel="noopener noreferrer" data-cursor="CODE">
+                <span className="pill-dot" />GitHub Source<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
             <button className="pill is-dashed" onClick={() => onStep(1)}>
               Next case <span className="pill-arrow" aria-hidden="true">&rarr;</span>
             </button>

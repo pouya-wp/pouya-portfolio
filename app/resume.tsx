@@ -146,45 +146,56 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
             <div className="cv-projects-list">
               <div className="cv-project-item">
                 <div className="cv-proj-header">
-                  <strong>SEPEHR (sepehr.vision)</strong>
-                  <span className="cv-proj-meta">Immersive Brand Experience &middot; Lead Architect</span>
+                  <strong>GERMANIO (github.com/pouya-wp/Germanio)</strong>
+                  <span className="cv-proj-meta">Cognitive Architecture &middot; Local-First Systems Engineer</span>
                 </div>
-                <p>Architected single continuous spatial environment streaming heavy assets in background without blocking initial paint.</p>
+                <p>Architected local-first linguistic learning OS indexing 22k lemmas and 118k sentence corpus with FSRS and Bayesian Knowledge Tracing.</p>
                 <div className="cv-proj-impact">
-                  <em>Impact:</em> Steady 60fps WebGL on mobile devices &middot; 0.8s First Contentful Paint &middot; 3.4&times; average visitor dwell time.
+                  <em>Impact:</em> Sub-10ms local SQLite query latency &middot; Adaptive i18n dynamic UI progression &middot; Offline-first zero data-leak architecture.
                 </div>
               </div>
 
               <div className="cv-project-item">
                 <div className="cv-proj-header">
-                  <strong>IZMAB (izmab.vercel.app)</strong>
-                  <span className="cv-proj-meta">Conversion-Driven Product Website &middot; Design &amp; Build</span>
+                  <strong>NEBULA PLUS (github.com/pouya-wp/Nebula-Plus)</strong>
+                  <span className="cv-proj-meta">Native Systems Programming &middot; Zen Browser Mod Lead</span>
                 </div>
-                <p>Engineered modular component system with laser-focused value propositions per viewport to maximize scroll depth.</p>
+                <p>Engineered high-performance workstation bridging Firefox XPCOM with dedicated C# (.NET) native Windows companion bridge.</p>
                 <div className="cv-proj-impact">
-                  <em>Impact:</em> 42% measurable lift in visitor conversion &middot; 100/100 Lighthouse performance benchmark &middot; Sub-second routing.
+                  <em>Impact:</em> Real-time WASAPI audio loopback spectrum analysis &middot; Locked 60 FPS compositor fluidity &middot; Sub-1% idle CPU footprint.
                 </div>
               </div>
 
               <div className="cv-project-item">
                 <div className="cv-proj-header">
-                  <strong>BEYONDEX STUDIO (beyondex.one)</strong>
-                  <span className="cv-proj-meta">Studio Identity &amp; Product Infrastructure &middot; Founder &amp; Engineer</span>
+                  <strong>LUMI (lumi.beyondex.one &amp; github.com/pouya-wp/Lumi)</strong>
+                  <span className="cv-proj-meta">Multi-Platform Workspace &middot; Product Architect</span>
                 </div>
-                <p>Established shared design tokens, motion vocabulary, and multi-tenant subdomain architecture for rapid product deployment.</p>
+                <p>Engineered collaborative workspace with NestJS, Prisma, PostgreSQL with pgvector, Next.js, and offline-first Flutter mobile apps (iOS &amp; Android).</p>
                 <div className="cv-proj-impact">
-                  <em>Impact:</em> Unified design engine deployed across 4 independent live products &middot; Reduced product launch cycle to under 3 weeks.
+                  <em>Impact:</em> Sub-16ms UI response time &middot; Zero layout shift across 6 international locales &middot; Real-time collaborative documents &amp; OKR engine.
                 </div>
               </div>
 
               <div className="cv-project-item">
                 <div className="cv-proj-header">
-                  <strong>LUMI (lumi.beyondex.one)</strong>
-                  <span className="cv-proj-meta">Multilingual Product Surface &middot; Lead Product Engineer</span>
+                  <strong>DIRECTINO (github.com/pouya-wp/directino)</strong>
+                  <span className="cv-proj-meta">Distributed Systems &middot; Go Architecture &amp; AI</span>
                 </div>
-                <p>Constructed bidirectional layout engine with locale-aware routing and typography tailored for non-Latin scripts.</p>
+                <p>Developed high-throughput Go (1.22+) messaging daemon with whatsmeow multi-device WhatsApp protocol and Claude AI human-pacing engine.</p>
                 <div className="cv-proj-impact">
-                  <em>Impact:</em> Flawless RTL/LTR layout mirroring with zero visual shift across 6 international locales from single codebase.
+                  <em>Impact:</em> Sub-5ms socket dispatch latency &middot; AES-256-GCM zero-knowledge session vault &middot; Account ban protection via typing jitter.
+                </div>
+              </div>
+
+              <div className="cv-project-item">
+                <div className="cv-proj-header">
+                  <strong>P26 (p26.vercel.app)</strong>
+                  <span className="cv-proj-meta">Creative Technologist &middot; Spatial WebGL Architect</span>
+                </div>
+                <p>Engineered real-time WebGL spatial continuum simulating 43 Voronoi rigid-body fracture shards governed by Kintsugi philosophy.</p>
+                <div className="cv-proj-impact">
+                  <em>Impact:</em> Precomputed binary buffer streaming (.bin) with zero CPU runtime overhead &middot; Steady 60fps on mobile GPUs.
                 </div>
               </div>
             </div>
