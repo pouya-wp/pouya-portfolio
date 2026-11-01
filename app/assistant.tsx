@@ -65,8 +65,99 @@ function generateResponse(input: string): string {
   return `I am the architectural Oracle of Pouya Sadeghpour’s portfolio.\n\nYou may query me on the Kintsugi philosophy, real-time GLSL shader engineering, case studies in Act IV, or establishing direct contact for commissions.`;
 }
 
+
+function LiquidOrb({ isHovered }: { isHovered: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    let time = 0;
+    const size = 38;
+    const radius = size / 2;
+    const imgData = ctx.createImageData(size, size);
+    const data = imgData.data;
+
+    const render = () => {
+      time += isHovered ? 0.045 : 0.02;
+      const lx = -0.45;
+      const ly = -0.55;
+      const lz = 0.70;
+      const hx = lx;
+      const hy = ly;
+      const hz = lz + 1;
+      const hlen = Math.hypot(hx, hy, hz);
+      const nhx = hx / hlen;
+      const nhy = hy / hlen;
+      const nhz = hz / hlen;
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const idx = (y * size + x) * 4;
+          const nx = (x - radius + 0.5) / radius;
+          const ny = (y - radius + 0.5) / radius;
+          const r2 = nx * nx + ny * ny;
+
+          if (r2 <= 0.96) {
+            let nz = Math.sqrt(Math.max(0, 1 - r2));
+
+            // Fluid harmonic surface displacement (ripples like molten obsidian & gold)
+            const wave =
+              Math.sin(nx * 4.2 + time * 1.8) * Math.cos(ny * 4.2 - time * 1.4) * 0.12 +
+              Math.sin((nx + ny) * 5.5 + time * 2.2) * 0.08;
+
+            let snx = nx + wave * 0.35;
+            let sny = ny + wave * 0.35;
+            const slen = Math.hypot(snx, sny, nz);
+            snx /= slen;
+            sny /= slen;
+            nz /= slen;
+
+            // Diffuse & Specular lighting
+            const diff = Math.max(0, snx * lx + sny * ly + nz * lz);
+            const sdot = Math.max(0, snx * nhx + sny * nhy + nz * nhz);
+            const spec = Math.pow(sdot, 28);
+            const rim = Math.pow(1 - nz, 2.8);
+
+            // Gilded molten dark obsidian palette with pure liquid gold & silver highlights
+            const baseDark = 18;
+            const r = Math.min(255, baseDark + diff * 45 + rim * 180 + spec * 255);
+            const g = Math.min(255, baseDark + diff * 32 + rim * 140 + spec * 245);
+            const b = Math.min(255, baseDark + diff * 20 + rim * 60 + spec * 220);
+
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+            data[idx + 3] = 255;
+          } else {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animId);
+  }, [isHovered]);
+
+  return (
+    <div className="oracle-orb-housing">
+      <canvas ref={canvasRef} width={38} height={38} className="oracle-orb-canvas" />
+      <div className="oracle-orb-specular-ring" />
+    </div>
+  );
+}
+
 export function AssistantWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -137,20 +228,24 @@ export function AssistantWidget() {
 
   return (
     <>
-      {/* Precision Obsidian & Gilded Trigger Button (English Monospace Style) */}
+      {/* Precision Obsidian & Gilded Capsule with 3D Molten Liquid Orb */}
       <button
         id="ai-assistant-toggle"
-        className={`oracle-trigger ${isOpen ? 'is-active' : ''}`}
+        className={`oracle-pill-btn ${isOpen ? 'is-active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         aria-label="Toggle Kintsugi Oracle"
         data-cursor="ORACLE"
       >
-        <span className="oracle-trigger-glyph">✦</span>
-        <span className="oracle-trigger-core">
-          <span className="oracle-trigger-title">ORACLE // AI</span>
-          <span className="oracle-trigger-status">ILLUMINATED</span>
-        </span>
-        <span className="oracle-trigger-bracket">]</span>
+        <div className="oracle-pill-text-wrap">
+          <span className="oracle-pill-label">TALK TO ORACLE</span>
+          <span className="oracle-pill-sub">
+            <span className="oracle-pill-pulsar" />
+            AI ARCHITECT
+          </span>
+        </div>
+        <LiquidOrb isHovered={isHovered} />
       </button>
 
       {/* Luxury Architectural Monolith Modal */}

@@ -125,6 +125,8 @@ html.has-gl-cursor:not(.is-portal) .oracle-monolith * {
 
 html.has-gl-cursor:not(.is-portal) .oracle-trigger,
 html.has-gl-cursor:not(.is-portal) .oracle-trigger *,
+html.has-gl-cursor:not(.is-portal) .oracle-pill-btn,
+html.has-gl-cursor:not(.is-portal) .oracle-pill-btn *,
 html.has-gl-cursor:not(.is-portal) .oracle-monolith button,
 html.has-gl-cursor:not(.is-portal) .oracle-monolith a,
 html.has-gl-cursor:not(.is-portal) .oracle-monolith [role="button"],
@@ -1369,6 +1371,116 @@ html.is-loading,html.is-loading body{overflow:hidden}
    KINTSUGI ORACLE — ARCHITECTURAL INTELLIGENCE MONOLITH
    ========================================================================= */
 
+
+/* Gilded Obsidian Capsule Trigger with 3D Molten Liquid Orb */
+.oracle-pill-btn {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 55;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 7px 6px 18px;
+  background: radial-gradient(130% 130% at 50% 0%, #20170f 0%, #0d0905 100%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(223, 173, 72, 0.4);
+  border-radius: 9999px;
+  color: var(--bone);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.85),
+    0 0 20px rgba(223, 173, 72, 0.16),
+    inset 0 1px 1px rgba(255, 237, 215, 0.22);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  cursor: pointer !important;
+  user-select: none;
+}
+
+.oracle-pill-btn:hover,
+.oracle-pill-btn.is-active {
+  background: radial-gradient(130% 130% at 50% 0%, #2c1f13 0%, #120c07 100%);
+  border-color: var(--gold-hot);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.95),
+    0 0 28px rgba(223, 173, 72, 0.45),
+    inset 0 1px 1px rgba(255, 237, 215, 0.35);
+  transform: translateY(-2px);
+}
+
+.oracle-pill-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.oracle-pill-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--bone);
+  text-transform: uppercase;
+}
+
+.oracle-pill-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--gold-hot);
+  opacity: 0.88;
+}
+
+.oracle-pill-pulsar {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold-hot);
+  box-shadow: 0 0 6px var(--gold-hot);
+  animation: pulsar-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulsar-glow {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.oracle-orb-housing {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #3a2a1a 0%, #100b06 70%);
+  padding: 1px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 237, 215, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.oracle-orb-canvas {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: block;
+}
+
+.oracle-orb-specular-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(223, 173, 72, 0.3);
+  pointer-events: none;
+}
+
 /* Precision Obsidian & Gilded Trigger Button (English Monospace Architecture) */
 .oracle-trigger {
   position: fixed;
@@ -1616,6 +1728,8 @@ html.is-loading,html.is-loading body{overflow:hidden}
   flex: 1;
   padding: 18px 20px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -2235,6 +2349,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   #masthead,
   .no-print,
   .oracle-trigger,
+  .oracle-pill-btn,
   .oracle-monolith {
     display: none !important;
   }

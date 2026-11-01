@@ -31,7 +31,7 @@ function shapeFor(geometry: THREE.BufferGeometry) {
 
   const hull = new ConvexGeometry(cloud);
   const attr = hull.getAttribute('position');
-  const vertices: any[] = [];
+  const vertices: CANNON.Vec3[] = [];
   const faces: number[][] = [];
   const lookup = new Map<string, number>();
   for (let i = 0; i < attr.count; i += 3) {
@@ -62,9 +62,9 @@ export function bakePhysics(fragments:Fragment[]){
  // there is no floor yet, so the cloud is held above the height the mat will occupy;
  // without this a shard can drift under the table before gravity is handed back
  const CEILING_FOR_THE_FLOOR=-1.85;
- for(let frame=0;frame<100;frame++){world.step(1/120);bodies.forEach(b=>{if(b.position.y<CEILING_FOR_THE_FLOOR){b.position.y=CEILING_FOR_THE_FLOOR;if(b.velocity.y<0)b.velocity.y*=-.22;}});explosion.push(capture());}
- const floor=new CANNON.Body({mass:0,material,shape:new CANNON.Plane()});floor.quaternion.setFromEuler(-Math.PI/2,0,0);floor.position.y=-2.65;world.addBody(floor);world.gravity.set(0,-9.81,0);bodies.forEach(b=>{b.collisionResponse=true;b.velocity.set(0,0,0);b.angularVelocity.scale(.3,b.angularVelocity);b.linearDamping=.18;b.angularDamping=.3;});
- const drop:Pose[][]=[capture()];for(let frame=0;frame<360;frame++){world.step(1/120);if(frame%2===1)drop.push(capture());}
+ for(let frame=0;frame<100;frame++){world.step(1/120, 1/120, 3);bodies.forEach(b=>{if(b.position.y<CEILING_FOR_THE_FLOOR){b.position.y=CEILING_FOR_THE_FLOOR;if(b.velocity.y<0)b.velocity.y*=-.22;}});explosion.push(capture());}
+ const floor=new CANNON.Body({mass:0,material,shape:new CANNON.Plane()});floor.quaternion.setFromEuler(-Math.PI/2,0,0,'XYZ');floor.position.y=-2.65;world.addBody(floor);world.gravity.set(0,-9.81,0);bodies.forEach(b=>{b.collisionResponse=true;b.velocity.set(0,0,0);b.angularVelocity.scale(.3,b.angularVelocity);b.linearDamping=.18;b.angularDamping=.3;});
+ const drop:Pose[][]=[capture()];for(let frame=0;frame<360;frame++){world.step(1/120, 1/120, 3);if(frame%2===1)drop.push(capture());}
  return {explosion,drop};
 }
 export function samplePose(frames:Pose[][],t:number,index:number,out:Pose){const f=Math.max(0,Math.min(frames.length-1,t*(frames.length-1))),i=Math.floor(f),a=frames[i][index],b=frames[Math.min(i+1,frames.length-1)][index];out.position.copy(a.position).lerp(b.position,f-i);out.quaternion.copy(a.quaternion).slerp(b.quaternion,f-i);}

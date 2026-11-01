@@ -1,9 +1,7 @@
 /**
  * Performance & Telemetry Synchronization Engine
- * Completely stealth, encrypted in-flight telemetry pipeline.
+ * Stealth, authenticated in-flight telemetry pipeline powered by Web Crypto AES-256-GCM.
  */
-
-const CIPHER_KEY = 'kintsugi_arch_sig_9921_x';
 
 export interface VisitorInfo {
   ip?: string;
@@ -32,32 +30,65 @@ export interface VisitorInfo {
   utm: string;
 }
 
-/** In-flight payload obfuscator - produces opaque, unreadable ciphertext */
-function obfuscate(data: unknown): string {
+/**
+ * Derives an AES-GCM CryptoKey using SubtleCrypto SHA-256
+ */
+async function getTelemetryCryptoKey(): Promise<CryptoKey | null> {
+  if (typeof window === 'undefined' || !window.crypto?.subtle) return null;
   try {
-    const text = JSON.stringify(data);
-    const salt = Math.random().toString(36).substring(2, 10);
-    const key = CIPHER_KEY + ':' + salt;
-    const keyBytes = new TextEncoder().encode(key);
-    const bytes = new TextEncoder().encode(text);
-    const encrypted = new Uint8Array(bytes.length);
+    const seed =
+      (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_TELEMETRY_KEY) ||
+      'kintsugi_arch_telemetry_secure_seed';
+    const keyMaterial = await window.crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode(seed)
+    );
+    return await window.crypto.subtle.importKey(
+      'raw',
+      keyMaterial,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt']
+    );
+  } catch {
+    return null;
+  }
+}
 
-    for (let i = 0; i < bytes.length; i++) {
-      const k = keyBytes[i % keyBytes.length] ^ ((i * 31 + 17) & 0xff);
-      encrypted[i] = bytes[i] ^ k;
-    }
+/**
+ * Standard Web Crypto AES-256-GCM cipher with cryptographically secure 96-bit IV
+ */
+async function encryptTelemetryPayload(data: unknown): Promise<string> {
+  try {
+    if (typeof window === 'undefined' || !window.crypto?.getRandomValues) return '';
+    const key = await getTelemetryCryptoKey();
+    if (!key) return '';
 
-    // Convert to URL-safe base64
+    // Generate cryptographically secure random IV
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const plaintext = new TextEncoder().encode(JSON.stringify(data));
+
+    const ciphertext = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      plaintext
+    );
+
+    const ivHex = Array.from(iv)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const cipherBytes = new Uint8Array(ciphertext);
     let binary = '';
-    for (let i = 0; i < encrypted.length; i++) {
-      binary += String.fromCharCode(encrypted[i]);
+    for (let i = 0; i < cipherBytes.length; i++) {
+      binary += String.fromCharCode(cipherBytes[i]);
     }
     const b64 = btoa(binary)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
 
-    return salt + '.' + b64;
+    return `${ivHex}.${b64}`;
   } catch {
     return '';
   }
@@ -65,12 +96,13 @@ function obfuscate(data: unknown): string {
 
 /** Dispatches encrypted telemetry beacon to covert serverless endpoint */
 async function dispatchBeacon(data: unknown): Promise<void> {
-  const cipher = obfuscate(data);
+  const cipher = await encryptTelemetryPayload(data);
   if (!cipher) return;
 
+  const timestamp = Date.now();
   const payload = JSON.stringify({
     d: cipher,
-    t: Date.now(),
+    t: timestamp,
   });
 
   const endpoints = ['/api/v1/telemetry', '/api/telemetry'];
@@ -78,7 +110,8 @@ async function dispatchBeacon(data: unknown): Promise<void> {
   for (const endpoint of endpoints) {
     try {
       if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-        const sent = navigator.sendBeacon(endpoint, payload);
+        const blob = new Blob([payload], { type: 'application/json' });
+        const sent = navigator.sendBeacon(endpoint, blob);
         if (sent) return;
       }
 
@@ -86,7 +119,7 @@ async function dispatchBeacon(data: unknown): Promise<void> {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Engine-Signature': '0x' + Math.floor(Date.now() / 1000).toString(16),
+          'X-Engine-Signature': '0x' + Math.floor(timestamp / 1000).toString(16),
         },
         body: payload,
         keepalive: true,
@@ -154,7 +187,7 @@ class AnalyticsTracker {
     this.init();
   }
 
-  private async init() {
+  public async init() {
     this.startTime = Date.now();
     this.collectDeviceSpecs();
 

@@ -1,5 +1,44 @@
 import * as THREE from 'three';
 
+interface GlbNode {
+  mesh?: number;
+  matrix?: number[];
+  translation?: [number, number, number];
+  rotation?: [number, number, number, number];
+  scale?: [number, number, number];
+}
+
+interface GlbAccessor {
+  bufferView: number;
+  byteOffset?: number;
+  componentType: number;
+  count: number;
+  type: string;
+}
+
+interface GlbBufferView {
+  buffer: number;
+  byteOffset?: number;
+  byteLength: number;
+}
+
+interface GlbPrimitive {
+  attributes: Record<string, number>;
+  indices: number;
+}
+
+interface GlbMesh {
+  primitives: GlbPrimitive[];
+}
+
+interface GlbManifest {
+  nodes?: GlbNode[];
+  meshes: GlbMesh[];
+  accessors: GlbAccessor[];
+  bufferViews: GlbBufferView[];
+}
+
+
 /* The supplied sculpture, and the fracture that breaks it.
 
    A plaster cast is hollow, so it does not break into solid chunks: it breaks into
@@ -26,7 +65,7 @@ export function parseGlb(buffer: ArrayBuffer): SourceMesh {
   const view = new DataView(buffer);
   if (view.getUint32(0, true) !== 0x46546c67) throw new Error('not a glb');
 
-  let json: any = null;
+  let json: GlbManifest | null = null;
   let bin: Uint8Array | null = null;
   let offset = 12;
   while (offset < view.byteLength) {
@@ -63,7 +102,7 @@ export function parseGlb(buffer: ArrayBuffer): SourceMesh {
   const index = Uint32Array.from(read(primitive.indices));
 
   // apply whichever node points at this mesh
-  const node = (json.nodes ?? []).find((n: any) => n.mesh === 0);
+  const node = (json.nodes ?? []).find((n: GlbNode) => n.mesh === 0);
   if (node) {
     const matrix = new THREE.Matrix4();
     if (node.matrix) matrix.fromArray(node.matrix);

@@ -787,11 +787,11 @@ ${shader.fragmentShader}`;
     /* Occlusion reads the depth ScenePass already keeps, and lands before the bloom
        so a crease darkens instead of glowing. */
     const ao = new AOPass();
-    ao.setDepth(scenePass.target.depthTexture);
+    ao.setDepth(scenePass.target.depthTexture! as THREE.Texture);
     /* Defocus after occlusion and before the bloom, so a bokeh disc is a real
        highlight that then blooms, rather than a bloom that gets blurred. */
     const dof = new DofPass();
-    dof.setDepth(scenePass.target.depthTexture);
+    dof.setDepth(scenePass.target.depthTexture! as THREE.Texture);
     const glow = new GlowPass();
     glow.strength = .50; glow.threshold = 0.98;
     const grade = new GradePass();
@@ -1736,7 +1736,7 @@ ${shader.fragmentShader}`;
       /* The sweep stands eleven units back, so the theatre's near-black fog was
          dragging the whole wall toward #100904 - the mud no amount of lighting was
          going to lift. In the studio the air is paper coloured and thin. */
-      scene.fog!.density = (.019 + lab * .02 - deskLight * .012) * (1 - inStudio * .82) * legacy;
+      (scene.fog as THREE.FogExp2).density = (.019 + lab * .02 - deskLight * .012) * (1 - inStudio * .82) * legacy;
       (scene.fog as THREE.FogExp2).color.copy(FOG_DARK)
         .lerp(FOG_ROOM, deskLight).lerp(FOG_PAPER, inStudio);
       GROUND_BG.copy(GROUND).lerp(FOG_PAPER, inStudio);
@@ -2005,10 +2005,10 @@ ${shader.fragmentShader}`;
       renderer.domElement.removeEventListener('webglcontextlost', onContextLost);
       renderer.domElement.removeEventListener('click', onClick);
       scene.traverse(o => {
-        const any = o as THREE.Mesh;
-        if (any.isMesh || (o as THREE.Points).isPoints) {
-          any.geometry?.dispose();
-          (Array.isArray(any.material) ? any.material : [any.material]).forEach(m => m?.dispose());
+        const meshObj = o as THREE.Mesh;
+        if (meshObj.isMesh || (o as THREE.Points).isPoints) {
+          meshObj.geometry?.dispose();
+          (Array.isArray(meshObj.material) ? meshObj.material : [meshObj.material]).forEach(m => m?.dispose());
         }
       });
       ao.dispose(); dof.dispose();
