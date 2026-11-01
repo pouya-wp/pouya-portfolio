@@ -9,7 +9,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://p4sadx.vercel.app'),
+  metadataBase: new URL('https://pouya.one'),
   title: {
     default: 'Pouya Sadeghpour — Architecting Possibilities',
     template: '%s | Pouya Sadeghpour',
@@ -37,10 +37,13 @@ export const metadata: Metadata = {
     apple: '/favicon.svg',
   },
   manifest: '/manifest.json',
+  alternates: {
+    canonical: 'https://pouya.one',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://p4sadx.vercel.app',
+    url: 'https://pouya.one',
     siteName: 'Pouya Sadeghpour — Portfolio',
     title: 'Pouya Sadeghpour — Architecting Possibilities',
     description:
@@ -73,9 +76,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  alternates: {
-    canonical: 'https://p4sadx.vercel.app',
-  },
 };
 
 const jsonLd = {
@@ -83,7 +83,7 @@ const jsonLd = {
   '@type': 'Person',
   name: 'Pouya Sadeghpour',
   jobTitle: 'Senior Creative Technologist & Lead Front-End Architect',
-  url: 'https://p4sadx.vercel.app',
+  url: 'https://pouya.one',
   sameAs: [
     'https://linkedin.com/in/onepouya',
     'https://github.com/pouya-wp',

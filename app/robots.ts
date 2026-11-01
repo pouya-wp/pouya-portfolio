@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/'],
     },
-    sitemap: 'https://p4sadx.vercel.app/sitemap.xml',
+    sitemap: 'https://pouya.one/sitemap.xml',
   };
 }
