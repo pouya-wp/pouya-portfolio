@@ -1697,10 +1697,23 @@ ${shader.fragmentShader}`;
       }
       cards.forEach((card, i) => {
         const want = i === hovered ? 1 : 0;
-        card.lift = THREE.MathUtils.damp(card.lift, want, 8, dt);
-        card.holder.position.y = card.base.y + card.lift * .5;
-        card.holder.rotation.x = -card.lift * .07;
-        card.holder.scale.setScalar(card.scale * (1 + card.lift * .035));
+        card.lift = THREE.MathUtils.damp(card.lift, want, 6.8, dt);
+        const t = card.lift;
+
+        // Elegant elevation with subtle floating levitation when hovered
+        const floatY = t > 0.04 ? Math.sin(elapsed * 2.6 + i * 1.3) * 0.035 * t : 0;
+        card.holder.position.y = card.base.y + t * 0.95 + floatY;
+        card.holder.position.z = card.base.z + t * 0.22;
+        card.holder.scale.setScalar(card.scale * (1 + t * 0.075));
+
+        // Mesmerizing top-to-bottom flip coupled with longitudinal corkscrew twist along card's axis
+        const flipAngle = t * Math.PI;
+        const twistAngle = t * Math.PI + Math.sin(t * Math.PI) * 0.38;
+        const bankAngle = Math.sin(t * Math.PI) * 0.24 * (i % 2 === 0 ? 1 : -1);
+
+        card.built.group.rotation.x = -Math.PI / 2 + flipAngle;
+        card.built.group.rotation.y = twistAngle;
+        card.built.group.rotation.z = bankAngle;
       });
 
       if (board) {
