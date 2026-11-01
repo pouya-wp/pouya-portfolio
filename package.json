@@ -14,7 +14,8 @@
     "preview:build": "node scripts/build-preview.mjs",
     "preview:local": "node scripts/preview-server.mjs",
     "build:vinext": "vinext build",
-    "physics:bake": "node scripts/bake-physics.mjs"
+    "physics:bake": "node scripts/bake-physics.mjs",
+    "og:render": "node scripts/capture-og.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
