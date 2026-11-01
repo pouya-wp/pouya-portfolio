@@ -16,4 +16,4 @@
 No third-party site code, proprietary artwork, branding or models are copied.
 
 ## Content constraints
-Contact omitted at the user's instruction. Project URLs kept exactly as supplied: https://sepehr.vision and https://p4sadx.vercell.app. First URL returned HTTP 200; second returned HTTP 204 and may be a mistyped or empty deployment. Both retained without inventing a correction. Original Blender sculpture, official signature asset, and project video files were not supplied. Procedural sculpture and a drawn signature treatment remain replaceable assets.
+Contact omitted at the user's instruction. Project URLs kept exactly as supplied: https://sepehr.vision and https://p26.vercel.app. First URL returned HTTP 200; second returned HTTP 204 and may be a mistyped or empty deployment. Both retained without inventing a correction. Original Blender sculpture, official signature asset, and project video files were not supplied. Procedural sculpture and a drawn signature treatment remain replaceable assets.
