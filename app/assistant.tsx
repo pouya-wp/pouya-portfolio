@@ -26,7 +26,7 @@ const CURATED_TOPICS = [
 const KNOWLEDGE_RESPONSES = [
   {
     triggers: ['who', 'pouya', 'about', 'bio', 'کیست', 'کیه', 'پویا', 'درباره', 'معرفی'],
-    reply: `Pouya Sadeghpour is an architectural creative technologist, senior front-end architect, and spatial WebGL engineer.\n\nHis work synthesizes classical sculptural form, algorithmic physics, and bespoke GLSL shaders into high-precision digital artifacts that drive measurable conversion and refuse the disposable conventions of modern web design.`,
+    reply: `Pouya Sadeghpour is a 17-year-old creative developer and shader enthusiast exploring the intersection of WebGL, Rust & Interaction Design.\n\nHis work synthesizes classical sculptural form, algorithmic physics, and bespoke GLSL shaders into high-precision digital artifacts that drive measurable conversion and refuse the disposable conventions of modern web design.`,
   },
   {
     triggers: ['philosophy', 'limitations', 'quote', 'motto', 'فلسفه', 'شعار', 'دیدگاه', 'کینتسوگی', 'kintsugi', 'suhrawardi'],
@@ -38,7 +38,7 @@ const KNOWLEDGE_RESPONSES = [
   },
   {
     triggers: ['resume', 'cv', 'experience', 'background', 'رزومه', 'سابقه', 'تجربه', 'استخدام', 'recruiter', 'hr'],
-    reply: `Pouya Sadeghpour — Senior Creative Technologist & Lead Front-End Architect:\n\n• Core Stack: Three.js, WebGL 2.0, GLSL Shaders, React 19, Next.js 15, TypeScript, GSAP.\n• Background: 6+ years designing and engineering high-impact digital products, spatial 3D flagships, and scalable design systems.\n• Leadership: Founder of BeyondEx Studio; led design & engineering for international clients across Europe, Middle East, and North America.\n• Availability: Open for selective commissions, fractional CTO/tech lead roles, and high-impact remote engagements worldwide.\n\nYou can click 'RESUME' in the top navigation bar to inspect or print the complete executive PDF.`,
+    reply: `Pouya Sadeghpour — 17-year-old Creative Developer & Shader Enthusiast exploring the intersection of WebGL, Rust & Interaction Design:\n\n• Core Stack: WebGL, Three.js, Custom GLSL Shaders, Rust (Direct3D 11), React 19, Next.js 16, Go, C#.\n• Production: 16+ verified shipments spanning luxury 3D ateliers, desktop GPU engines, and distributed AI platforms.\n• Ethos: Self-taught engineering from first principles — architecting limitations into luminous creative breakthroughs.\n• Availability: Open for selective commissions, design studio partnerships, and high-impact remote engagements worldwide.\n\nYou can click 'RESUME' in the top navigation bar to inspect the complete document.`,
   },
   {
     triggers: ['linkedin', 'github', 'social', 'لینکدین', 'گیت‌هاب', 'لینک'],

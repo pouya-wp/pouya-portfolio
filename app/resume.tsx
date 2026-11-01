@@ -79,7 +79,7 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
           <header className="cv-header">
             <div className="cv-header-primary">
               <h1 className="cv-name">POUYA SADEGHPOUR</h1>
-              <p className="cv-role">Senior Creative Technologist &amp; Lead Front-End Architect</p>
+              <p className="cv-role">17-year-old Creative Developer &amp; Shader Enthusiast exploring the intersection of WebGL, Rust &amp; Interaction Design</p>
             </div>
             <div className="cv-header-contact">
               <div><span>Email:</span> <a href="mailto:pouyas.one@outlook.com">pouyas.one@outlook.com</a></div>
@@ -96,7 +96,7 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
           <section className="cv-section">
             <h2 className="cv-sec-title">EXECUTIVE SUMMARY</h2>
             <p className="cv-summary-text">
-              Architectural creative technologist and senior front-end engineer specializing in high-performance spatial WebGL, bespoke GLSL shaders, React 19, and Next.js digital flagships. Synthesizes sculptural aesthetic direction with mathematically rigorous 60fps interaction engineering to design products that captivate users, drive measurable conversion, and achieve industry-acclaimed performance standards.
+              Self-taught 17-year-old creative developer and shader enthusiast blending real-time 3D WebGL, custom GLSL illumination shaders, Rust systems programming (Direct3D 11), and high-performance React 19/Next.js 16 digital flagships. Pushing browser graphics to 43 Voronoi rigid-body fracture shards with zero-overhead binary physics streaming, and engineering distributed AI agent platforms from concept to production.
             </p>
           </section>
 
@@ -240,39 +240,31 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
             <div className="cv-exp-list">
               <div className="cv-exp-item">
                 <div className="cv-exp-head">
-                  <strong>Founder &amp; Principal Creative Technologist</strong> &mdash; BeyondEx Studio
+                  <strong>Founder &amp; Creative Technologist</strong> &mdash; BeyondEx Studio
                   <span className="cv-exp-date">2024 &mdash; Present</span>
                 </div>
-                <p>Directing technical architecture, 3D WebGL engineering, and creative vision for select high-growth brands and interactive digital products worldwide.</p>
+                <p>Directing technical architecture, 3D WebGL engineering, and creative vision for high-tempo digital flagships, interactive platforms, and autonomous AI workspaces worldwide.</p>
               </div>
 
               <div className="cv-exp-item">
                 <div className="cv-exp-head">
-                  <strong>Senior Front-End &amp; Spatial WebGL Engineer</strong> &mdash; Independent Practice
-                  <span className="cv-exp-date">2022 &mdash; 2024</span>
+                  <strong>Creative Developer &amp; Systems Explorer</strong> &mdash; Independent Practice &amp; Open Source
+                  <span className="cv-exp-date">2023 &mdash; Present</span>
                 </div>
-                <p>Delivered bespoke WebGL experiences, interactive design systems, and conversion-optimized web applications for international clients across Europe, Middle East, and North America.</p>
-              </div>
-
-              <div className="cv-exp-item">
-                <div className="cv-exp-head">
-                  <strong>Interactive UI/UX &amp; Creative Developer</strong> &mdash; Digital Agencies
-                  <span className="cv-exp-date">2020 &mdash; 2022</span>
-                </div>
-                <p>Collaborated with multidisciplinary engineering and design teams to build high-traffic web interfaces, design tokens, and fluid animation pipelines.</p>
+                <p>Authored 16+ production-proven systems spanning real-time Direct3D 11 cursor graphics (Rust), After Effects 2D physics extensions, Windows typography injectors (.NET 10), and WebGL shaders.</p>
               </div>
             </div>
           </section>
 
           {/* Education & Studies */}
           <section className="cv-section">
-            <h2 className="cv-sec-title">EDUCATION &amp; RECOGNITION</h2>
+            <h2 className="cv-sec-title">APPLIED LEARNING &amp; SPECIALIZATION</h2>
             <div className="cv-exp-item">
               <div className="cv-exp-head">
-                <strong>Architectural Systems &amp; Computational Design</strong>
-                <span className="cv-exp-date">Bachelor of Architecture (B.Arch)</span>
+                <strong>Self-Directed Engineering &amp; Applied Graphics Research</strong>
+                <span className="cv-exp-date">Continuous Specialization</span>
               </div>
-              <p>Specialization in algorithmic spatial geometry, Voronoi tessellations, light physics, and tectonic structural systems.</p>
+              <p>Intensive self-directed research in real-time computer graphics, GLSL linear algebra &amp; matrix transformations, Three.js engine internals, Rust low-level systems programming, and interaction design.</p>
             </div>
           </section>
         </div>

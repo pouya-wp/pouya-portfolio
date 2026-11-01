@@ -15,14 +15,16 @@ export const metadata: Metadata = {
     template: '%s | Pouya Sadeghpour',
   },
   description:
-    'Senior Creative Technologist & Front-End Architect. An interactive study in gypsum, real-time GLSL shaders, physics-baked Voronoi fracture, and Kintsugi philosophy.',
+    '17-year-old Creative Developer & Shader Enthusiast exploring the intersection of WebGL, Rust & Interaction Design. An interactive study in gypsum, real-time GLSL shaders, physics-baked Voronoi fracture, and Kintsugi philosophy.',
   keywords: [
     'Pouya Sadeghpour',
-    'Creative Technologist',
+    'Creative Developer',
+    'Shader Enthusiast',
     'WebGL Engineer',
     'Three.js',
     'GLSL Shaders',
-    'Front-End Architect',
+    'Rust',
+    'Interaction Design',
     'Spatial Web',
     'Kintsugi',
     'Architectural Digital Twin',
@@ -61,7 +63,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Pouya Sadeghpour — Architecting Possibilities',
     description:
-      'Senior Creative Technologist & WebGL Architect. 11-act scroll-driven spatial journey in Three.js and custom GLSL.',
+      '17-year-old Creative Developer & Shader Enthusiast exploring the intersection of WebGL, Rust & Interaction Design.',
     images: ['/og.jpg'],
     creator: '@onepouya',
   },
@@ -82,7 +84,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: 'Pouya Sadeghpour',
-  jobTitle: 'Senior Creative Technologist & Lead Front-End Architect',
+  jobTitle: '17-year-old Creative Developer & Shader Enthusiast',
   url: 'https://pouya.one',
   sameAs: [
     'https://linkedin.com/in/onepouya',
