@@ -42,14 +42,14 @@ const FILES: Record<Asset, string> = {
 const LEVEL: Record<Effect, number> = {
   fracture: .38,
   impact: .40,
-  rise: .24,
-  portal: .22,
+  rise: .008,
+  portal: .007,
   chime: .25,
   cut: .20,
   tick: .10,
   click: .16,
-  vacuum: .24,
-  whoosh: .22,
+  vacuum: .008,
+  whoosh: .007, // -30 dB reduction (was .22)
   assemble: .28,
   place: .34,
 };
@@ -178,50 +178,8 @@ export class Soundscape {
      @param heat 0..1 how far into the burn
      @param bright 0..1 the ring, which is at its clearest just after
    */
-  resonance(heat: number, bright: number): void {
-    if (!this.enabled || this.closing) return;
-    const t = this.ctx.currentTime;
-
-    if (!this.bowl && (heat > .001 || bright > .001)) {
-      const gain = this.ctx.createGain();
-      gain.gain.value = 0;
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 400;
-      filter.Q.value = .8;
-      /* A struck bowl is not harmonic. These ratios are roughly what a small standing
-         bowl gives: a fundamental, a sharp second an octave and a bit above it, and a
-         third that beats against the second - the beating is the shimmer. */
-      const osc = [1, 2.71, 5.43].map((ratio, i) => {
-        const o = this.ctx.createOscillator();
-        o.type = 'sine';
-        o.frequency.value = 96 * ratio;
-        const level = this.ctx.createGain();
-        level.gain.value = [.5, .3, .16][i];
-        o.connect(level); level.connect(filter);
-        o.start();
-        return o;
-      });
-      filter.connect(gain);
-      gain.connect(this.duck);
-      this.bowl = { osc, gain, filter };
-    }
-    if (!this.bowl) return;
-
-    /* The fundamental climbs about an octave across the burn. Nothing is retriggered;
-       it is one continuous tone that changes what it is, which is the point. */
-    const base = 96 + heat * 84;
-    this.bowl.osc[0].frequency.setTargetAtTime(base, t, .4);
-    this.bowl.osc[1].frequency.setTargetAtTime(base * 2.71, t, .4);
-    this.bowl.osc[2].frequency.setTargetAtTime(base * 5.43, t, .4);
-    // closed and dark while it is still stone, wide open at the ring
-    this.bowl.filter.frequency.setTargetAtTime(340 + bright * 5200, t, .35);
-
-    const level = (heat * .16 + bright * .2);
-    if (Math.abs(level - this.bowlLevel) > .004) {
-      this.bowlLevel = level;
-      this.bowl.gain.gain.setTargetAtTime(level, t, .3);
-    }
+  resonance(_heat: number, _bright: number): void {
+    // Disabled: candle & butterfly sequence synth horn/drone sound removed per user request
   }
 
   update(p: number): void {
@@ -269,7 +227,7 @@ export class Soundscape {
       play('fracture', .42, 1, -.04);
       play('fracture', .18, .57, .08, .018);
       play('stoneBreak', .28, .80, -.18, .025);
-      play('vacuum', .22, .76, 0, .15);
+      play('vacuum', .007, .76, 0, .15);
 
       const t = this.ctx.currentTime;
       this.duck.gain.cancelScheduledValues(t);

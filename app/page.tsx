@@ -478,7 +478,6 @@ export default function Home() {
       [.198, 'impact'],
       [.235, 'assemble'],
       [.395, 'whoosh'],
-      [.812, 'rise'],
       [.965, 'place'],
     ];
 
@@ -633,13 +632,7 @@ export default function Home() {
       const isLight = false;
       if (isLight !== wasLight) { wasLight = isLight; setLight(isLight); }
 
-      /* The bowl. Heat is the burn itself, bright is the ring that follows it and
-         carries into the cloud - so the sound arrives with the flame and leaves with
-         the last of the powder. */
-      audio.current?.resonance(
-        windowOpacity(p, .745, .830, .03),
-        windowOpacity(p, .800, .935, .05),
-      );
+      // Candle & butterfly bowl resonance removed per user request
       audio.current?.update(p);
       for (const [at, event] of cues) {
         if (prevProgress.current < at && p >= at && p - prevProgress.current < .1) audio.current?.effect(event);
