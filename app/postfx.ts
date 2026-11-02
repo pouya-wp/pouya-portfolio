@@ -532,15 +532,16 @@ export class FinishPass extends Pass {
                      * (1.0 - uRipple);
             }
 
-            float bone = clamp(ink * 0.92 + track * 0.7, 0.0, 1.0) * uPresence;
-            float hot = clamp(bracket * uHover + ripple + track * 0.22, 0.0, 1.0) * uPresence;
-            float centre = (1.0 - smoothstep(hair * 1.1, hair * 2.0, length(st - head))) * uPresence;
+            /* The reticle ring is rendered at the top layer via hardware SVG cursor so it is unified
+               everywhere over modals and DOM. Here in WebGL we preserve the 3D vertex illumination
+               tracks and click ripple radiating into the 3D scene. */
+            float bone = clamp(track * 0.85, 0.0, 1.0) * uPresence;
+            float hot = clamp(ripple + track * 0.28, 0.0, 1.0) * uPresence;
 
             // a whisper of shadow keeps the hairlines readable on a bright sheet
             col *= 1.0 - clamp(bone + hot, 0.0, 1.0) * 0.20;
             col = mix(col, uBone, bone);
             col = mix(col, uTint, hot);
-            col = mix(col, uTint, centre);
           }
 
           float g = hash12(gl_FragCoord.xy + fract(uTime) * 311.0);

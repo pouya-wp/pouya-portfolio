@@ -84,10 +84,8 @@ export function CommissionModal({ isOpen, onClose }: CommissionModalProps) {
       className="commission-dialog"
       aria-label="Direct Commission Dispatch — Pouya Sadeghpour"
       data-native-scroll="true"
-      onWheel={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.stopPropagation()}
     >
-      <div className="commission-container">
+      <div className="commission-container" data-native-scroll="true">
         {/* Top Control Bar */}
         <div className="commission-bar">
           <div className="commission-bar-meta">
@@ -110,7 +108,7 @@ export function CommissionModal({ isOpen, onClose }: CommissionModalProps) {
         </div>
 
         {/* Content Body */}
-        <div className="commission-body">
+        <div className="commission-body" data-native-scroll="true">
           {status === 'sent' ? (
             <div className="commission-success">
               <span className="commission-success-glyph">✦</span>

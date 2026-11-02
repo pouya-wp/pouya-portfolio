@@ -43,6 +43,12 @@
   --gold-30:rgba(224,162,68,.34);
   --gold-00:rgba(224,162,68,0);
 
+  /* Unified Kintsugi Custom Cursors */
+  --cur-default: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='7.5' stroke='rgba(0,0,0,0.7)' stroke-width='2.6' fill='none'/%3E%3Ccircle cx='16' cy='16' r='7.5' stroke='%23dfad48' stroke-width='1.6' fill='none'/%3E%3Ccircle cx='16' cy='16' r='1.6' fill='%23ffedd7' stroke='%230b0704' stroke-width='0.6'/%3E%3C/svg%3E") 16 16, auto;
+  --cur-pointer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='18' r='9.5' stroke='rgba(0,0,0,0.7)' stroke-width='2.6' fill='none'/%3E%3Ccircle cx='18' cy='18' r='9.5' stroke='%23f6d289' stroke-width='1.6' fill='none'/%3E%3Cpath d='M10 7 H7 V10 M26 7 H29 V10 M7 26 V29 H10 M29 26 V29 H26' stroke='%23dfad48' stroke-width='1.6' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='18' cy='18' r='2' fill='%23ffedd7' stroke='%230b0704' stroke-width='0.6'/%3E%3C/svg%3E") 18 18, pointer;
+  --cur-text: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 4 H17 M12 4 V20 M7 20 H17' stroke='%230b0704' stroke-width='3.2' stroke-linecap='round'/%3E%3Cpath d='M7 4 H17 M12 4 V20 M7 20 H17' stroke='%23dfad48' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, text;
+  --cur-disabled: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='7.5' stroke='rgba(0,0,0,0.7)' stroke-width='2.6' fill='none'/%3E%3Ccircle cx='16' cy='16' r='7.5' stroke='%237a4a10' stroke-width='1.6' fill='none'/%3E%3Cline x1='11' y1='11' x2='21' y2='21' stroke='%23e05040' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") 16 16, not-allowed;
+
   --font-display:Geist,system-ui,sans-serif;
   --font-serif:'Instrument Serif',Georgia,serif;
   --font-text:Geist,system-ui,sans-serif;
@@ -100,70 +106,74 @@ body{
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
 }
-html.has-gl-cursor:not(.is-portal),
-html.has-gl-cursor:not(.is-portal) body {
-  cursor: none !important;
+/* Unified Bespoke Kintsugi Cursor across the ENTIRE platform */
+html,
+html body,
+html *,
+body *,
+dialog,
+dialog *,
+dialog::backdrop,
+::backdrop {
+  cursor: var(--cur-default);
 }
 
-/* Ensure cursor is clearly visible over all interactive DOM elements */
-html.has-gl-cursor:not(.is-portal) a,
-html.has-gl-cursor:not(.is-portal) button,
-html.has-gl-cursor:not(.is-portal) [role="button"],
-html.has-gl-cursor:not(.is-portal) .pill,
-html.has-gl-cursor:not(.is-portal) .ct-link,
-html.has-gl-cursor:not(.is-portal) .interactive,
-html.has-gl-cursor:not(.is-portal) .pointer,
-html.has-gl-cursor:not(.is-portal) [data-cursor],
-html.has-gl-cursor:not(.is-portal) #menu,
-html.has-gl-cursor:not(.is-portal) #menu *,
-html.has-gl-cursor:not(.is-portal) #compass,
-html.has-gl-cursor:not(.is-portal) #compass *,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith * {
-  cursor: default !important;
+/* Interactive elements: expanded targeting reticle with corner notches */
+a,
+a *,
+button,
+button *,
+[role="button"],
+[role="button"] *,
+.pill,
+.pill *,
+.ct-link,
+.interactive,
+.pointer,
+[data-cursor],
+.sheet,
+.sheet *,
+#menu,
+#menu *,
+#compass,
+#compass *,
+#masthead button,
+#masthead a,
+.masthead-link,
+.masthead-brand,
+.masthead-act-pill,
+.masthead-cta,
+.oracle-trigger,
+.oracle-pill-btn,
+.oracle-monolith button,
+.oracle-monolith a,
+.oracle-folio-btn,
+.oracle-transmit-btn,
+.oracle-close,
+.sitemap-modal button,
+.sitemap-modal a,
+.sitemap-close,
+.cv-dialog button,
+.cv-dialog a,
+.commission-dialog button,
+.commission-dialog a,
+summary {
+  cursor: var(--cur-pointer) !important;
 }
 
-html.has-gl-cursor:not(.is-portal) .oracle-trigger,
-html.has-gl-cursor:not(.is-portal) .oracle-trigger *,
-html.has-gl-cursor:not(.is-portal) .oracle-pill-btn,
-html.has-gl-cursor:not(.is-portal) .oracle-pill-btn *,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith button,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith a,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith [role="button"],
-html.has-gl-cursor:not(.is-portal) .oracle-folio-btn,
-html.has-gl-cursor:not(.is-portal) .oracle-transmit-btn,
-html.has-gl-cursor:not(.is-portal) .oracle-close,
-html.has-gl-cursor:not(.is-portal) #masthead button,
-html.has-gl-cursor:not(.is-portal) #masthead a,
-html.has-gl-cursor:not(.is-portal) .sitemap-modal button,
-html.has-gl-cursor:not(.is-portal) .sitemap-modal [role="button"],
-html.has-gl-cursor:not(.is-portal) .sitemap-modal a,
-html.has-gl-cursor:not(.is-portal) .cv-dialog button,
-html.has-gl-cursor:not(.is-portal) .cv-dialog a,
-html.has-gl-cursor:not(.is-portal) .commission-dialog button,
-html.has-gl-cursor:not(.is-portal) .commission-dialog a {
-  cursor: pointer !important;
+/* Text editing inputs: precision gold I-beam */
+input,
+textarea,
+[contenteditable="true"],
+.oracle-text-field {
+  cursor: var(--cur-text) !important;
 }
 
-html.has-gl-cursor:not(.is-portal) .cv-dialog,
-html.has-gl-cursor:not(.is-portal) .cv-dialog *,
-html.has-gl-cursor:not(.is-portal) .commission-dialog,
-html.has-gl-cursor:not(.is-portal) .commission-dialog * {
-  cursor: default !important;
-  user-select: text !important;
-}
-
-html.has-gl-cursor:not(.is-portal) .oracle-monolith input,
-html.has-gl-cursor:not(.is-portal) .oracle-monolith textarea,
-html.has-gl-cursor:not(.is-portal) .oracle-text-field,
-html.has-gl-cursor:not(.is-portal) .oracle-entry-content,
-html.has-gl-cursor:not(.is-portal) .oracle-entry-content * {
-  cursor: text !important;
-}
-
-html.has-gl-cursor:not(.is-portal) input,
-html.has-gl-cursor:not(.is-portal) textarea {
-  cursor: text !important;
+/* Disabled controls */
+:disabled,
+[aria-disabled="true"],
+.oracle-transmit-btn:disabled {
+  cursor: var(--cur-disabled) !important;
 }
 /* a visible focus ring everywhere; the drawn cursor is no help to a keyboard */
 :focus-visible{outline:2px solid var(--gold-hot);outline-offset:3px}
@@ -545,7 +555,7 @@ a.flip-host:focus-visible .flip > i{transform:translateY(-100%)}
 
 /* --------------------------------------------------------- 13. cursor label */
 
-#cursor-label{position:fixed;top:0;left:0;z-index:60;pointer-events:none;
+#cursor-label{position:fixed;top:0;left:0;z-index:99999;pointer-events:none;
   font-size:var(--micro);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
   background:var(--gold-hot);padding:.5em .85em;border-radius:2em;white-space:nowrap;
   transform:translate3d(-50%,-50%,0) scale(var(--cs,0));opacity:var(--co,0);
@@ -1605,6 +1615,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   border-radius: 4px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 24px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+  overscroll-behavior: contain;
   animation: oracle-manifest 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1741,7 +1752,8 @@ html.is-loading,html.is-loading body{overflow:hidden}
 
 /* Transcript Stream */
 .oracle-ledger {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 16px 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1750,7 +1762,20 @@ html.is-loading,html.is-loading body{overflow:hidden}
   flex-direction: column;
   gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: var(--gold-30) transparent;
+  scrollbar-color: var(--gold-hot) rgba(12, 8, 5, 0.8);
+}
+
+.oracle-ledger::-webkit-scrollbar {
+  width: 5px;
+}
+
+.oracle-ledger::-webkit-scrollbar-track {
+  background: rgba(12, 8, 5, 0.8);
+}
+
+.oracle-ledger::-webkit-scrollbar-thumb {
+  background: var(--gold-hot);
+  border-radius: 3px;
 }
 
 .oracle-entry {
@@ -2472,14 +2497,30 @@ html.is-loading,html.is-loading body{overflow:hidden}
 }
 
 .sitemap-body {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 24px 28px;
   display: grid;
   grid-template-columns: 2.2fr 1fr;
   gap: 32px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(224, 162, 68, 0.3) transparent;
+  scrollbar-color: var(--gold-hot) rgba(13, 7, 4, 0.8);
+}
+
+.sitemap-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sitemap-body::-webkit-scrollbar-track {
+  background: rgba(13, 7, 4, 0.8);
+}
+
+.sitemap-body::-webkit-scrollbar-thumb {
+  background: var(--gold-hot);
+  border-radius: 3px;
 }
 
 .sitemap-sec-head {
@@ -2796,6 +2837,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   padding: 0;
   max-width: min(920px, calc(100vw - 32px));
   width: 100%;
+  height: min(880px, calc(100vh - 48px));
   max-height: calc(100vh - 40px);
   border-radius: 14px;
   color: var(--bone);
@@ -2806,6 +2848,7 @@ html.is-loading,html.is-loading body{overflow:hidden}
   position: fixed;
   inset: 0;
   margin: auto;
+  overscroll-behavior: contain;
 }
 
 .cv-dialog::backdrop {
@@ -2817,10 +2860,13 @@ html.is-loading,html.is-loading body{overflow:hidden}
 .cv-container {
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 40px);
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   background: #0d0704;
   border-radius: inherit;
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .cv-bar {
@@ -2866,14 +2912,31 @@ html.is-loading,html.is-loading body{overflow:hidden}
 }
 
 .cv-document {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 36px 44px;
   background: #0f0905;
   color: #ded1c4;
   font-family: var(--font-text);
   scrollbar-width: thin;
-  scrollbar-color: rgba(223, 173, 72, 0.3) transparent;
+  scrollbar-color: var(--gold-hot) rgba(20, 13, 8, 0.6);
+}
+
+.cv-document::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cv-document::-webkit-scrollbar-track {
+  background: rgba(13, 7, 4, 0.8);
+}
+
+.cv-document::-webkit-scrollbar-thumb {
+  background: var(--gold-hot);
+  border-radius: 3px;
 }
 
 .cv-header {
@@ -3179,6 +3242,23 @@ html.is-loading,html.is-loading body{overflow:hidden}
   padding: clamp(20px, 3vw, 32px);
   overflow-y: auto;
   max-height: calc(85vh - 70px);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold-hot) rgba(13, 7, 4, 0.8);
+}
+
+.commission-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.commission-body::-webkit-scrollbar-track {
+  background: rgba(13, 7, 4, 0.8);
+}
+
+.commission-body::-webkit-scrollbar-thumb {
+  background: var(--gold-hot);
+  border-radius: 3px;
 }
 
 .commission-intro {

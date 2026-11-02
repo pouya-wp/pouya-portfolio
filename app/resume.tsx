@@ -27,8 +27,18 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
       }
     };
 
+    const handleClick = (e: MouseEvent) => {
+      if (e.target === dialog) {
+        onClose();
+      }
+    };
+
     dialog.addEventListener('keydown', handleKeyDown);
-    return () => dialog.removeEventListener('keydown', handleKeyDown);
+    dialog.addEventListener('click', handleClick);
+    return () => {
+      dialog.removeEventListener('keydown', handleKeyDown);
+      dialog.removeEventListener('click', handleClick);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -43,10 +53,8 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
       className="cv-dialog"
       aria-label="Curriculum Vitae — Pouya Sadeghpour"
       data-native-scroll="true"
-      onWheel={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.stopPropagation()}
     >
-      <div className="cv-container">
+      <div className="cv-container" data-native-scroll="true">
         {/* Top Control Rail */}
         <div className="cv-bar no-print">
           <div className="cv-bar-meta">
@@ -74,7 +82,7 @@ export function ResumeModal({ isOpen, onClose }: ResumeModalProps) {
         </div>
 
         {/* Printable Resume Document */}
-        <div className="cv-document" id="cv-printable">
+        <div className="cv-document" id="cv-printable" data-native-scroll="true">
           {/* Header */}
           <header className="cv-header">
             <div className="cv-header-primary">

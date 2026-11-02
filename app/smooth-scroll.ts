@@ -25,6 +25,29 @@ export function scrollToY(y: number, instant = false): void {
   if (instant) { state.current = state.target; state.written = state.target; scrollTo(0, state.target); }
 }
 
+function isModalActive(): boolean {
+  if (typeof document === 'undefined') return false;
+  return !!document.querySelector('dialog[open], .case[open], .sitemap-modal, .commission-dialog[open], .cv-dialog[open]');
+}
+
+function isScrollableTarget(target: Element | null): boolean {
+  if (!target) return false;
+  if (isModalActive()) return true;
+  if (target.closest('dialog, [role="dialog"], [data-native-scroll], .cv-dialog, .cv-container, .cv-document, .oracle-monolith, .oracle-ledger, .commission-dialog, .sitemap-modal, .case, .case-copy, #case-study, .portal')) {
+    return true;
+  }
+  let el: Element | null = target;
+  while (el && el !== document.body && el !== document.documentElement) {
+    const style = window.getComputedStyle(el);
+    const oy = style.overflowY;
+    if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+      return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+}
+
 export function attachSmoothScroll(): () => void {
   const coarse = matchMedia('(pointer: coarse)').matches;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -35,7 +58,7 @@ export function attachSmoothScroll(): () => void {
 
   const wheel = (e: WheelEvent) => {
     if (e.ctrlKey) return;                       // pinch zoom
-    if ((e.target as Element | null)?.closest?.('[data-native-scroll], .oracle-monolith, .oracle-ledger')) return;
+    if (isScrollableTarget(e.target as Element | null)) return;
     e.preventDefault();
     // deltaMode 1 is lines, 2 is pages
     const scale = e.deltaMode === 1 ? 20 : e.deltaMode === 2 ? innerHeight : 1.15;
@@ -43,8 +66,10 @@ export function attachSmoothScroll(): () => void {
   };
 
   const keys = (e: KeyboardEvent) => {
-    const tag = (e.target as HTMLElement | null)?.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement | null)?.isContentEditable) return;
+    const target = e.target as HTMLElement | null;
+    const tag = target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+    if (isScrollableTarget(target)) return;
     const page = innerHeight * .86;
     const step: Record<string, number> = {
       ArrowDown: 110, ArrowUp: -110,

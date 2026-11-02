@@ -194,7 +194,7 @@ function CaseStudy({ project, index, total, onClose, onStep }: {
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <dialog className="case" ref={ref} aria-labelledby="case-title">
+    <dialog className="case" ref={ref} aria-labelledby="case-title" data-native-scroll="true">
       <div className="case-bar">
         <button className="pill is-dashed" onClick={onClose} data-cursor="BACK" autoFocus>
           <span aria-hidden="true">&#8601;</span> Back to the sheet
@@ -1068,7 +1068,7 @@ export default function Home() {
 
         {/* Full Architectural Site Map Modal */}
         {actsOpen && (
-          <dialog className="sitemap-modal" open aria-label="System Sitemap & Acts">
+          <dialog className="sitemap-modal" open aria-label="System Sitemap & Acts" data-native-scroll="true">
             <button
               type="button"
               className="sitemap-backdrop"
