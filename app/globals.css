@@ -1079,7 +1079,9 @@ html.is-loading,html.is-loading body{overflow:hidden}
 #ct-links a{display:block;font-size:var(--sub2);letter-spacing:.02em;margin-bottom:.35em}
 /* The wreckage, printed as flatly as a parts list. A leader rule does the work a
    table would otherwise need, and there is not one adjective in the column. */
-#ct-killed{min-width:0}
+#ct-killed {
+  min-width: 300px !important;
+}
 #ct-killed ul{list-style:none;margin:.2em 0 0;padding:0}
 #ct-killed li{display:flex;align-items:baseline;justify-content:space-between;gap:.8em;padding:.36em 0;
   font-size:var(--sub2);color:var(--bone-70);line-height:1.4}
