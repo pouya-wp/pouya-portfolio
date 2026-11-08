@@ -5,11 +5,18 @@
 ### Seven-Act Scroll-Driven 3D WebGL Portfolio & Interactive Sculpture
 
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20WebGL-black?style=flat-square&logo=webgl)](https://pouya-portfolio.vercel.app)
+[![CI](https://github.com/pouya-wp/pouya-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/pouya-wp/pouya-portfolio/actions/workflows/ci.yml)
 [![Next.js](https://img.shields.io/badge/Next.js-15%20%2B%20React%2019-000000?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![Three.js](https://img.shields.io/badge/3D-Three.js%20r186-049EF4?style=flat-square&logo=threedotjs)](https://threejs.org/)
 [![GSAP](https://img.shields.io/badge/Animation-GSAP%20%2B%20Lenis-88CE02?style=flat-square&logo=greensock)](https://greensock.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Author](https://img.shields.io/badge/Author-Pouya%20Sadeghpour-181717?style=flat-square&logo=github)](https://github.com/pouya-wp)
+
+<br/>
+
+<p align="center">
+  <img src="assets/preview.png" alt="Pouya Portfolio Preview" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" />
+</p>
 
 <p align="center">
   A high-end, luxury interactive WebGL showcase featuring a machined obsidian superellipse disc, Voronoi cell fracture physics, kintsugi golden repair animations, per-pixel motion blur, custom cutting cursor dynamics, and procedural audio synthesis.
