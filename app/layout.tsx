@@ -34,9 +34,12 @@ export const metadata: Metadata = {
   creator: 'Pouya Sadeghpour',
   publisher: 'BeyondEx Studio',
   icons: {
-    icon: '/favicon.svg',
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico' },
+    ],
     shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
   alternates: {
